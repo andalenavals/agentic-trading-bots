@@ -3,9 +3,10 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import {
   CartesianGrid,
+  ComposedChart,
   Line,
-  LineChart,
   ResponsiveContainer,
+  Scatter,
   Tooltip,
   XAxis,
   YAxis,
@@ -75,9 +76,9 @@ export function AgentGym({ agentGym, commodities }: Props) {
     <section className="agent-gym">
       <div className="panel-head">
         <div>
-          <h2 style={{ fontSize: 19 }}>PPO training gym</h2>
+          <h2 style={{ fontSize: 19 }}>Trading bots gym</h2>
           <p className="faint" style={{ fontSize: 12, marginTop: 3 }}>
-            Visualize buy, hold, and sell decisions. Dot opacity represents decision confidence, so faint marks are uncertain.
+            Inspect the price series with trained PPO decisions overlaid. Marker opacity represents decision confidence, so faint marks are uncertain.
           </p>
         </div>
         <div className="tag-row">
@@ -139,30 +140,32 @@ export function AgentGym({ agentGym, commodities }: Props) {
                 {activeCommodity.symbol}
               </span>
               <div>
-                <h3 style={{ fontSize: 15 }}>Action probability trace</h3>
+                <h3 style={{ fontSize: 15 }}>Price series with bot decisions</h3>
                 <p className="faint" style={{ fontSize: 11, marginTop: 3 }}>
-                  Hold, buy, and sell probabilities after {granularity === "all" ? "full-window" : granularity} aggregation
+                  Buy, hold, and sell markers over {granularity === "all" ? "the full selected window" : `${granularity}-level`} price data
                 </p>
               </div>
             </div>
             <Legend />
           </div>
-          <div className="chart-box" style={{ height: 300 }}>
+          <div className="chart-box" style={{ height: 390 }}>
             {mounted ? (
               <ResponsiveContainer height="100%" width="100%">
-                <LineChart data={aggregated}>
+                <ComposedChart data={aggregated}>
                   <CartesianGrid stroke="#252b3a" vertical={false} />
                   <XAxis axisLine={false} dataKey="label" tick={{ fill: "#697185", fontSize: 11 }} tickLine={false} />
-                  <YAxis axisLine={false} domain={[0, 1]} tick={{ fill: "#697185", fontSize: 11 }} tickFormatter={(value) => `${Math.round(Number(value) * 100)}%`} tickLine={false} width={52} />
-                  <Tooltip
-                    contentStyle={{ background: "#202536", border: "1px solid #2c3243", borderRadius: 8 }}
-                    formatter={(value, name) => [`${(Number(value) * 100).toFixed(1)}%`, String(name).replace("prob", "")]}
-                    labelStyle={{ color: "#cbd0dc" }}
-                  />
-                  <Line dataKey="probHold" dot={false} stroke={ACTION_COLOR.hold} strokeWidth={2} type="monotone" />
-                  <Line dataKey="probBuy" dot={false} stroke={ACTION_COLOR.buy} strokeWidth={2} type="monotone" />
-                  <Line dataKey="probSell" dot={false} stroke={ACTION_COLOR.sell} strokeWidth={2} type="monotone" />
-                </LineChart>
+                  <YAxis axisLine={false} domain={["auto", "auto"]} tick={{ fill: "#697185", fontSize: 11 }} tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`} tickLine={false} width={62} />
+                  <Tooltip content={<AgentTooltip />} />
+                  <Line dataKey="price" dot={false} stroke={activeCommodity.colorHex} strokeWidth={2} type="monotone" />
+                  {(["hold", "buy", "sell"] as AgentActionName[]).map((actionName) => (
+                    <Scatter
+                      data={aggregated.filter((point) => point.actionName === actionName)}
+                      dataKey="price"
+                      key={actionName}
+                      shape={<DecisionDot />}
+                    />
+                  ))}
+                </ComposedChart>
               </ResponsiveContainer>
             ) : null}
           </div>
@@ -249,6 +252,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 type AggregatedAgentPoint = {
   key: string;
   label: string;
+  price: number;
   probHold: number;
   probBuy: number;
   probSell: number;
@@ -277,6 +281,7 @@ function aggregateAgentPoints(points: AgentDecisionPoint[], granularity: Granula
     return {
       key,
       label: labelForKey(key, granularity),
+      price: average(bucket.map((point) => point.price)),
       probHold,
       probBuy,
       probSell,
@@ -287,6 +292,40 @@ function aggregateAgentPoints(points: AgentDecisionPoint[], granularity: Granula
       reward: bucket.reduce((sum, point) => sum + point.reward, 0),
     };
   });
+}
+
+function AgentTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: AggregatedAgentPoint }> }) {
+  if (!active || !payload?.[0]) return null;
+  const point = payload[0].payload;
+
+  return (
+    <div className="panel" style={{ minWidth: 220, padding: 12 }}>
+      <p className="faint" style={{ fontSize: 12 }}>{point.label}</p>
+      <p style={{ fontWeight: 800, marginTop: 4 }}>${point.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+      <p style={{ color: ACTION_COLOR[point.actionName], fontSize: 12, fontWeight: 800, marginTop: 8, textTransform: "uppercase" }}>
+        {point.actionName} · {(point.confidence * 100).toFixed(1)}% confidence
+      </p>
+      <p className="muted" style={{ fontSize: 12, lineHeight: 1.45, marginTop: 8 }}>
+        Hold {(point.probHold * 100).toFixed(1)}% · Buy {(point.probBuy * 100).toFixed(1)}% · Sell {(point.probSell * 100).toFixed(1)}%
+      </p>
+    </div>
+  );
+}
+
+function DecisionDot(props: { cx?: number; cy?: number; payload?: AggregatedAgentPoint }) {
+  if (props.cx === undefined || props.cy === undefined || !props.payload) return <g />;
+
+  return (
+    <circle
+      cx={props.cx}
+      cy={props.cy}
+      fill={ACTION_COLOR[props.payload.actionName]}
+      fillOpacity={Math.max(0.18, props.payload.confidence)}
+      r={5 + props.payload.confidence * 5}
+      stroke="#10131a"
+      strokeWidth={1.5}
+    />
+  );
 }
 
 function summarizeAgentPoints(points: AgentDecisionPoint[]) {
@@ -340,4 +379,3 @@ function useClientMounted() {
     () => false,
   );
 }
-

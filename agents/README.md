@@ -1,6 +1,6 @@
 # PPO Agents
 
-This folder contains the Python training and evaluation code brought over from `CreareCorpAndres`.
+This folder contains the Python training and evaluation code for the commodity PPO agents.
 
 ## Layout
 
@@ -37,4 +37,3 @@ pip install -r agents/requirements.txt
 ## Notes
 
 The copied scripts preserve the original research workflow. The next modularity step would be to extract shared environment, split, metrics, and plotting utilities into a reusable Python package under `agents/ppo_trading/`.
-

@@ -30,9 +30,9 @@ These helpers are framework-light and can be moved into tests or scripts without
 - single-commodity price chart
 - relative performance chart
 - event feed
-- PPO training-gym visualization
+- trading bots gym visualization
 
-The components use the visual language from `CreareCorp`: dark surfaces, gold active controls, material chips, and dense market-dashboard layouts.
+The components use a dense market-dashboard visual language: dark surfaces, gold active controls, material chips, and compact trading panels.
 
 ## MVP Boundary
 

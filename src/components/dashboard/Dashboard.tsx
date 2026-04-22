@@ -25,10 +25,10 @@ export function Dashboard({ data }: Props) {
       <header className="topbar">
         <div>
           <p className="eyebrow">Commodity Signal Intelligence</p>
-          <h1>CreareCorp decision support</h1>
+          <h1>Agentic trading bots</h1>
           <p className="subtitle">
             Local-first dashboard combining LME price history, curated market news, FinBERT sentiment,
-            and reinforcement-learning evaluation outputs from CreareCorpAndres.
+            and reinforcement-learning outputs from trained commodity trading bots.
           </p>
         </div>
         <div className="meta-strip">
@@ -44,7 +44,7 @@ export function Dashboard({ data }: Props) {
           Market + news layer
         </button>
         <button className={layer === "gym" ? "active" : ""} onClick={() => setLayer("gym")} type="button">
-          PPO training gym
+          Trading bots gym
         </button>
       </div>
 
