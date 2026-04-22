@@ -80,7 +80,7 @@ class SingleAssetTradingEnv(gym.Env):
             self.balance += current_price
 
         self.net_worth = self.balance + self.position * current_price
-        reward = np.log((self.net_worth + 1e-8) / (prev_worth + 1e-8))
+        reward = (self.net_worth - prev_worth) / self.initial_balance
         self.current_step += 1
 
         terminated = self.current_step >= self.max_steps
