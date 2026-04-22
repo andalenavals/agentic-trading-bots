@@ -13,7 +13,7 @@ What the Demo Shows
 
 The demo has two layers:
 
-* **Market + news**: price charts, sentiment summaries, relative commodity performance, and clicked-date news context.
+* **Market + news**: price charts, sentiment summaries, relative commodity performance, and market events.
 * **Trading bots gym**: price time series with trained PPO buy, hold, and sell decisions overlaid.
 
 Repository Shape

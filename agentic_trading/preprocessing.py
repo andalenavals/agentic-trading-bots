@@ -3,9 +3,13 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Iterable
+
+
+csv.field_size_limit(sys.maxsize)
 
 
 COMMODITY_ALIASES = {
@@ -183,11 +187,12 @@ def build_prices_with_news(
                 "price": price.get("price", ""),
                 "news_ids": ";".join(str(event["event_id"]) for event in events),
                 "news_count": len(events),
+                "news_items": json.dumps(events, ensure_ascii=True, separators=(",", ":")),
                 "news_summary": " | ".join(str(event["summary"]) for event in events),
             }
         )
 
-    write_csv(output, rows, ["date", "commodity", "price", "news_ids", "news_count", "news_summary"])
+    write_csv(output, rows, ["date", "commodity", "price", "news_ids", "news_count", "news_items", "news_summary"])
 
 
 def add_sentiment(input_csv: Path, output_csv: Path) -> None:
@@ -207,6 +212,7 @@ def add_sentiment(input_csv: Path, output_csv: Path) -> None:
             "price",
             "news_ids",
             "news_count",
+            "news_items",
             "news_summary",
             "negative",
             "neutral",

@@ -9,11 +9,12 @@ import {
   Line,
   ReferenceLine,
   ResponsiveContainer,
-  Scatter,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
+import { sourceName } from "@/lib/analytics/news";
 import { computeSignals } from "@/lib/analytics/signals";
 import type { Commodity, SentimentPoint } from "@/lib/types";
 
@@ -22,8 +23,6 @@ type ChartType = "line" | "area" | "bar";
 type Props = {
   commodity: Commodity;
   points: SentimentPoint[];
-  selectedPoint: SentimentPoint | null;
-  onSelectPoint: (point: SentimentPoint) => void;
 };
 
 type ChartClickEvent = {
@@ -36,18 +35,19 @@ const RANGES = [
   { label: "ALL", value: 9999 },
 ];
 
-export function PriceChart({ commodity, points, selectedPoint, onSelectPoint }: Props) {
+export function PriceChart({ commodity, points }: Props) {
   const mounted = useClientMounted();
   const [chartType, setChartType] = useState<ChartType>("area");
   const [range, setRange] = useState(365);
+  const [selectedPoint, setSelectedPoint] = useState<SentimentPoint | null>(null);
   const filtered = useMemo(() => (range >= 9999 ? points : points.slice(-range)), [points, range]);
   const signal = computeSignals(filtered);
   const chartData = filtered.map((point) => ({
     ...point,
     label: new Date(point.date).toLocaleDateString("en-US", { month: "short", year: range >= 365 ? "2-digit" : undefined, day: range < 365 ? "numeric" : undefined }),
   }));
-  const newsPoints = chartData.filter((point) => point.newsCount > 0);
   const tickInterval = Math.max(1, Math.floor(chartData.length / 8));
+  const displayedSummary = selectedPoint?.newsSummary || signal.latestSummary;
 
   return (
     <section className="panel">
@@ -87,7 +87,7 @@ export function PriceChart({ commodity, points, selectedPoint, onSelectPoint }: 
             <ComposedChart data={chartData} onClick={(event) => {
               const clicked = (event as ChartClickEvent | undefined)?.activePayload?.[0]?.payload;
               if (clicked) {
-                onSelectPoint(clicked);
+                setSelectedPoint(clicked);
               }
             }}>
               <defs>
@@ -108,17 +108,43 @@ export function PriceChart({ commodity, points, selectedPoint, onSelectPoint }: 
               ) : (
                 <Area dataKey="price" dot={false} fill={`url(#price-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
               )}
-              <Scatter data={newsPoints} dataKey="price" shape={<NewsDot />} />
             </ComposedChart>
           </ResponsiveContainer>
         ) : null}
       </div>
 
       <div className="summary">
-        <strong>{selectedPoint ? `Selected ${new Date(selectedPoint.date).toLocaleDateString()}` : "Select a point"}:</strong>{" "}
-        {selectedPoint
-          ? `${selectedPoint.newsCount} linked news item${selectedPoint.newsCount === 1 ? "" : "s"} for ${commodity.name}.`
-          : "Click a point in the chart to inspect every linked news item in the right panel."}
+        <strong>{selectedPoint ? `Market read for ${new Date(selectedPoint.date).toLocaleDateString()}` : "Latest market read"}:</strong>{" "}
+        {displayedSummary || "Click a point in the chart to inspect the news context for that date."}
+        {selectedPoint?.newsItems.length ? (
+          <div className="clicked-news-list">
+            {selectedPoint.newsItems.map((event) => (
+              <article className="clicked-news-item" key={event.id}>
+                <div className="tag-row">
+                  <span className="source">{sourceName(event.url)}</span>
+                  <span className="faint" style={{ fontSize: 11 }}>
+                    {new Date(event.date).toLocaleString("en-GB", { day: "2-digit", hour: "2-digit", minute: "2-digit", month: "short", year: "2-digit" })}
+                  </span>
+                  {event.impactedCommodities.map((slug) => {
+                    const impacted = COMMODITY_LOOKUP[slug];
+                    return (
+                      <span
+                        className="chip"
+                        key={slug}
+                        style={{ backgroundColor: `${impacted.colorHex}22`, color: impacted.colorHex, fontSize: 10, height: 24, width: 24 }}
+                        title={impacted.name}
+                      >
+                        {impacted.symbol}
+                      </span>
+                    );
+                  })}
+                </div>
+                <a href={event.url} rel="noreferrer" target="_blank">{event.title}</a>
+                <p>{event.summary}</p>
+              </article>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="panel-foot">
@@ -147,25 +173,8 @@ function PriceTooltip({ active, payload, color }: { active?: boolean; payload?: 
     <div className="panel" style={{ maxWidth: 340, padding: 12 }}>
       <p className="faint" style={{ fontSize: 12 }}>{new Date(point.date).toLocaleDateString()}</p>
       <p style={{ color, fontWeight: 800, marginTop: 4 }}>${point.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-      <p className="muted" style={{ fontSize: 12, lineHeight: 1.35, marginTop: 8 }}>
-        {point.newsCount > 0 ? `${point.newsCount} linked news item${point.newsCount === 1 ? "" : "s"}. Click to show them.` : "No linked news for this point."}
-      </p>
+      <p className="muted" style={{ fontSize: 12, lineHeight: 1.35, marginTop: 8 }}>Click to show the news context.</p>
     </div>
-  );
-}
-
-function NewsDot(props: { cx?: number; cy?: number; payload?: SentimentPoint }) {
-  if (props.cx === undefined || props.cy === undefined || !props.payload) return <g />;
-
-  return (
-    <circle
-      cx={props.cx}
-      cy={props.cy}
-      fill="#c9a44a"
-      r={Math.min(8, 3 + props.payload.newsCount * 0.6)}
-      stroke="#10131a"
-      strokeWidth={1.5}
-    />
   );
 }
 

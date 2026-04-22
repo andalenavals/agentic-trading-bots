@@ -18,7 +18,7 @@ The MVP is intentionally local-first. The only required checked-in data lives in
 - Shows LME copper, nickel, and aluminium price history
 - Links each commodity to curated news summaries and generated sentiment scores
 - Compares commodities using normalized relative-performance charts
-- Displays clicked-date news context from the price time series, including multi-asset news
+- Displays recent market events and selected-point news context from the price time series
 - Includes config-driven single-asset and multi-asset PPO training modules
 - Adds a trading bots gym layer that overlays hold/buy/sell decisions on the price series with opacity for uncertainty
 

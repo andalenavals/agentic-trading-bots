@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -54,6 +55,9 @@ class PreprocessingTest(unittest.TestCase):
             self.assertEqual(rows[0]["commodity"], "copper_lme")
             self.assertEqual(rows[0]["news_count"], "1")
             self.assertTrue(rows[0]["news_ids"].startswith("news_"))
+            news_items = json.loads(rows[0]["news_items"])
+            self.assertEqual(len(news_items), 1)
+            self.assertEqual(news_items[0]["title"], "Copper and nickel rally")
             self.assertIn("rally", rows[0]["news_summary"])
             self.assertGreater(float(rows[0]["sentiment_score"]), 0)
             self.assertTrue((training_dir / "copper_lme.csv").exists())

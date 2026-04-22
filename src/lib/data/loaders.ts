@@ -35,6 +35,7 @@ export const loadDashboardData = cache(async (): Promise<DashboardData> => {
       price: toNumber(row.price),
       newsIds: row.news_ids ? row.news_ids.split(";").filter(Boolean) : [],
       newsCount: toNumber(row.news_count),
+      newsItems: parseNewsItems(row.news_items),
       newsSummary: row.news_summary,
       negative: toNumber(row.negative),
       neutral: toNumber(row.neutral),
@@ -74,3 +75,31 @@ export const loadDashboardData = cache(async (): Promise<DashboardData> => {
     agentGym,
   };
 });
+
+function parseNewsItems(value: string): NewsEvent[] {
+  if (!value) return [];
+
+  try {
+    const parsed = JSON.parse(value) as Array<Record<string, string>>;
+    return parsed.flatMap((item) => {
+      const impactedCommodities = (item.impacted_commodities ?? "")
+        .split(";")
+        .map(normalizeCommodity)
+        .filter((commodity): commodity is CommoditySlug => commodity !== null);
+
+      if (!item.event_id || impactedCommodities.length === 0) return [];
+
+      return [{
+        id: item.event_id,
+        date: item.date ?? "",
+        eventDay: item.event_day || (item.date ?? "").slice(0, 10),
+        title: item.title ?? "",
+        url: item.url ?? "",
+        impactedCommodities,
+        summary: item.summary ?? "",
+      }];
+    });
+  } catch {
+    return [];
+  }
+}

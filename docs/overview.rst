@@ -23,9 +23,9 @@ The market layer shows:
 * commodity cards with price, trend, volatility, and sentiment
 * a single-commodity price chart
 * relative performance across commodities
-* a clicked-date news context panel
+* a market-event feed
 
-News summaries are not shown in the price-chart hover tooltip. When a chart point is clicked, the right panel shows every curated news item for that commodity and day. A single news item can affect more than one asset, and multiple items can appear on the same day.
+News summaries are not shown in the price-chart hover tooltip. When a chart point is clicked, the price chart expands the selected day's linked news below the chart. A single news item can affect more than one asset, and multiple items can appear on the same commodity/date row.
 
 Trading Bots Gym
 ~~~~~~~~~~~~~~~~

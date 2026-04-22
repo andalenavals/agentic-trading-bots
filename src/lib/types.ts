@@ -17,6 +17,7 @@ export type PricePoint = {
 export type SentimentPoint = PricePoint & {
   newsIds: string[];
   newsCount: number;
+  newsItems: NewsEvent[];
   newsSummary: string;
   negative: number;
   neutral: number;
