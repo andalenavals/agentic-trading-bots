@@ -1,0 +1,27 @@
+{
+  "name": "agentic-trading-bots",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agentic commodity trading dashboard with news, sentiment, and PPO bot visualizations.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.2.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^3.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.27",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "16.2.3",
+    "typescript": "^5.9.3"
+  }
+}
