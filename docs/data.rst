@@ -16,15 +16,17 @@ Current Files
    * - ``data/raw/news.csv``
      - Commodity snapshot
      - Curated news events
-   * - ``data/processed/prices_with_sentiment.csv``
-     - Enriched commodity snapshot
-     - Joined price, summary, and FinBERT sentiment rows
-   * - ``data/agent_outputs/single_asset_ppo/*.csv``
-     - PPO output snapshot
-     - Single-asset PPO test and full-dataset decisions
-   * - ``data/agent_outputs/multiple_asset_ppo/*.csv``
-     - PPO output snapshot
-     - Multi-asset PPO test and full-dataset decisions
+   * - ``data/processed/*.csv``
+     - Generated
+     - Joined price, news, and sentiment rows
+   * - ``data/training/commodity_outputs/*.csv``
+     - Generated
+     - Per-commodity training data for single-asset bots
+   * - ``data/agent_outputs/**/*.csv``
+     - Generated
+     - PPO evaluation outputs used by the trading bots gym
+
+Only ``data/raw/prices.csv`` and ``data/raw/news.csv`` are required checked-in data. The other paths are generated and ignored by Git.
 
 Primary Dashboard Schema
 ------------------------
@@ -61,5 +63,10 @@ Lower opacity means the agent was more uncertain.
 Refresh Rule
 ------------
 
-Keep raw data snapshots in ``data/``. Keep transformation logic in ``src/lib/data`` and ``src/lib/analytics``. Avoid embedding data assumptions directly inside React components.
+Keep raw data snapshots in ``data/raw/``. Generate processed visualization data and bot training data with:
 
+.. code-block:: bash
+
+   npm run preprocess
+
+Keep transformation logic in ``agentic_trading/preprocessing.py``, ``src/lib/data``, and ``src/lib/analytics``. Avoid embedding data assumptions directly inside React components.

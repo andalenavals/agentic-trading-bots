@@ -5,7 +5,8 @@
   "description": "Agentic commodity trading dashboard with news, sentiment, and PPO bot visualizations.",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "preprocess": "python3 -m agentic_trading.preprocessing --config configs/preprocessing/default.json all",
+    "build": "npm run preprocess && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"

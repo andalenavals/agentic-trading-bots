@@ -9,7 +9,7 @@ Layers
 Data
 ~~~~
 
-``src/lib/data/`` owns file loading and CSV parsing. UI components should not read files directly.
+``agentic_trading/preprocessing.py`` owns raw-to-derived data generation. ``src/lib/data/`` owns app-side file loading and CSV parsing. UI components should not read files directly.
 
 Analytics
 ~~~~~~~~~
@@ -44,6 +44,7 @@ MVP Boundary
 Included:
 
 * local CSV ingestion
+* generated processed/training data from raw CSVs
 * price and sentiment dashboard
 * event feed
 * single-asset and multi-asset PPO training scripts
@@ -57,4 +58,3 @@ Deferred:
 * chatbot or briefing API
 * full trading-policy simulator
 * browser-based PPO retraining
-

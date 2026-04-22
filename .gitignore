@@ -5,9 +5,14 @@
 node_modules/
 out/
 docs/_build/
+data/processed/
+data/training/
+data/agent_outputs/
 coverage/
 dist/
 *.tsbuildinfo
+__pycache__/
+.pytest_cache/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

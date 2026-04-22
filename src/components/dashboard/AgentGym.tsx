@@ -149,7 +149,15 @@ export function AgentGym({ agentGym, commodities }: Props) {
             <Legend />
           </div>
           <div className="chart-box" style={{ height: 390 }}>
-            {mounted ? (
+            {aggregated.length === 0 ? (
+              <div className="empty-state">
+                <h3>No bot decisions generated yet</h3>
+                <p>
+                  Run a PPO training command to generate files under <code>data/agent_outputs</code>.
+                  The app only requires raw data in Git; bot outputs are generated artifacts.
+                </p>
+              </div>
+            ) : mounted ? (
               <ResponsiveContainer height="100%" width="100%">
                 <ComposedChart data={aggregated}>
                   <CartesianGrid stroke="#252b3a" vertical={false} />

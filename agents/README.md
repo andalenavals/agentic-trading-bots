@@ -1,20 +1,25 @@
 # PPO Agents
 
-This folder contains the Python training and evaluation code for the commodity PPO agents.
+This folder intentionally no longer contains hardcoded agent scripts or plotting utilities.
+
+Agent configuration lives in:
+
+```text
+configs/agents/
+```
+
+Reusable training code lives in:
+
+```text
+agentic_trading/training/
+```
 
 ## Layout
 
 ```text
-agents/
-├── single_asset/
-│   ├── agent_individual_ppo.py
-│   ├── split_data_by_commodity.py
-│   └── plot_prob_action_range.py
-└── multiple_asset/
-    ├── agent_ppo.py
-    ├── agent_ppo2.py
-    ├── plot_prob_action.py
-    └── plot_prob_action_ind.py
+configs/agents/
+├── single_asset_ppo.json
+└── multiple_asset_ppo.json
 ```
 
 The Next.js dashboard does not retrain models in the browser. It visualizes saved PPO outputs from:
@@ -36,4 +41,4 @@ pip install -r agents/requirements.txt
 
 ## Notes
 
-The copied scripts preserve the original research workflow. The next modularity step would be to extract shared environment, split, metrics, and plotting utilities into a reusable Python package under `agents/ppo_trading/`.
+The training layer should stay config-driven: no direct data paths, no plotting functions, and no checked-in generated outputs.

@@ -1,0 +1,14 @@
+{
+  "input_csv": "data/training/commodity_outputs/copper_lme.csv",
+  "output_dir": "data/agent_outputs/single_asset_ppo",
+  "window_size": 10,
+  "initial_balance": 1000.0,
+  "n_splits": 3,
+  "total_timesteps": 10000,
+  "learning_rate": 0.0003,
+  "n_steps": 256,
+  "batch_size": 64,
+  "gamma": 0.99,
+  "seed": 42
+}
+

@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { normalizeCommodity } from "@/lib/analytics/commodities";
 import { parseCsv, toNumber } from "@/lib/data/csv";
@@ -37,19 +37,33 @@ const AGENT_SOURCES: AgentGymData["sources"] = [
 export const loadAgentGymData = cache(async (): Promise<AgentGymData> => {
   const loaded = await Promise.all(
     AGENT_SOURCES.map(async (source) => {
-      const text = await readFile(path.join(AGENT_ROOT, source.path), "utf8");
+      const fullPath = path.join(AGENT_ROOT, source.path);
+      if (!(await exists(fullPath))) return { source, points: [] };
+
+      const text = await readFile(fullPath, "utf8");
       const rows = parseCsv(text);
-      return source.model === "single_asset_ppo"
+      const points = source.model === "single_asset_ppo"
         ? rows.flatMap((row) => parseSingleAssetRow(row, source.model, source.dataset, source.split))
         : rows.flatMap((row) => parseMultipleAssetRow(row, source.model, source.dataset, source.split));
+
+      return { source, points };
     }),
   );
 
   return {
-    points: loaded.flat().sort((a, b) => a.date.localeCompare(b.date)),
-    sources: AGENT_SOURCES,
+    points: loaded.flatMap((item) => item.points).sort((a, b) => a.date.localeCompare(b.date)),
+    sources: loaded.filter((item) => item.points.length > 0).map((item) => item.source),
   };
 });
+
+async function exists(filePath: string) {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function parseSingleAssetRow(
   row: Record<string, string>,
@@ -141,4 +155,3 @@ function normalizeEntropy(entropy: number) {
   if (entropy <= 0) return 0;
   return Math.min(1, entropy / Math.log(3));
 }
-

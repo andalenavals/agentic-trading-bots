@@ -23,7 +23,7 @@ Repository Shape
 
    agentic-trading-bots/
    ├── agents/              # PPO training and plotting scripts
-   ├── data/                # Raw, processed, and agent-output CSV snapshots
+   ├── data/                # Raw CSV snapshots plus ignored generated artifacts
    ├── docs/                # Sphinx documentation source
    ├── src/                 # Next.js app, components, loaders, analytics
    └── tests/               # Test placeholders
@@ -38,5 +38,5 @@ Contents
    architecture
    data
    agents
+   modularity_review
    deployment
-

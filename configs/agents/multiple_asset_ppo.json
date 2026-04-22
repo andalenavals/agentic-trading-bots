@@ -1,0 +1,18 @@
+{
+  "input_csv": "data/processed/prices_with_sentiment.csv",
+  "output_dir": "data/agent_outputs/multiple_asset_ppo",
+  "commodities": ["aluminium_lme", "copper_lme", "nickel_lme"],
+  "feature_columns": ["price", "negative", "neutral", "positive", "sentiment_score"],
+  "window_size": 10,
+  "initial_balance": 10000.0,
+  "n_splits": 3,
+  "total_timesteps": 10000,
+  "learning_rate": 0.0003,
+  "n_steps": 256,
+  "batch_size": 64,
+  "gamma": 0.99,
+  "epsilon": 0.05,
+  "allow_infinite_capital": true,
+  "seed": 42
+}
+

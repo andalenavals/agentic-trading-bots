@@ -447,6 +447,26 @@ h1 {
   margin-bottom: 8px;
 }
 
+.empty-state {
+  align-content: center;
+  color: var(--muted);
+  display: grid;
+  height: 100%;
+  justify-items: center;
+  line-height: 1.5;
+  padding: 24px;
+  text-align: center;
+}
+
+.empty-state h3 {
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.empty-state code {
+  color: var(--gold);
+}
+
 @media (max-width: 980px) {
   .shell {
     padding: 20px;
