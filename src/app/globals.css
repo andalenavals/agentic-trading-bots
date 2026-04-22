@@ -299,42 +299,6 @@ h1 {
   padding: 0 18px 18px;
 }
 
-.clicked-news-list {
-  border-top: 1px solid var(--line);
-  display: grid;
-  gap: 12px;
-  margin-top: 14px;
-  max-height: 360px;
-  overflow: auto;
-  padding-top: 14px;
-}
-
-.clicked-news-item {
-  background: #151923;
-  border: 1px solid #222838;
-  border-radius: 6px;
-  display: grid;
-  gap: 8px;
-  padding: 12px;
-}
-
-.clicked-news-item a {
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.35;
-  text-decoration: none;
-}
-
-.clicked-news-item a:hover {
-  color: var(--gold);
-}
-
-.clicked-news-item p {
-  color: var(--muted);
-  font-size: 12px;
-}
-
 .events {
   max-height: 715px;
   overflow: auto;

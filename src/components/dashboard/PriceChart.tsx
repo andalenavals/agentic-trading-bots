@@ -13,8 +13,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
-import { sourceName } from "@/lib/analytics/news";
 import { computeSignals } from "@/lib/analytics/signals";
 import type { Commodity, SentimentPoint } from "@/lib/types";
 
@@ -22,7 +20,9 @@ type ChartType = "line" | "area" | "bar";
 
 type Props = {
   commodity: Commodity;
+  onSelectPoint: (point: SentimentPoint) => void;
   points: SentimentPoint[];
+  selectedPoint: SentimentPoint | null;
 };
 
 type ChartClickEvent = {
@@ -35,11 +35,10 @@ const RANGES = [
   { label: "ALL", value: 9999 },
 ];
 
-export function PriceChart({ commodity, points }: Props) {
+export function PriceChart({ commodity, onSelectPoint, points, selectedPoint }: Props) {
   const mounted = useClientMounted();
   const [chartType, setChartType] = useState<ChartType>("area");
   const [range, setRange] = useState(365);
-  const [selectedPoint, setSelectedPoint] = useState<SentimentPoint | null>(null);
   const filtered = useMemo(() => (range >= 9999 ? points : points.slice(-range)), [points, range]);
   const signal = computeSignals(filtered);
   const chartData = filtered.map((point) => ({
@@ -87,7 +86,7 @@ export function PriceChart({ commodity, points }: Props) {
             <ComposedChart data={chartData} onClick={(event) => {
               const clicked = (event as ChartClickEvent | undefined)?.activePayload?.[0]?.payload;
               if (clicked) {
-                setSelectedPoint(clicked);
+                onSelectPoint(clicked);
               }
             }}>
               <defs>
@@ -116,35 +115,6 @@ export function PriceChart({ commodity, points }: Props) {
       <div className="summary">
         <strong>{selectedPoint ? `Market read for ${new Date(selectedPoint.date).toLocaleDateString()}` : "Latest market read"}:</strong>{" "}
         {displayedSummary || "Click a point in the chart to inspect the news context for that date."}
-        {selectedPoint?.newsItems.length ? (
-          <div className="clicked-news-list">
-            {selectedPoint.newsItems.map((event) => (
-              <article className="clicked-news-item" key={event.id}>
-                <div className="tag-row">
-                  <span className="source">{sourceName(event.url)}</span>
-                  <span className="faint" style={{ fontSize: 11 }}>
-                    {new Date(event.date).toLocaleString("en-GB", { day: "2-digit", hour: "2-digit", minute: "2-digit", month: "short", year: "2-digit" })}
-                  </span>
-                  {event.impactedCommodities.map((slug) => {
-                    const impacted = COMMODITY_LOOKUP[slug];
-                    return (
-                      <span
-                        className="chip"
-                        key={slug}
-                        style={{ backgroundColor: `${impacted.colorHex}22`, color: impacted.colorHex, fontSize: 10, height: 24, width: 24 }}
-                        title={impacted.name}
-                      >
-                        {impacted.symbol}
-                      </span>
-                    );
-                  })}
-                </div>
-                <a href={event.url} rel="noreferrer" target="_blank">{event.title}</a>
-                <p>{event.summary}</p>
-              </article>
-            ))}
-          </div>
-        ) : null}
       </div>
 
       <div className="panel-foot">

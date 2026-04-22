@@ -6,8 +6,7 @@ import { CommodityCards } from "@/components/dashboard/CommodityCards";
 import { EventFeed } from "@/components/dashboard/EventFeed";
 import { OverlayChart } from "@/components/dashboard/OverlayChart";
 import { PriceChart } from "@/components/dashboard/PriceChart";
-import { filterNews } from "@/lib/analytics/news";
-import type { CommoditySlug, DashboardData } from "@/lib/types";
+import type { CommoditySlug, DashboardData, SentimentPoint } from "@/lib/types";
 
 type Props = {
   data: DashboardData;
@@ -16,9 +15,17 @@ type Props = {
 export function Dashboard({ data }: Props) {
   const [layer, setLayer] = useState<"market" | "gym">("market");
   const [activeCommodity, setActiveCommodity] = useState<CommoditySlug>("copper_lme");
-  const [eventFilter, setEventFilter] = useState<CommoditySlug | "all">("all");
+  const [selectedPoint, setSelectedPoint] = useState<SentimentPoint | null>(null);
   const activePoints = data.pricesByCommodity[activeCommodity];
-  const activeNews = useMemo(() => filterNews(data.news, eventFilter, 24), [data.news, eventFilter]);
+  const activeCommodityMeta = useMemo(
+    () => data.commodities.find((commodity) => commodity.slug === activeCommodity)!,
+    [activeCommodity, data.commodities],
+  );
+
+  function selectCommodity(slug: CommoditySlug) {
+    setActiveCommodity(slug);
+    setSelectedPoint(null);
+  }
 
   return (
     <main className="shell">
@@ -55,23 +62,20 @@ export function Dashboard({ data }: Props) {
             activeCommodity={activeCommodity}
             commodities={data.commodities}
             pricesByCommodity={data.pricesByCommodity}
-            onSelect={setActiveCommodity}
+            onSelect={selectCommodity}
           />
 
           <section className="grid dashboard-grid" style={{ marginTop: 18 }}>
             <div className="grid">
               <PriceChart
-                commodity={data.commodities.find((commodity) => commodity.slug === activeCommodity)!}
+                commodity={activeCommodityMeta}
+                onSelectPoint={setSelectedPoint}
                 points={activePoints}
+                selectedPoint={selectedPoint}
               />
               <OverlayChart commodities={data.commodities} pricesByCommodity={data.pricesByCommodity} />
             </div>
-            <EventFeed
-              commodities={data.commodities}
-              news={activeNews}
-              filter={eventFilter}
-              onFilterChange={setEventFilter}
-            />
+            <EventFeed commodity={activeCommodityMeta} selectedPoint={selectedPoint} />
           </section>
         </>
       ) : (

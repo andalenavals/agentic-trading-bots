@@ -1,25 +1,3 @@
-import type { CommoditySlug, NewsEvent, SentimentPoint } from "@/lib/types";
-
-export function filterNews(news: NewsEvent[], commodity: CommoditySlug | "all", limit = 20) {
-  return news
-    .filter((event) => commodity === "all" || event.impactedCommodities.includes(commodity))
-    .slice(0, limit);
-}
-
-export function newsForMarketPoint(news: NewsEvent[], commodity: CommoditySlug, point: SentimentPoint) {
-  if (point.newsIds.length > 0) {
-    const selectedIds = new Set(point.newsIds);
-    return news
-      .filter((event) => selectedIds.has(event.id))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }
-
-  const eventDay = point.date.slice(0, 10);
-  return news
-    .filter((event) => event.eventDay === eventDay && event.impactedCommodities.includes(commodity))
-    .sort((a, b) => a.date.localeCompare(b.date));
-}
-
 export function sourceName(url: string) {
   const host = safeHost(url);
   if (!host) return "News";
