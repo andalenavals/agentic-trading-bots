@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   Area,
   Bar,
@@ -26,7 +26,9 @@ type Props = {
 };
 
 type ChartClickEvent = {
+  activeLabel?: string;
   activePayload?: Array<{ payload?: SentimentPoint }>;
+  activeTooltipIndex?: number | string;
 };
 
 const RANGES = [
@@ -37,6 +39,7 @@ const RANGES = [
 
 export function PriceChart({ commodity, onSelectPoint, points, selectedPoint }: Props) {
   const mounted = useClientMounted();
+  const hoveredPoint = useRef<SentimentPoint | null>(null);
   const [chartType, setChartType] = useState<ChartType>("area");
   const [range, setRange] = useState(365);
   const filtered = useMemo(() => (range >= 9999 ? points : points.slice(-range)), [points, range]);
@@ -47,6 +50,29 @@ export function PriceChart({ commodity, onSelectPoint, points, selectedPoint }: 
   }));
   const tickInterval = Math.max(1, Math.floor(chartData.length / 8));
   const displayedSummary = selectedPoint?.newsSummary || signal.latestSummary;
+
+  function pointFromChartEvent(event: ChartClickEvent | undefined) {
+    const payloadPoint = event?.activePayload?.[0]?.payload;
+    if (payloadPoint) {
+      return payloadPoint;
+    }
+
+    const index = Number(event?.activeTooltipIndex);
+    if (Number.isInteger(index) && chartData[index]) {
+      return chartData[index];
+    }
+
+    return chartData.find((point) => point.label === event?.activeLabel) ?? null;
+  }
+
+  function rememberHoveredPoint(event: ChartClickEvent | undefined) {
+    hoveredPoint.current = pointFromChartEvent(event);
+  }
+
+  function selectFromChartEvent(event: ChartClickEvent | undefined) {
+    const clickedPoint = pointFromChartEvent(event) ?? hoveredPoint.current;
+    if (clickedPoint) onSelectPoint(clickedPoint);
+  }
 
   return (
     <section className="panel">
@@ -83,12 +109,11 @@ export function PriceChart({ commodity, onSelectPoint, points, selectedPoint }: 
       <div className="chart-box">
         {mounted ? (
           <ResponsiveContainer height="100%" width="100%">
-            <ComposedChart data={chartData} onClick={(event) => {
-              const clicked = (event as ChartClickEvent | undefined)?.activePayload?.[0]?.payload;
-              if (clicked) {
-                onSelectPoint(clicked);
-              }
-            }}>
+            <ComposedChart
+              data={chartData}
+              onClick={(event) => selectFromChartEvent(event as ChartClickEvent | undefined)}
+              onMouseMove={(event) => rememberHoveredPoint(event as ChartClickEvent | undefined)}
+            >
               <defs>
                 <linearGradient id={`price-${commodity.slug}`} x1="0" x2="0" y1="0" y2="1">
                   <stop offset="0%" stopColor={commodity.colorHex} stopOpacity={0.28} />
