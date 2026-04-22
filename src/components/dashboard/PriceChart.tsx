@@ -9,6 +9,7 @@ import {
   Line,
   ReferenceLine,
   ResponsiveContainer,
+  Scatter,
   Tooltip,
   XAxis,
   YAxis,
@@ -45,6 +46,7 @@ export function PriceChart({ commodity, points, selectedPoint, onSelectPoint }: 
     ...point,
     label: new Date(point.date).toLocaleDateString("en-US", { month: "short", year: range >= 365 ? "2-digit" : undefined, day: range < 365 ? "numeric" : undefined }),
   }));
+  const newsPoints = chartData.filter((point) => point.newsCount > 0);
   const tickInterval = Math.max(1, Math.floor(chartData.length / 8));
 
   return (
@@ -106,6 +108,7 @@ export function PriceChart({ commodity, points, selectedPoint, onSelectPoint }: 
               ) : (
                 <Area dataKey="price" dot={false} fill={`url(#price-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
               )}
+              <Scatter data={newsPoints} dataKey="price" shape={<NewsDot />} />
             </ComposedChart>
           </ResponsiveContainer>
         ) : null}
@@ -144,8 +147,25 @@ function PriceTooltip({ active, payload, color }: { active?: boolean; payload?: 
     <div className="panel" style={{ maxWidth: 340, padding: 12 }}>
       <p className="faint" style={{ fontSize: 12 }}>{new Date(point.date).toLocaleDateString()}</p>
       <p style={{ color, fontWeight: 800, marginTop: 4 }}>${point.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-      <p className="muted" style={{ fontSize: 12, lineHeight: 1.35, marginTop: 8 }}>Click to show the news context.</p>
+      <p className="muted" style={{ fontSize: 12, lineHeight: 1.35, marginTop: 8 }}>
+        {point.newsCount > 0 ? `${point.newsCount} linked news item${point.newsCount === 1 ? "" : "s"}. Click to show them.` : "No linked news for this point."}
+      </p>
     </div>
+  );
+}
+
+function NewsDot(props: { cx?: number; cy?: number; payload?: SentimentPoint }) {
+  if (props.cx === undefined || props.cy === undefined || !props.payload) return <g />;
+
+  return (
+    <circle
+      cx={props.cx}
+      cy={props.cy}
+      fill="#c9a44a"
+      r={Math.min(8, 3 + props.payload.newsCount * 0.6)}
+      stroke="#10131a"
+      strokeWidth={1.5}
+    />
   );
 }
 

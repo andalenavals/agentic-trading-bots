@@ -1,7 +1,14 @@
-import type { CommoditySlug, NewsEvent } from "@/lib/types";
+import type { CommoditySlug, NewsEvent, SentimentPoint } from "@/lib/types";
 
-export function newsForMarketPoint(news: NewsEvent[], commodity: CommoditySlug, date: string) {
-  const eventDay = date.slice(0, 10);
+export function newsForMarketPoint(news: NewsEvent[], commodity: CommoditySlug, point: SentimentPoint) {
+  if (point.newsIds.length > 0) {
+    const selectedIds = new Set(point.newsIds);
+    return news
+      .filter((event) => selectedIds.has(event.id))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  const eventDay = point.date.slice(0, 10);
   return news
     .filter((event) => event.eventDay === eventDay && event.impactedCommodities.includes(commodity))
     .sort((a, b) => a.date.localeCompare(b.date));

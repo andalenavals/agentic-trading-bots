@@ -20,7 +20,7 @@ export function Dashboard({ data }: Props) {
   const activePoints = data.pricesByCommodity[activeCommodity];
   const activeCommodityMeta = data.commodities.find((commodity) => commodity.slug === activeCommodity)!;
   const selectedNews = useMemo(
-    () => selectedPoint ? newsForMarketPoint(data.news, activeCommodity, selectedPoint.date) : [],
+    () => selectedPoint ? newsForMarketPoint(data.news, activeCommodity, selectedPoint) : [],
     [activeCommodity, data.news, selectedPoint],
   );
 
