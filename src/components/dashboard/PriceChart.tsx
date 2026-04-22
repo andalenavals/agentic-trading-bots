@@ -22,7 +22,6 @@ type Props = {
   commodity: Commodity;
   onSelectPoint: (point: SentimentPoint) => void;
   points: SentimentPoint[];
-  selectedPoint: SentimentPoint | null;
 };
 
 type ChartClickEvent = {
@@ -37,7 +36,7 @@ const RANGES = [
   { label: "ALL", value: 9999 },
 ];
 
-export function PriceChart({ commodity, onSelectPoint, points, selectedPoint }: Props) {
+export function PriceChart({ commodity, onSelectPoint, points }: Props) {
   const mounted = useClientMounted();
   const hoveredPoint = useRef<SentimentPoint | null>(null);
   const [chartType, setChartType] = useState<ChartType>("area");
@@ -49,7 +48,6 @@ export function PriceChart({ commodity, onSelectPoint, points, selectedPoint }: 
     label: new Date(point.date).toLocaleDateString("en-US", { month: "short", year: range >= 365 ? "2-digit" : undefined, day: range < 365 ? "numeric" : undefined }),
   }));
   const tickInterval = Math.max(1, Math.floor(chartData.length / 8));
-  const displayedSummary = selectedPoint?.newsSummary || signal.latestSummary;
 
   function pointFromChartEvent(event: ChartClickEvent | undefined) {
     const payloadPoint = event?.activePayload?.[0]?.payload;
@@ -136,19 +134,6 @@ export function PriceChart({ commodity, onSelectPoint, points, selectedPoint }: 
           </ResponsiveContainer>
         ) : null}
       </div>
-
-      <div className="summary">
-        <strong>{selectedPoint ? `Market read for ${new Date(selectedPoint.date).toLocaleDateString()}` : "Latest market read"}:</strong>{" "}
-        {displayedSummary || "Click a point in the chart to inspect the news context for that date."}
-      </div>
-
-      <div className="panel-foot">
-        <FootStat label="Open" value={`$${signal.open.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
-        <FootStat label="High" value={`$${signal.high.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
-        <FootStat label="Low" value={`$${signal.low.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
-        <FootStat label="Change" value={`${signal.change >= 0 ? "+" : ""}$${signal.change.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
-        <FootStat label="Avg sentiment" value={signal.averageSentiment.toFixed(3)} />
-      </div>
     </section>
   );
 }
@@ -169,15 +154,6 @@ function PriceTooltip({ active, payload, color }: { active?: boolean; payload?: 
       <p className="faint" style={{ fontSize: 12 }}>{new Date(point.date).toLocaleDateString()}</p>
       <p style={{ color, fontWeight: 800, marginTop: 4 }}>${point.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
       <p className="muted" style={{ fontSize: 12, lineHeight: 1.35, marginTop: 8 }}>Click to show the news context.</p>
-    </div>
-  );
-}
-
-function FootStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="faint" style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>{label}</p>
-      <strong style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: 13 }}>{value}</strong>
     </div>
   );
 }

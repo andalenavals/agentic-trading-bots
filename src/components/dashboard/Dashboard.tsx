@@ -71,7 +71,6 @@ export function Dashboard({ data }: Props) {
                 commodity={activeCommodityMeta}
                 onSelectPoint={setSelectedPoint}
                 points={activePoints}
-                selectedPoint={selectedPoint}
               />
               <OverlayChart commodities={data.commodities} pricesByCommodity={data.pricesByCommodity} />
             </div>
