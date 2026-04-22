@@ -27,7 +27,7 @@ export function Dashboard({ data }: Props) {
           <p className="eyebrow">Commodity Signal Intelligence</p>
           <h1>Agentic trading bots</h1>
           <p className="subtitle">
-            Local-first dashboard combining LME price history, curated market news, FinBERT sentiment,
+            Local-first dashboard combining LME price history, curated market news, generated sentiment features,
             and reinforcement-learning outputs from trained commodity trading bots.
           </p>
         </div>

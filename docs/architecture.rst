@@ -47,9 +47,9 @@ Included:
 * generated processed/training data from raw CSVs
 * price and sentiment dashboard
 * event feed
-* single-asset and multi-asset PPO training scripts
+* config-driven single-asset and multi-asset PPO training modules
 * PPO decision-output visualization
-* Sphinx documentation deployed with the demo
+* Sphinx documentation deployed with the demo using the Read the Docs theme
 
 Deferred:
 

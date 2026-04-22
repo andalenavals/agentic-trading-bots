@@ -67,6 +67,15 @@ def read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def require_columns(rows: list[dict[str, str]], columns: set[str], source: Path) -> None:
+    if not rows:
+        raise ValueError(f"{source} is empty.")
+
+    missing = columns - set(rows[0].keys())
+    if missing:
+        raise ValueError(f"{source} is missing required columns: {sorted(missing)}")
+
+
 def write_csv(path: Path, rows: Iterable[dict[str, object]], fieldnames: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
@@ -106,6 +115,8 @@ def score_sentiment(text: str) -> dict[str, float]:
 def build_prices_with_news(raw_prices: Path, raw_news: Path, output: Path) -> None:
     prices = read_csv(raw_prices)
     news = read_csv(raw_news)
+    require_columns(prices, {"date", "commodity", "price"}, raw_prices)
+    require_columns(news, {"date", "impacted_commodity", "summary"}, raw_news)
     news_by_day_commodity: dict[tuple[str, str], list[str]] = defaultdict(list)
 
     for item in news:
@@ -138,8 +149,10 @@ def build_prices_with_news(raw_prices: Path, raw_news: Path, output: Path) -> No
 
 
 def add_sentiment(input_csv: Path, output_csv: Path) -> None:
+    source_rows = read_csv(input_csv)
+    require_columns(source_rows, {"date", "commodity", "price", "news_summary"}, input_csv)
     rows = []
-    for row in read_csv(input_csv):
+    for row in source_rows:
         sentiment = score_sentiment(row.get("news_summary", ""))
         rows.append({**row, **sentiment})
 
@@ -163,6 +176,7 @@ def split_by_commodity(input_csv: Path, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
     rows = read_csv(input_csv)
+    require_columns(rows, {"date", "commodity", "price", "sentiment_score"}, input_csv)
 
     for row in rows:
         commodity = normalize_commodity(row.get("commodity", ""))
@@ -214,4 +228,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

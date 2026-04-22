@@ -9,7 +9,9 @@
     "build": "npm run preprocess && next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:py": "python3 -m unittest discover -s tests -p 'test_*.py'",
+    "test": "npm run typecheck && npm run lint && npm run test:py"
   },
   "dependencies": {
     "next": "16.2.3",

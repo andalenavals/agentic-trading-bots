@@ -4,7 +4,7 @@
 
 [Demo](https://andalenavals.github.io/agentic-trading-bots/) · [Sphinx docs](https://andalenavals.github.io/agentic-trading-bots/docs/)
 
-Modular commodity decision-support dashboard built around LME price data, curated commodity news, FinBERT sentiment, and PPO trading bot outputs.
+Modular commodity decision-support dashboard built around LME price data, curated commodity news, generated sentiment features, and PPO trading bot outputs.
 
 The GitHub Pages deployment publishes two pages from the same workflow:
 
@@ -16,7 +16,7 @@ The MVP is intentionally local-first. The only required checked-in data lives in
 ## What it does
 
 - Shows LME copper, nickel, and aluminium price history
-- Links each commodity to curated news summaries and FinBERT sentiment scores
+- Links each commodity to curated news summaries and generated sentiment scores
 - Compares commodities using normalized relative-performance charts
 - Displays recent market events with source and commodity tags
 - Includes single-asset and multi-asset PPO training scripts under `agents/`
@@ -31,24 +31,23 @@ agentic-trading-bots/
 │   ├── processed/           # Generated sentiment-enriched rows, ignored by Git
 │   ├── training/            # Generated per-commodity training files, ignored by Git
 │   └── agent_outputs/       # Generated PPO evaluation outputs, ignored by Git
-├── agents/
-│   └── README.md             # Agent usage notes
 ├── agentic_trading/
 │   ├── preprocessing.py      # Raw-to-derived data pipeline
 │   └── training/             # Config-driven training modules
+├── agents/
+│   ├── README.md             # Agent environment and usage notes
+│   └── requirements.txt      # Optional training dependencies
 ├── configs/
 │   ├── preprocessing/        # Data pipeline config
 │   └── agents/               # PPO agent configs
-├── docs/
-│   ├── architecture.md
-│   └── data.md
+├── docs/                    # Sphinx source deployed under /docs
 ├── src/
 │   ├── app/                 # Next app entrypoints
 │   ├── components/dashboard/ # UI panels and charts
 │   └── lib/
 │       ├── analytics/       # Signal, commodity, and news helpers
 │       └── data/            # CSV parser and local data loaders
-└── tests/                   # Placeholder for parser/analytics tests
+└── tests/                   # Python preprocessing tests
 ```
 
 ## Quickstart

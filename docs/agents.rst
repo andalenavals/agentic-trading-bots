@@ -14,6 +14,22 @@ The project keeps agent behavior in configuration files:
 
 Reusable training code lives under ``agentic_trading/training/`` and reads those configs. Training modules should not contain hardcoded data paths or plotting functions.
 
+Training Commands
+-----------------
+
+Generate derived data first:
+
+.. code-block:: bash
+
+   npm run preprocess
+
+Then run the agent modules when PPO outputs need to be refreshed:
+
+.. code-block:: bash
+
+   python -m agentic_trading.training.single_asset_ppo --config configs/agents/single_asset_ppo.json
+   python -m agentic_trading.training.multiple_asset_ppo --config configs/agents/multiple_asset_ppo.json
+
 Single-Asset PPO
 ----------------
 
@@ -27,6 +43,8 @@ Multi-Asset PPO
 ---------------
 
 The multi-asset agent uses a shared policy over aluminium, copper, and nickel. It emits one action per commodity and tracks shared portfolio state.
+
+Both modules write test-split evaluations and full-dataset diagnostics. Full-dataset outputs are useful for visual inspection, but out-of-sample conclusions should come from the walk-forward test split.
 
 Dashboard Visualization
 -----------------------

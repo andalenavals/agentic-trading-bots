@@ -1,7 +1,7 @@
 Agentic Trading Bots
 ====================
 
-Agentic Trading Bots is a commodity decision-support project that combines LME price data, curated commodity news, FinBERT sentiment, and saved PPO trading-bot decisions.
+Agentic Trading Bots is a commodity decision-support project that combines LME price data, curated commodity news, generated sentiment features, and saved PPO trading-bot decisions.
 
 The deployed project has two public pages:
 
@@ -22,11 +22,13 @@ Repository Shape
 .. code-block:: text
 
    agentic-trading-bots/
-   ├── agents/              # PPO training and plotting scripts
+   ├── agentic_trading/     # Python preprocessing and config-driven PPO training
+   ├── agents/              # Agent environment and usage notes
+   ├── configs/             # Preprocessing and training configs
    ├── data/                # Raw CSV snapshots plus ignored generated artifacts
    ├── docs/                # Sphinx documentation source
    ├── src/                 # Next.js app, components, loaders, analytics
-   └── tests/               # Test placeholders
+   └── tests/               # Python preprocessing tests
 
 Contents
 --------

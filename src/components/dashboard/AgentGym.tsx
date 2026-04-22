@@ -198,7 +198,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
           <div className="gym-note">
             <strong>Included training code</strong>
             <p>
-              Python PPO trainers are now in `agents/single_asset` and `agents/multiple_asset`. This panel visualizes their saved evaluation outputs rather than retraining in the browser.
+              Python PPO trainers live in `agentic_trading/training` and read configs from `configs/agents`. This panel visualizes saved evaluation outputs rather than retraining in the browser.
             </p>
           </div>
         </div>

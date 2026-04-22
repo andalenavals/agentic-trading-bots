@@ -35,6 +35,8 @@ class SingleAssetTradingEnv(gym.Env):
             shape=(self.window_size * len(self.feature_cols),),
             dtype=np.float32,
         )
+        if len(self.data) <= self.window_size:
+            raise ValueError("Dataset must be longer than window_size.")
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
@@ -67,8 +69,13 @@ class SingleAssetTradingEnv(gym.Env):
         self.current_step += 1
 
         terminated = self.current_step >= self.max_steps
+        observation = (
+            np.zeros(self.observation_space.shape, dtype=np.float32)
+            if terminated
+            else self._get_observation()
+        )
         info = {"net_worth": self.net_worth, "position": self.position}
-        return self._get_observation(), float(reward), terminated, False, info
+        return observation, float(reward), terminated, False, info
 
 
 def prepare_features(train_df: pd.DataFrame, test_df: pd.DataFrame):
@@ -84,7 +91,16 @@ def prepare_features(train_df: pd.DataFrame, test_df: pd.DataFrame):
         out["feature_sentiment_score"] = scaled[:, 1]
         return out
 
-    return transform(train_df), transform(test_df)
+    return transform(train_df), transform(test_df), scaler
+
+
+def transform_full_dataset(data: pd.DataFrame, scaler: StandardScaler) -> pd.DataFrame:
+    out = data.copy()
+    scaled = scaler.transform(data[["price", "sentiment_score"]])
+    out["raw_price"] = out["price"]
+    out["feature_price"] = scaled[:, 0]
+    out["feature_sentiment_score"] = scaled[:, 1]
+    return out
 
 
 def walk_forward_split(data: pd.DataFrame, n_splits: int):
@@ -99,6 +115,57 @@ def policy_kwargs():
     return {"net_arch": {"pi": [64, 64], "vf": [64, 64]}, "activation_fn": nn.Tanh}
 
 
+def model_probabilities(model: PPO, observation: np.ndarray) -> np.ndarray:
+    observation_tensor = model.policy.obs_to_tensor(observation)[0]
+    distribution = model.policy.get_distribution(observation_tensor)
+    return distribution.distribution.probs.detach().cpu().numpy()[0]
+
+
+def entropy(probabilities: np.ndarray) -> float:
+    probabilities = np.asarray(probabilities, dtype=np.float64)
+    probabilities = np.maximum(probabilities, 1e-12)
+    probabilities = probabilities / probabilities.sum()
+    return float(-(probabilities * np.log(probabilities)).sum())
+
+
+def evaluate_model(
+    model: PPO,
+    data: pd.DataFrame,
+    window_size: int,
+    initial_balance: float,
+) -> pd.DataFrame:
+    env = SingleAssetTradingEnv(data, window_size, initial_balance)
+    rows = []
+    obs, _ = env.reset()
+    terminated = False
+
+    while not terminated:
+        current_idx = env.current_step
+        probabilities = model_probabilities(model, obs)
+        action, _ = model.predict(obs, deterministic=True)
+        action = int(action)
+        next_obs, reward, terminated, _, info = env.step(action)
+
+        row = data.iloc[current_idx].to_dict()
+        row.update(
+            {
+                "action": action,
+                "greedy_action": int(np.argmax(probabilities)),
+                "prob_hold": float(probabilities[0]),
+                "prob_buy": float(probabilities[1]),
+                "prob_sell": float(probabilities[2]),
+                "entropy": entropy(probabilities),
+                "net_worth": float(info["net_worth"]),
+                "position": int(info["position"]),
+                "reward": float(reward),
+            }
+        )
+        rows.append(row)
+        obs = next_obs
+
+    return pd.DataFrame(rows)
+
+
 def run(config_path: str) -> None:
     config = load_config(config_path)
     data = pd.read_csv(config["input_csv"]).reset_index(drop=True)
@@ -106,9 +173,8 @@ def run(config_path: str) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for split, train_raw, test_raw in walk_forward_split(data, config["n_splits"]):
-        train, test = prepare_features(train_raw, test_raw)
+        train, test, scaler = prepare_features(train_raw, test_raw)
         train_env = SingleAssetTradingEnv(train, config["window_size"], config["initial_balance"])
-        test_env = SingleAssetTradingEnv(test, config["window_size"], config["initial_balance"])
 
         model = PPO(
             "MlpPolicy",
@@ -123,19 +189,22 @@ def run(config_path: str) -> None:
         )
         model.learn(total_timesteps=config["total_timesteps"])
 
-        rows = []
-        obs, _ = test_env.reset()
-        terminated = False
-        while not terminated:
-            current_idx = test_env.current_step
-            action, _ = model.predict(obs, deterministic=True)
-            next_obs, reward, terminated, _, info = test_env.step(int(action))
-            row = test.iloc[current_idx].to_dict()
-            row.update({"action": int(action), "net_worth": info["net_worth"], "reward": reward})
-            rows.append(row)
-            obs = next_obs
+        evaluation = evaluate_model(
+            model=model,
+            data=test,
+            window_size=config["window_size"],
+            initial_balance=config["initial_balance"],
+        )
+        evaluation.to_csv(output_dir / f"evaluation_split_{split}.csv", index=False)
 
-        pd.DataFrame(rows).to_csv(output_dir / f"evaluation_split_{split}.csv", index=False)
+        full_data = transform_full_dataset(data, scaler)
+        full_predictions = evaluate_model(
+            model=model,
+            data=full_data,
+            window_size=config["window_size"],
+            initial_balance=config["initial_balance"],
+        )
+        full_predictions.to_csv(output_dir / f"full_dataset_predictions_split_{split}.csv", index=False)
 
 
 def main() -> None:
@@ -147,4 +216,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -22,11 +22,10 @@ The GitHub Actions workflow builds both pieces into one artifact:
 Local Build
 -----------
 
-Build the demo:
+Build the demo. The build command runs preprocessing first:
 
 .. code-block:: bash
 
-   npm run preprocess
    npm run build
 
 Build the GitHub Pages version:

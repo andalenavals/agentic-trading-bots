@@ -1,8 +1,11 @@
 # Tests
 
-Planned first tests:
+The current test suite covers the Python preprocessing boundary: raw prices/news are transformed into visualization rows and per-commodity training files.
 
-- CSV parser handles quoted summaries with commas and pipes
-- commodity normalization maps source names to canonical slugs
-- signal calculations remain stable for small known datasets
+Run it with:
 
+```bash
+npm run test:py
+```
+
+Use `npm test` for the full local check: TypeScript typecheck, ESLint, and Python preprocessing tests.
