@@ -18,7 +18,7 @@ Analytics
 
 * commodity metadata and normalization
 * price signal calculations
-* event filtering and source labels
+* clicked-date news matching and source labels
 
 These helpers are framework-light and can be tested without React.
 
@@ -37,7 +37,7 @@ Components
 * commodity cards
 * single-commodity price chart
 * relative performance chart
-* event feed
+* clicked-date news context panel
 * trading bots gym visualization
 
 MVP Boundary
@@ -48,7 +48,7 @@ Included:
 * local CSV ingestion
 * generated processed/training data from raw CSVs
 * price and sentiment dashboard
-* event feed
+* clicked-date news context panel
 * config-driven single-asset and multi-asset PPO training modules
 * PPO decision-output visualization
 * Sphinx documentation deployed with the demo using the Read the Docs theme

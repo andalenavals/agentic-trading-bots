@@ -23,9 +23,9 @@ The market layer shows:
 * commodity cards with price, trend, volatility, and sentiment
 * a single-commodity price chart
 * relative performance across commodities
-* a market-event feed
+* a clicked-date news context panel
 
-News summaries are not shown in the price-chart hover tooltip. They appear when a chart point is clicked.
+News summaries are not shown in the price-chart hover tooltip. When a chart point is clicked, the right panel shows every curated news item for that commodity and day. A single news item can affect more than one asset, and multiple items can appear on the same day.
 
 Trading Bots Gym
 ~~~~~~~~~~~~~~~~
@@ -37,4 +37,3 @@ The trading bots gym shows:
 * buy, hold, and sell probabilities
 * confidence via marker size and opacity
 * controls for model, dataset, split, commodity, date interval, and granularity
-

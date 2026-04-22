@@ -1,9 +1,10 @@
 import type { CommoditySlug, NewsEvent } from "@/lib/types";
 
-export function filterNews(news: NewsEvent[], commodity: CommoditySlug | "all", limit = 20) {
+export function newsForMarketPoint(news: NewsEvent[], commodity: CommoditySlug, date: string) {
+  const eventDay = date.slice(0, 10);
   return news
-    .filter((event) => commodity === "all" || event.impactedCommodities.includes(commodity))
-    .slice(0, limit);
+    .filter((event) => event.eventDay === eventDay && event.impactedCommodities.includes(commodity))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export function sourceName(url: string) {
@@ -24,4 +25,3 @@ function safeHost(url: string) {
     return "";
   }
 }
-

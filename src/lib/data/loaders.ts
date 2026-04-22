@@ -15,7 +15,7 @@ async function readDataFile(relativePath: string) {
 export const loadDashboardData = cache(async (): Promise<DashboardData> => {
   const [sentimentCsv, newsCsv, agentGym] = await Promise.all([
     readDataFile("processed/prices_with_sentiment.csv"),
-    readDataFile("raw/news.csv"),
+    readDataFile("processed/news_events.csv"),
     loadAgentGymData(),
   ]);
 
@@ -33,6 +33,8 @@ export const loadDashboardData = cache(async (): Promise<DashboardData> => {
       date: row.date,
       commodity,
       price: toNumber(row.price),
+      newsIds: row.news_ids ? row.news_ids.split(";").filter(Boolean) : [],
+      newsCount: toNumber(row.news_count),
       newsSummary: row.news_summary,
       negative: toNumber(row.negative),
       neutral: toNumber(row.neutral),
@@ -46,15 +48,16 @@ export const loadDashboardData = cache(async (): Promise<DashboardData> => {
   }
 
   const news: NewsEvent[] = parseCsv(newsCsv)
-    .map((row, index) => {
-      const impactedCommodities = row.impacted_commodity
-        .split(",")
+    .map((row) => {
+      const impactedCommodities = row.impacted_commodities
+        .split(";")
         .map(normalizeCommodity)
         .filter((commodity): commodity is CommoditySlug => commodity !== null);
 
       return {
-        id: `${row.date}-${index}`,
+        id: row.event_id,
         date: row.date,
+        eventDay: row.event_day || row.date.slice(0, 10),
         title: row.title,
         url: row.url,
         impactedCommodities,

@@ -21,6 +21,8 @@ type ChartType = "line" | "area" | "bar";
 type Props = {
   commodity: Commodity;
   points: SentimentPoint[];
+  selectedPoint: SentimentPoint | null;
+  onSelectPoint: (point: SentimentPoint) => void;
 };
 
 type ChartClickEvent = {
@@ -33,11 +35,10 @@ const RANGES = [
   { label: "ALL", value: 9999 },
 ];
 
-export function PriceChart({ commodity, points }: Props) {
+export function PriceChart({ commodity, points, selectedPoint, onSelectPoint }: Props) {
   const mounted = useClientMounted();
   const [chartType, setChartType] = useState<ChartType>("area");
   const [range, setRange] = useState(365);
-  const [selectedPoint, setSelectedPoint] = useState<SentimentPoint | null>(null);
   const filtered = useMemo(() => (range >= 9999 ? points : points.slice(-range)), [points, range]);
   const signal = computeSignals(filtered);
   const chartData = filtered.map((point) => ({
@@ -45,7 +46,6 @@ export function PriceChart({ commodity, points }: Props) {
     label: new Date(point.date).toLocaleDateString("en-US", { month: "short", year: range >= 365 ? "2-digit" : undefined, day: range < 365 ? "numeric" : undefined }),
   }));
   const tickInterval = Math.max(1, Math.floor(chartData.length / 8));
-  const displayedSummary = selectedPoint?.newsSummary || signal.latestSummary;
 
   return (
     <section className="panel">
@@ -85,7 +85,7 @@ export function PriceChart({ commodity, points }: Props) {
             <ComposedChart data={chartData} onClick={(event) => {
               const clicked = (event as ChartClickEvent | undefined)?.activePayload?.[0]?.payload;
               if (clicked) {
-                setSelectedPoint(clicked);
+                onSelectPoint(clicked);
               }
             }}>
               <defs>
@@ -112,8 +112,10 @@ export function PriceChart({ commodity, points }: Props) {
       </div>
 
       <div className="summary">
-        <strong>{selectedPoint ? `Market read for ${new Date(selectedPoint.date).toLocaleDateString()}` : "Latest market read"}:</strong>{" "}
-        {displayedSummary || "Click a point in the chart to inspect the news context for that date."}
+        <strong>{selectedPoint ? `Selected ${new Date(selectedPoint.date).toLocaleDateString()}` : "Select a point"}:</strong>{" "}
+        {selectedPoint
+          ? `${selectedPoint.newsCount} linked news item${selectedPoint.newsCount === 1 ? "" : "s"} for ${commodity.name}.`
+          : "Click a point in the chart to inspect every linked news item in the right panel."}
       </div>
 
       <div className="panel-foot">

@@ -1,8 +1,8 @@
 {
   "raw_prices": "data/raw/prices.csv",
   "raw_news": "data/raw/news.csv",
+  "news_events": "data/processed/news_events.csv",
   "prices_with_news": "data/processed/prices_with_news.csv",
   "prices_with_sentiment": "data/processed/prices_with_sentiment.csv",
   "commodity_training_dir": "data/training/commodity_outputs"
 }
-

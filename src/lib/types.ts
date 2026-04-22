@@ -15,6 +15,8 @@ export type PricePoint = {
 };
 
 export type SentimentPoint = PricePoint & {
+  newsIds: string[];
+  newsCount: number;
   newsSummary: string;
   negative: number;
   neutral: number;
@@ -25,6 +27,7 @@ export type SentimentPoint = PricePoint & {
 export type NewsEvent = {
   id: string;
   date: string;
+  eventDay: string;
   title: string;
   url: string;
   impactedCommodities: CommoditySlug[];

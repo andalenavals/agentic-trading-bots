@@ -35,7 +35,15 @@ Primary Dashboard Schema
 
 .. code-block:: text
 
-   date,commodity,price,news_summary,negative,neutral,positive,sentiment_score
+   date,commodity,price,news_ids,news_count,news_summary,negative,neutral,positive,sentiment_score
+
+``news_events.csv`` is a normalized event table generated from raw news:
+
+.. code-block:: text
+
+   event_id,date,event_day,title,url,impacted_commodities,summary
+
+``impacted_commodities`` is a semicolon-separated list of canonical slugs. This preserves the real relationship that one news item can affect multiple assets, while ``prices_with_sentiment.csv`` keeps a compact per-day/per-commodity index for visualization and training.
 
 The loader maps commodities into canonical slugs:
 

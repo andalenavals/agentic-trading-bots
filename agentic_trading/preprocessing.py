@@ -112,22 +112,62 @@ def score_sentiment(text: str) -> dict[str, float]:
     }
 
 
-def build_prices_with_news(raw_prices: Path, raw_news: Path, output: Path) -> None:
-    prices = read_csv(raw_prices)
+def normalized_news_events(raw_news: Path) -> list[dict[str, object]]:
     news = read_csv(raw_news)
-    require_columns(prices, {"date", "commodity", "price"}, raw_prices)
-    require_columns(news, {"date", "impacted_commodity", "summary"}, raw_news)
-    news_by_day_commodity: dict[tuple[str, str], list[str]] = defaultdict(list)
+    require_columns(news, {"date", "title", "url", "impacted_commodity", "summary"}, raw_news)
+    events = []
 
-    for item in news:
+    for index, item in enumerate(news, start=1):
         summary = item.get("summary", "").strip()
         if not summary:
             continue
 
-        for impacted in item.get("impacted_commodity", "").split(","):
-            commodity = normalize_commodity(impacted)
-            if commodity:
-                news_by_day_commodity[(day(item.get("date", "")), commodity)].append(summary)
+        impacted = sorted(
+            {
+                commodity
+                for commodity in (normalize_commodity(value) for value in item.get("impacted_commodity", "").split(","))
+                if commodity
+            }
+        )
+        if not impacted:
+            continue
+
+        events.append(
+            {
+                "event_id": f"news_{index:06d}",
+                "date": item.get("date", ""),
+                "event_day": day(item.get("date", "")),
+                "title": item.get("title", ""),
+                "url": item.get("url", ""),
+                "impacted_commodities": ";".join(impacted),
+                "summary": summary,
+            }
+        )
+
+    return events
+
+
+def write_news_events(raw_news: Path, output: Path) -> None:
+    write_csv(
+        output,
+        normalized_news_events(raw_news),
+        ["event_id", "date", "event_day", "title", "url", "impacted_commodities", "summary"],
+    )
+
+
+def build_prices_with_news(
+    raw_prices: Path,
+    raw_news: Path,
+    output: Path,
+    events: list[dict[str, object]] | None = None,
+) -> None:
+    prices = read_csv(raw_prices)
+    require_columns(prices, {"date", "commodity", "price"}, raw_prices)
+    news_by_day_commodity: dict[tuple[str, str], list[dict[str, object]]] = defaultdict(list)
+
+    for event in events if events is not None else normalized_news_events(raw_news):
+        for commodity in str(event["impacted_commodities"]).split(";"):
+            news_by_day_commodity[(str(event["event_day"]), commodity)].append(event)
 
     rows = []
     for price in prices:
@@ -135,17 +175,19 @@ def build_prices_with_news(raw_prices: Path, raw_news: Path, output: Path) -> No
         if not commodity:
             continue
 
-        summaries = news_by_day_commodity.get((day(price.get("date", "")), commodity), [])
+        events = news_by_day_commodity.get((day(price.get("date", "")), commodity), [])
         rows.append(
             {
                 "date": price.get("date", ""),
                 "commodity": commodity,
                 "price": price.get("price", ""),
-                "news_summary": " | ".join(summaries),
+                "news_ids": ";".join(str(event["event_id"]) for event in events),
+                "news_count": len(events),
+                "news_summary": " | ".join(str(event["summary"]) for event in events),
             }
         )
 
-    write_csv(output, rows, ["date", "commodity", "price", "news_summary"])
+    write_csv(output, rows, ["date", "commodity", "price", "news_ids", "news_count", "news_summary"])
 
 
 def add_sentiment(input_csv: Path, output_csv: Path) -> None:
@@ -163,6 +205,8 @@ def add_sentiment(input_csv: Path, output_csv: Path) -> None:
             "date",
             "commodity",
             "price",
+            "news_ids",
+            "news_count",
             "news_summary",
             "negative",
             "neutral",
@@ -194,13 +238,21 @@ def load_config(path: Path) -> dict[str, str]:
 
 
 def run_all(config: dict[str, str]) -> None:
+    news_events = Path(config["news_events"])
     prices_with_news = Path(config["prices_with_news"])
     prices_with_sentiment = Path(config["prices_with_sentiment"])
+    events = normalized_news_events(Path(config["raw_news"]))
 
+    write_csv(
+        news_events,
+        events,
+        ["event_id", "date", "event_day", "title", "url", "impacted_commodities", "summary"],
+    )
     build_prices_with_news(
         raw_prices=Path(config["raw_prices"]),
         raw_news=Path(config["raw_news"]),
         output=prices_with_news,
+        events=events,
     )
     add_sentiment(prices_with_news, prices_with_sentiment)
     split_by_commodity(
@@ -211,7 +263,7 @@ def run_all(config: dict[str, str]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate derived visualization and training data from raw CSVs.")
-    parser.add_argument("command", choices=["all", "prices-with-news", "sentiment", "split"])
+    parser.add_argument("command", choices=["all", "news-events", "prices-with-news", "sentiment", "split"])
     parser.add_argument("--config", default="configs/preprocessing/default.json")
     args = parser.parse_args()
 
@@ -220,6 +272,8 @@ def main() -> None:
         run_all(config)
     elif args.command == "prices-with-news":
         build_prices_with_news(Path(config["raw_prices"]), Path(config["raw_news"]), Path(config["prices_with_news"]))
+    elif args.command == "news-events":
+        write_news_events(Path(config["raw_news"]), Path(config["news_events"]))
     elif args.command == "sentiment":
         add_sentiment(Path(config["prices_with_news"]), Path(config["prices_with_sentiment"]))
     elif args.command == "split":
