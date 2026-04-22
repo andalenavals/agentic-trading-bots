@@ -1,5 +1,9 @@
 # Agentic Trading Bots
 
+[![Deploy GitHub Pages](https://github.com/andalenavals/agentic-trading-bots/actions/workflows/deploy.yml/badge.svg)](https://github.com/andalenavals/agentic-trading-bots/actions/workflows/deploy.yml)
+
+[Live website](https://andalenavals.github.io/agentic-trading-bots/)
+
 Modular commodity decision-support dashboard built from three existing local projects:
 
 - **Data source:** `CreareCorpAndres`
