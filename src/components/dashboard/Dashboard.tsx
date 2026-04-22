@@ -41,11 +41,12 @@ export function Dashboard({ data }: Props) {
 
       <div className="layer-switch">
         <button className={layer === "market" ? "active" : ""} onClick={() => setLayer("market")} type="button">
-          Market + news layer
+          Demo: market + news
         </button>
         <button className={layer === "gym" ? "active" : ""} onClick={() => setLayer("gym")} type="button">
-          Trading bots gym
+          Demo: trading bots gym
         </button>
+        <a href="docs/">Sphinx docs</a>
       </div>
 
       {layer === "market" ? (

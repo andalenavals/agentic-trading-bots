@@ -2,9 +2,14 @@
 
 [![Deploy GitHub Pages](https://github.com/andalenavals/agentic-trading-bots/actions/workflows/deploy.yml/badge.svg)](https://github.com/andalenavals/agentic-trading-bots/actions/workflows/deploy.yml)
 
-[Live website](https://andalenavals.github.io/agentic-trading-bots/)
+[Demo](https://andalenavals.github.io/agentic-trading-bots/) · [Sphinx docs](https://andalenavals.github.io/agentic-trading-bots/docs/)
 
 Modular commodity decision-support dashboard built around LME price data, curated commodity news, FinBERT sentiment, and PPO trading bot outputs.
+
+The GitHub Pages deployment publishes two pages from the same workflow:
+
+- interactive demo: `https://andalenavals.github.io/agentic-trading-bots/`
+- Sphinx docs: `https://andalenavals.github.io/agentic-trading-bots/docs/`
 
 The MVP is intentionally local-first. It reads curated CSV files from `data/`, computes typed price/news/sentiment signals in `src/lib/`, and renders a Next.js dashboard with reusable chart components.
 
