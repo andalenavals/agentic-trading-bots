@@ -60,6 +60,15 @@ For the trading bots gym layer, opacity is derived from decision confidence:
 
 Lower opacity means the agent was more uncertain.
 
+The agent-output loader discovers files rather than relying on a fixed split count. Supported filename patterns are:
+
+.. code-block:: text
+
+   data/agent_outputs/single_asset_ppo/evaluation_split_<n>.csv
+   data/agent_outputs/single_asset_ppo/full_dataset_predictions_split_<n>.csv
+   data/agent_outputs/multiple_asset_ppo/evaluation_split_<n>_multi_asset_<mode>.csv
+   data/agent_outputs/multiple_asset_ppo/evaluation_full_dataset_split_<n>_multi_asset_<mode>.csv
+
 Refresh Rule
 ------------
 

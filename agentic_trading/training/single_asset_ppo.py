@@ -11,7 +11,22 @@ from sklearn.preprocessing import StandardScaler
 from stable_baselines3 import PPO
 from torch import nn
 
-from agentic_trading.training.common import load_config
+from agentic_trading.training.common import load_config, require_config_keys
+
+
+REQUIRED_CONFIG_KEYS = {
+    "input_csv",
+    "output_dir",
+    "window_size",
+    "initial_balance",
+    "n_splits",
+    "total_timesteps",
+    "learning_rate",
+    "n_steps",
+    "batch_size",
+    "gamma",
+    "seed",
+}
 
 
 class SingleAssetTradingEnv(gym.Env):
@@ -104,7 +119,13 @@ def transform_full_dataset(data: pd.DataFrame, scaler: StandardScaler) -> pd.Dat
 
 
 def walk_forward_split(data: pd.DataFrame, n_splits: int):
+    if n_splits < 1:
+        raise ValueError("n_splits must be at least 1.")
+
     split_size = len(data) // (n_splits + 1)
+    if split_size <= 0:
+        raise ValueError("Not enough rows for the requested walk-forward split count.")
+
     for index in range(n_splits):
         train_end = split_size * (index + 1)
         test_end = split_size * (index + 2)
@@ -168,7 +189,8 @@ def evaluate_model(
 
 def run(config_path: str) -> None:
     config = load_config(config_path)
-    data = pd.read_csv(config["input_csv"]).reset_index(drop=True)
+    require_config_keys(config, REQUIRED_CONFIG_KEYS, config_path)
+    data = load_dataset(config["input_csv"])
     output_dir = Path(config["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -205,6 +227,17 @@ def run(config_path: str) -> None:
             initial_balance=config["initial_balance"],
         )
         full_predictions.to_csv(output_dir / f"full_dataset_predictions_split_{split}.csv", index=False)
+
+
+def load_dataset(input_csv: str) -> pd.DataFrame:
+    data = pd.read_csv(input_csv)
+    required = {"commodity", "price", "sentiment_score"}
+    missing = required - set(data.columns)
+    if missing:
+        raise ValueError(f"{input_csv} is missing required columns: {sorted(missing)}")
+    if "date" in data.columns:
+        data = data.sort_values("date")
+    return data.reset_index(drop=True)
 
 
 def main() -> None:

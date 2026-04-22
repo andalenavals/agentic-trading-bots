@@ -50,6 +50,8 @@ App Boundary
 
 The Next.js app reads derived files. It does not generate them. The build command runs preprocessing first so deployment is reproducible from raw CSVs.
 
+Agent-output discovery is file-pattern based rather than hardcoded to three splits. This keeps config changes in the training layer from forcing app-loader changes.
+
 Documentation Boundary
 ~~~~~~~~~~~~~~~~~~~~~~
 

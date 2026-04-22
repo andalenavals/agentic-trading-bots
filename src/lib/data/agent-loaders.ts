@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { normalizeCommodity } from "@/lib/analytics/commodities";
 import { parseCsv, toNumber } from "@/lib/data/csv";
@@ -19,24 +19,10 @@ const ACTION_NAMES: Record<0 | 1 | 2, AgentActionName> = {
   2: "sell",
 };
 
-const AGENT_SOURCES: AgentGymData["sources"] = [
-  { model: "single_asset_ppo", dataset: "test", split: 1, path: "single_asset_ppo/evaluation_split_1.csv" },
-  { model: "single_asset_ppo", dataset: "test", split: 2, path: "single_asset_ppo/evaluation_split_2.csv" },
-  { model: "single_asset_ppo", dataset: "test", split: 3, path: "single_asset_ppo/evaluation_split_3.csv" },
-  { model: "single_asset_ppo", dataset: "full", split: 1, path: "single_asset_ppo/full_dataset_predictions_split_1.csv" },
-  { model: "single_asset_ppo", dataset: "full", split: 2, path: "single_asset_ppo/full_dataset_predictions_split_2.csv" },
-  { model: "single_asset_ppo", dataset: "full", split: 3, path: "single_asset_ppo/full_dataset_predictions_split_3.csv" },
-  { model: "multiple_asset_ppo", dataset: "test", split: 1, path: "multiple_asset_ppo/evaluation_split_1_multi_asset_infinite_capital.csv" },
-  { model: "multiple_asset_ppo", dataset: "test", split: 2, path: "multiple_asset_ppo/evaluation_split_2_multi_asset_infinite_capital.csv" },
-  { model: "multiple_asset_ppo", dataset: "test", split: 3, path: "multiple_asset_ppo/evaluation_split_3_multi_asset_infinite_capital.csv" },
-  { model: "multiple_asset_ppo", dataset: "full", split: 1, path: "multiple_asset_ppo/evaluation_full_dataset_split_1_multi_asset_infinite_capital.csv" },
-  { model: "multiple_asset_ppo", dataset: "full", split: 2, path: "multiple_asset_ppo/evaluation_full_dataset_split_2_multi_asset_infinite_capital.csv" },
-  { model: "multiple_asset_ppo", dataset: "full", split: 3, path: "multiple_asset_ppo/evaluation_full_dataset_split_3_multi_asset_infinite_capital.csv" },
-];
-
 export const loadAgentGymData = cache(async (): Promise<AgentGymData> => {
+  const sources = await discoverAgentSources();
   const loaded = await Promise.all(
-    AGENT_SOURCES.map(async (source) => {
+    sources.map(async (source) => {
       const fullPath = path.join(AGENT_ROOT, source.path);
       if (!(await exists(fullPath))) return { source, points: [] };
 
@@ -56,6 +42,28 @@ export const loadAgentGymData = cache(async (): Promise<AgentGymData> => {
   };
 });
 
+async function discoverAgentSources(): Promise<AgentGymData["sources"]> {
+  const [singleAssetFiles, multipleAssetFiles] = await Promise.all([
+    safeReadDir(path.join(AGENT_ROOT, "single_asset_ppo")),
+    safeReadDir(path.join(AGENT_ROOT, "multiple_asset_ppo")),
+  ]);
+
+  return [
+    ...singleAssetFiles.flatMap((file) => singleAssetSource(file)),
+    ...multipleAssetFiles.flatMap((file) => multipleAssetSource(file)),
+  ].sort((a, b) =>
+    `${a.model}-${a.dataset}-${a.split}-${a.path}`.localeCompare(`${b.model}-${b.dataset}-${b.split}-${b.path}`),
+  );
+}
+
+async function safeReadDir(directory: string) {
+  try {
+    return await readdir(directory);
+  } catch {
+    return [];
+  }
+}
+
 async function exists(filePath: string) {
   try {
     await access(filePath);
@@ -63,6 +71,34 @@ async function exists(filePath: string) {
   } catch {
     return false;
   }
+}
+
+function singleAssetSource(file: string): AgentGymData["sources"] {
+  const test = file.match(/^evaluation_split_(\d+)\.csv$/);
+  if (test) {
+    return [{ model: "single_asset_ppo", dataset: "test", split: Number(test[1]), path: `single_asset_ppo/${file}` }];
+  }
+
+  const full = file.match(/^full_dataset_predictions_split_(\d+)\.csv$/);
+  if (full) {
+    return [{ model: "single_asset_ppo", dataset: "full", split: Number(full[1]), path: `single_asset_ppo/${file}` }];
+  }
+
+  return [];
+}
+
+function multipleAssetSource(file: string): AgentGymData["sources"] {
+  const test = file.match(/^evaluation_split_(\d+)_multi_asset_.+\.csv$/);
+  if (test) {
+    return [{ model: "multiple_asset_ppo", dataset: "test", split: Number(test[1]), path: `multiple_asset_ppo/${file}` }];
+  }
+
+  const full = file.match(/^evaluation_full_dataset_split_(\d+)_multi_asset_.+\.csv$/);
+  if (full) {
+    return [{ model: "multiple_asset_ppo", dataset: "full", split: Number(full[1]), path: `multiple_asset_ppo/${file}` }];
+  }
+
+  return [];
 }
 
 function parseSingleAssetRow(

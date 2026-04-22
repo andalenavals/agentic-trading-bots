@@ -27,6 +27,8 @@ Application
 
 ``src/app/`` loads dashboard data once on the server and passes serializable props to client dashboard components.
 
+``src/lib/data/agent-loaders.ts`` discovers generated agent outputs by filename pattern, so the UI is not coupled to a fixed number of train/test splits.
+
 Components
 ~~~~~~~~~~
 
@@ -50,6 +52,7 @@ Included:
 * config-driven single-asset and multi-asset PPO training modules
 * PPO decision-output visualization
 * Sphinx documentation deployed with the demo using the Read the Docs theme
+* repeatable local checks through ``npm test`` and docs/static build commands
 
 Deferred:
 

@@ -43,16 +43,26 @@ export function AgentGym({ agentGym, commodities }: Props) {
   const [commodity, setCommodity] = useState<CommoditySlug>("copper_lme");
   const [granularity, setGranularity] = useState<Granularity>("month");
 
+  const splitOptions = useMemo(() => {
+    const splits = new Set(
+      agentGym.points
+        .filter((point) => point.model === model && point.dataset === dataset && point.commodity === commodity)
+        .map((point) => point.split),
+    );
+    return splits.size ? Array.from(splits).sort((a, b) => a - b) : [split];
+  }, [agentGym.points, commodity, dataset, model, split]);
+  const activeSplit = splitOptions.includes(split) ? split : splitOptions[0];
+
   const matching = useMemo(
     () =>
       agentGym.points.filter(
         (point) =>
           point.model === model &&
           point.dataset === dataset &&
-          point.split === split &&
+          point.split === activeSplit &&
           point.commodity === commodity,
       ),
-    [agentGym.points, commodity, dataset, model, split],
+    [activeSplit, agentGym.points, commodity, dataset, model],
   );
 
   const [startDate, setStartDate] = useState("");
@@ -101,10 +111,10 @@ export function AgentGym({ agentGym, commodities }: Props) {
           </select>
         </Control>
         <Control label="Split">
-          <select value={split} onChange={(event) => setSplit(Number(event.target.value))}>
-            <option value={1}>Split 1</option>
-            <option value={2}>Split 2</option>
-            <option value={3}>Split 3</option>
+          <select value={activeSplit} onChange={(event) => setSplit(Number(event.target.value))}>
+            {splitOptions.map((item) => (
+              <option key={item} value={item}>Split {item}</option>
+            ))}
           </select>
         </Control>
         <Control label="Commodity">
@@ -153,7 +163,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
               <div className="empty-state">
                 <h3>No bot decisions generated yet</h3>
                 <p>
-                  Run a PPO training command to generate files under <code>data/agent_outputs</code>.
+                  Run <code>npm run train:single</code> or <code>npm run train:multi</code> to generate files under <code>data/agent_outputs</code>.
                   The app only requires raw data in Git; bot outputs are generated artifacts.
                 </p>
               </div>

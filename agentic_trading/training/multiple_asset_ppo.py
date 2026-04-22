@@ -13,7 +13,26 @@ from sklearn.preprocessing import StandardScaler
 from stable_baselines3 import PPO
 from torch import nn
 
-from agentic_trading.training.common import load_config
+from agentic_trading.training.common import load_config, require_config_keys
+
+
+REQUIRED_CONFIG_KEYS = {
+    "input_csv",
+    "output_dir",
+    "commodities",
+    "feature_columns",
+    "window_size",
+    "initial_balance",
+    "n_splits",
+    "total_timesteps",
+    "learning_rate",
+    "n_steps",
+    "batch_size",
+    "gamma",
+    "epsilon",
+    "allow_infinite_capital",
+    "seed",
+}
 
 
 class MultiAssetTradingEnv(gym.Env):
@@ -282,6 +301,7 @@ def evaluate_model(model: PPO, env: MultiAssetTradingEnv, commodities: list[str]
 
 def run(config_path: str) -> None:
     config = load_config(config_path)
+    require_config_keys(config, REQUIRED_CONFIG_KEYS, config_path)
     commodities = config["commodities"]
     feature_columns = config["feature_columns"]
     np.random.seed(config["seed"])

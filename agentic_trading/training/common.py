@@ -13,6 +13,11 @@ def load_config(path: str | Path) -> dict[str, Any]:
         return json.load(handle)
 
 
+def require_config_keys(config: dict[str, Any], required: set[str], source: str | Path) -> None:
+    missing = sorted(required - set(config))
+    if missing:
+        raise ValueError(f"{source} is missing required config keys: {missing}")
+
+
 def action_name(action: int) -> str:
     return ACTION_NAMES[int(action)]
-

@@ -14,10 +14,11 @@ The GitHub Actions workflow builds both pieces into one artifact:
 1. ``npm ci``
 2. ``npm run typecheck``
 3. ``npm run lint``
-4. ``GITHUB_PAGES=true npm run build`` (this runs preprocessing first)
-5. ``sphinx-build -b html docs out/docs``
-6. upload ``out`` with ``actions/upload-pages-artifact``
-7. deploy with ``actions/deploy-pages``
+4. ``npm run test:py``
+5. ``GITHUB_PAGES=true npm run build`` (this runs preprocessing first)
+6. ``sphinx-build -b html docs out/docs``
+7. upload ``out`` with ``actions/upload-pages-artifact``
+8. deploy with ``actions/deploy-pages``
 
 Local Build
 -----------
@@ -38,5 +39,5 @@ Build the Sphinx docs:
 
 .. code-block:: bash
 
-   python -m pip install -r docs/requirements.txt
-   sphinx-build -b html docs out/docs
+   npm run docs:install
+   npm run docs:build

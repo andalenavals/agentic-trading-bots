@@ -39,6 +39,22 @@ source .venv/bin/activate
 pip install -r agents/requirements.txt
 ```
 
+The same dependencies are also exposed as the optional Python package extra in `pyproject.toml`:
+
+```bash
+pip install -e ".[agents]"
+```
+
+## Training Commands
+
+```bash
+npm run preprocess
+npm run train:single
+npm run train:multi
+```
+
+The dashboard discovers generated evaluation files from `data/agent_outputs`, so new split counts or finite/infinite multi-asset capital modes are picked up automatically when filenames follow the trainer conventions.
+
 ## Notes
 
 The training layer should stay config-driven: no direct data paths, no plotting functions, and no checked-in generated outputs.

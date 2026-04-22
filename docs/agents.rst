@@ -27,8 +27,15 @@ Then run the agent modules when PPO outputs need to be refreshed:
 
 .. code-block:: bash
 
-   python -m agentic_trading.training.single_asset_ppo --config configs/agents/single_asset_ppo.json
-   python -m agentic_trading.training.multiple_asset_ppo --config configs/agents/multiple_asset_ppo.json
+   npm run train:single
+   npm run train:multi
+
+The equivalent direct Python commands are:
+
+.. code-block:: bash
+
+   python3 -m agentic_trading.training.single_asset_ppo --config configs/agents/single_asset_ppo.json
+   python3 -m agentic_trading.training.multiple_asset_ppo --config configs/agents/multiple_asset_ppo.json
 
 Single-Asset PPO
 ----------------
@@ -57,6 +64,8 @@ The browser demo does not retrain PPO models. If generated PPO outputs exist und
 * entropy and normalized entropy
 * net worth and reward
 * position when available
+
+The dashboard discovers output files dynamically from ``data/agent_outputs/single_asset_ppo`` and ``data/agent_outputs/multiple_asset_ppo``. Changing ``n_splits`` or switching multi-asset capital mode does not require a UI code change as long as the trainer filename conventions are preserved.
 
 Decision-marker opacity is derived from confidence:
 

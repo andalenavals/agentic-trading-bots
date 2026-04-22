@@ -27,6 +27,7 @@ Repository Shape
    ├── configs/             # Preprocessing and training configs
    ├── data/                # Raw CSV snapshots plus ignored generated artifacts
    ├── docs/                # Sphinx documentation source
+   ├── pyproject.toml       # Optional Python package metadata
    ├── src/                 # Next.js app, components, loaders, analytics
    └── tests/               # Python preprocessing tests
 

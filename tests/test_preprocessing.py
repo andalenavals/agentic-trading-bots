@@ -50,6 +50,22 @@ class PreprocessingTest(unittest.TestCase):
             self.assertTrue((training_dir / "copper_lme.csv").exists())
             self.assertTrue((training_dir / "nickel_lme.csv").exists())
 
+    def test_pipeline_fails_fast_when_required_columns_are_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prices = root / "prices.csv"
+            news = root / "news.csv"
+
+            self.write_csv(prices, ["date", "price"], [{"date": "2026-01-01", "price": "9000"}])
+            self.write_csv(
+                news,
+                ["date", "impacted_commodity", "summary"],
+                [{"date": "2026-01-01", "impacted_commodity": "copper", "summary": "Copper rally"}],
+            )
+
+            with self.assertRaisesRegex(ValueError, "missing required columns"):
+                build_prices_with_news(prices, news, root / "out.csv")
+
     @staticmethod
     def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
