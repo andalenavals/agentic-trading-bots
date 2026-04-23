@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AgentGym } from "@/components/dashboard/AgentGym";
 import { CommodityCards } from "@/components/dashboard/CommodityCards";
-import type { CommoditySlug, DashboardData } from "@/lib/types";
+import { EventFeed } from "@/components/dashboard/EventFeed";
+import { PriceChart } from "@/components/dashboard/PriceChart";
+import type { CommoditySlug, DashboardData, SentimentPoint } from "@/lib/types";
 
 type Props = {
   data: DashboardData;
@@ -12,9 +14,16 @@ type Props = {
 export function Dashboard({ data }: Props) {
   const [layer, setLayer] = useState<"market" | "gym">("market");
   const [activeCommodity, setActiveCommodity] = useState<CommoditySlug>("copper_lme");
+  const [selectedPoint, setSelectedPoint] = useState<SentimentPoint | null>(null);
+  const activePoints = data.pricesByCommodity[activeCommodity];
+  const activeCommodityMeta = useMemo(
+    () => data.commodities.find((commodity) => commodity.slug === activeCommodity)!,
+    [activeCommodity, data.commodities],
+  );
 
   function selectCommodity(slug: CommoditySlug) {
     setActiveCommodity(slug);
+    setSelectedPoint(null);
   }
 
   return (
@@ -40,6 +49,17 @@ export function Dashboard({ data }: Props) {
             commodities={data.commodities}
             onSelect={selectCommodity}
           />
+
+          <section className="grid dashboard-grid" style={{ marginTop: 18 }}>
+            <div className="grid">
+              <PriceChart
+                commodity={activeCommodityMeta}
+                onSelectPoint={setSelectedPoint}
+                points={activePoints}
+              />
+            </div>
+            <EventFeed commodity={activeCommodityMeta} selectedPoint={selectedPoint} />
+          </section>
         </>
       ) : (
         <AgentGym
