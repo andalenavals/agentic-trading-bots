@@ -80,6 +80,7 @@ def generate_full_predictions(rows: list[dict[str, str]], split: int, train_end:
     prices = [to_number(row.get("price", "")) for row in rows]
     alpha, beta = fit_ar1(prices[:train_end])
     generated: list[dict[str, object]] = []
+    rollout_price = prices[train_end - 1] if train_end > 0 else 0.0
 
     for index, row in enumerate(rows):
         phase = "train" if index < train_end else "test"
@@ -87,10 +88,11 @@ def generate_full_predictions(rows: list[dict[str, str]], split: int, train_end:
         error = None
         absolute_error = None
 
-        if phase == "test" and index > 0:
-            predicted_price = alpha + beta * prices[index - 1]
+        if phase == "test":
+            predicted_price = alpha + beta * rollout_price
             error = predicted_price - prices[index]
             absolute_error = abs(error)
+            rollout_price = predicted_price
 
         generated.append(
             {

@@ -103,6 +103,11 @@ class PreprocessingTest(unittest.TestCase):
         self.assertEqual(generated[2]["predicted_price"], "")
         self.assertNotEqual(generated[3]["predicted_price"], "")
         self.assertNotEqual(generated[4]["error"], "")
+        first_pred = float(generated[3]["predicted_price"])
+        second_pred = float(generated[4]["predicted_price"])
+        alpha = float(generated[4]["alpha"])
+        beta = float(generated[4]["beta"])
+        self.assertAlmostEqual(second_pred, alpha + beta * first_pred)
 
     def test_pipeline_fails_fast_when_required_columns_are_missing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
