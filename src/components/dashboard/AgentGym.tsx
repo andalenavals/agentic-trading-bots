@@ -10,7 +10,6 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Scatter,
-  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
@@ -184,7 +183,7 @@ export function AgentGym({ activeCommodity: selectedCommodity, agentGym, commodi
         </Control>
       </div>
 
-      <div className="gym-layout">
+      <div className="gym-stack">
         <div className="panel gym-chart">
           <div className="panel-head">
             <div style={{ alignItems: "center", display: "flex", gap: 10 }}>
@@ -261,7 +260,6 @@ export function AgentGym({ activeCommodity: selectedCommodity, agentGym, commodi
                     tickLine={false}
                     width={62}
                   />
-                  <Tooltip content={<AgentTooltip />} />
                   {chartType === "bar" ? (
                     <Bar dataKey="price" fill={activeCommodity.colorHex} opacity={0.62} radius={[3, 3, 0, 0]} />
                   ) : chartType === "area" ? (
@@ -418,25 +416,6 @@ function buildChartPoints(points: AgentDecisionPoint[], activeSplit: number, spl
     uncertainty: point.normalizedEntropy || 1 - point.confidence,
     x: index,
   }));
-}
-
-function AgentTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: AgentChartPoint }> }) {
-  if (!active || !payload?.[0]) return null;
-  const point = payload[0].payload;
-
-  return (
-    <div className="panel" style={{ minWidth: 220, padding: 12 }}>
-      <p className="faint" style={{ fontSize: 12 }}>{point.label}</p>
-      <p style={{ fontWeight: 800, marginTop: 4 }}>${point.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-      <p style={{ color: ACTION_COLOR[point.actionName], fontSize: 12, fontWeight: 800, marginTop: 8, textTransform: "uppercase" }}>
-        {point.actionName} · {(point.confidence * 100).toFixed(1)}% confidence
-      </p>
-      <p className="muted" style={{ fontSize: 12, lineHeight: 1.45, marginTop: 8 }}>
-        Hold {(point.probHold * 100).toFixed(1)}% · Buy {(point.probBuy * 100).toFixed(1)}% · Sell {(point.probSell * 100).toFixed(1)}%
-      </p>
-      <p className="faint" style={{ fontSize: 11, marginTop: 8, textTransform: "uppercase" }}>{point.phase}</p>
-    </div>
-  );
 }
 
 function DecisionDot(props: { alphaLevel?: number; cx?: number; cy?: number; markerSize?: number; markerType?: MarkerType; payload?: AgentChartPoint }) {
