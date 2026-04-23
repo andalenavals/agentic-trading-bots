@@ -43,22 +43,22 @@ export function Dashboard({ data }: Props) {
       </div>
 
       {layer === "market" ? (
-        <>
-          <CommodityCards
-            activeCommodity={activeCommodity}
-            commodities={data.commodities}
-            onSelect={selectCommodity}
+        <section className="grid market-stack" style={{ marginTop: 18 }}>
+          <PriceChart
+            commodity={activeCommodityMeta}
+            onSelectPoint={setSelectedPoint}
+            points={activePoints}
+            selector={
+              <CommodityCards
+                activeCommodity={activeCommodity}
+                commodities={data.commodities}
+                embedded
+                onSelect={selectCommodity}
+              />
+            }
           />
-
-          <section className="grid market-stack" style={{ marginTop: 18 }}>
-            <PriceChart
-              commodity={activeCommodityMeta}
-              onSelectPoint={setSelectedPoint}
-              points={activePoints}
-            />
-            <EventFeed commodity={activeCommodityMeta} selectedPoint={selectedPoint} />
-          </section>
-        </>
+          <EventFeed commodity={activeCommodityMeta} selectedPoint={selectedPoint} />
+        </section>
       ) : (
         <AgentGym
           agentGym={data.agentGym}

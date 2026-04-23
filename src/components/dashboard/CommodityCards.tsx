@@ -5,14 +5,15 @@ import type { Commodity, CommoditySlug } from "@/lib/types";
 type Props = {
   activeCommodity: CommoditySlug;
   commodities: Commodity[];
+  embedded?: boolean;
   onSelect: (slug: CommoditySlug) => void;
 };
 
-export function CommodityCards({ activeCommodity, commodities, onSelect }: Props) {
+export function CommodityCards({ activeCommodity, commodities, embedded = false, onSelect }: Props) {
   const commodity = commodities.find((item) => item.slug === activeCommodity) ?? commodities[0];
 
   return (
-    <section className="panel commodity-picker">
+    <section className={`${embedded ? "" : "panel "}commodity-picker${embedded ? " embedded" : ""}`}>
       <label>
         <span>Commodity</span>
         <select value={commodity.slug} onChange={(event) => onSelect(event.target.value as CommoditySlug)}>

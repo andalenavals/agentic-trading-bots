@@ -20,7 +20,7 @@ import { VisualizationControls } from "@/components/dashboard/VisualizationContr
 import { useAnimatedXRange } from "@/components/dashboard/useAnimatedRange";
 import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { computeSignals } from "@/lib/analytics/signals";
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import type { Commodity, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 
@@ -28,6 +28,7 @@ type Props = {
   commodity: Commodity;
   onSelectPoint: (point: SentimentPoint) => void;
   points: SentimentPoint[];
+  selector?: ReactNode;
 };
 
 type ChartClickEvent = {
@@ -42,7 +43,7 @@ const RANGES = [
   { label: "ALL", value: 9999 },
 ];
 
-export function PriceChart({ commodity, onSelectPoint, points }: Props) {
+export function PriceChart({ commodity, onSelectPoint, points, selector }: Props) {
   const mounted = useClientMounted();
   const hoveredPoint = useRef<SentimentPoint | null>(null);
   const [chartType, setChartType] = useState<ChartType>("area");
@@ -110,19 +111,7 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
 
   return (
     <section className="panel">
-      <div className="panel-head">
-        <div style={{ alignItems: "center", display: "flex", gap: 12 }}>
-          <span className="chip" style={{ backgroundColor: `${commodity.colorHex}22`, color: commodity.colorHex }}>
-            {commodity.symbol}
-          </span>
-          <div>
-            <h2 style={{ fontSize: 17 }}>{commodity.name} price and sentiment</h2>
-            <p className="faint" style={{ fontSize: 12, marginTop: 3 }}>
-              LME price with sentiment context from curated news summaries
-            </p>
-          </div>
-        </div>
-      </div>
+      {selector ? <div className="panel-head chart-selector-head">{selector}</div> : null}
 
       <VisualizationControls
         alphaLevel={alphaLevel}

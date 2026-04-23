@@ -74,6 +74,15 @@ h1 {
   width: min(100%, 320px);
 }
 
+.commodity-picker.embedded {
+  margin-bottom: 0;
+  padding: 0;
+}
+
+.chart-selector-head {
+  justify-content: flex-start;
+}
+
 .commodity-picker label {
   display: grid;
   gap: 6px;
