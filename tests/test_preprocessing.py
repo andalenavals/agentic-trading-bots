@@ -10,6 +10,13 @@ from agentic_trading.preprocessing import add_sentiment, build_prices_with_news,
 
 
 class PreprocessingTest(unittest.TestCase):
+    def test_pages_config_keeps_finbert_enabled(self) -> None:
+        config_path = Path(__file__).resolve().parents[1] / "configs" / "preprocessing" / "pages.json"
+        with config_path.open(encoding="utf-8") as handle:
+            config = json.load(handle)
+
+        self.assertTrue(config.get("include_finbert"))
+
     def test_pipeline_generates_visualization_and_training_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

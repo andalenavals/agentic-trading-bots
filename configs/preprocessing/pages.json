@@ -6,7 +6,7 @@
   "prices_with_news": "data/processed/prices_with_news.csv",
   "prices_with_sentiment": "data/processed/prices_with_sentiment.csv",
   "commodity_training_dir": "data/training/commodity_outputs",
-  "include_finbert": false,
+  "include_finbert": true,
   "finbert_model": "ProsusAI/finbert",
   "finbert_batch_size": 32
 }
