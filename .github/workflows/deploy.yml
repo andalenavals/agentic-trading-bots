@@ -60,6 +60,7 @@ jobs:
         run: npm run build
         env:
           GITHUB_PAGES: "true"
+          PREPROCESS_CONFIG: "configs/preprocessing/pages.json"
 
       - name: Build Sphinx docs
         run: npm run docs:build
