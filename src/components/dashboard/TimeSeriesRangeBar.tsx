@@ -1,4 +1,4 @@
-import { normalizeXRange, zoomXRange } from "@/lib/analytics/chart-zoom";
+import { normalizeXRange, zoomXRangeFromCenter } from "@/lib/analytics/chart-zoom";
 import type { XRange } from "@/lib/analytics/chart-zoom";
 
 type Props = {
@@ -10,20 +10,20 @@ type Props = {
 
 export function TimeSeriesRangeBar({ labels, length, onChange, range }: Props) {
   const normalized = normalizeXRange(range, length);
-  const width = Math.max(0, normalized.end - normalized.start);
-  const maxStart = Math.max(0, length - width - 1);
+  const windowSize = normalized.end - normalized.start + 1;
+  const maxStart = Math.max(0, length - windowSize);
   const startLabel = labels[normalized.start] ?? "";
   const endLabel = labels[normalized.end] ?? "";
   const disabled = length <= 1;
 
   function handleMove(start: number) {
     const nextStart = Math.min(maxStart, Math.max(0, start));
-    onChange(normalizeXRange({ end: nextStart + width, start: nextStart }, length));
+    onChange(normalizeXRange({ end: nextStart + windowSize - 1, start: nextStart }, length));
   }
 
   return (
     <div className="time-range-bar">
-      <button disabled={disabled} onClick={() => onChange(zoomXRange(normalized, length, 1, 0.5))} title="Zoom out" type="button">
+      <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "out"))} title="Zoom out" type="button">
         -
       </button>
       <label>
@@ -40,7 +40,7 @@ export function TimeSeriesRangeBar({ labels, length, onChange, range }: Props) {
           {startLabel} - {endLabel}
         </span>
       </label>
-      <button disabled={disabled} onClick={() => onChange(zoomXRange(normalized, length, -1, 0.5))} title="Zoom in" type="button">
+      <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "in"))} title="Zoom in" type="button">
         +
       </button>
     </div>

@@ -14,25 +14,28 @@ export function normalizeXRange(range: XRange, length: number): XRange {
   return { end, start };
 }
 
-export function zoomXRange(current: XRange, length: number, deltaY: number, pointerRatio = 0.5): XRange {
+export function zoomXRangeFromCenter(current: XRange, length: number, direction: "in" | "out"): XRange {
   if (length <= 2) return fullXRange(length);
 
-  const max = length - 1;
-  const width = Math.max(2, current.end - current.start);
-  const zoomFactor = deltaY < 0 ? 0.78 : 1.28;
-  const nextWidth = clamp(Math.round(width * zoomFactor), 8, max);
-  const anchor = current.start + width * clamp(pointerRatio, 0, 1);
-  let start = Math.round(anchor - nextWidth * pointerRatio);
-  let end = start + nextWidth;
+  const normalized = normalizeXRange(current, length);
+  const currentSize = normalized.end - normalized.start + 1;
+  const nextSize = clamp(
+    Math.round(currentSize * (direction === "in" ? 0.76 : 1.32)),
+    Math.min(8, length),
+    length,
+  );
+  const center = (normalized.start + normalized.end) / 2;
+  let start = Math.round(center - (nextSize - 1) / 2);
+  let end = start + nextSize - 1;
 
   if (start < 0) {
     end -= start;
     start = 0;
   }
 
-  if (end > max) {
-    start -= end - max;
-    end = max;
+  if (end > length - 1) {
+    start -= end - (length - 1);
+    end = length - 1;
   }
 
   return normalizeXRange({ end, start }, length);
