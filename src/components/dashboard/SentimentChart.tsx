@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   Area,
   Bar,
@@ -15,10 +15,9 @@ import {
 } from "recharts";
 import { ChartGestureSurface } from "@/components/dashboard/ChartGestureSurface";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
-import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
-import { useAnimatedXRange } from "@/components/dashboard/useAnimatedRange";
 import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import type { MouseEvent } from "react";
+import type { XRange } from "@/lib/analytics/chart-zoom";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 import type { Commodity, SentimentPoint } from "@/lib/types";
 
@@ -30,6 +29,8 @@ type Props = {
   markerType: MarkerType;
   points: SentimentPoint[];
   range: number;
+  xRange: XRange;
+  onXRangeChange: (range: XRange) => void;
 };
 
 type SentimentMode = "sentiment" | "finbert";
@@ -53,19 +54,15 @@ export function SentimentChart({
   commodity,
   markerSize,
   markerType,
+  onXRangeChange,
   points,
   range,
+  xRange,
 }: Props) {
   const mounted = useClientMounted();
   const hoveredPoint = useRef<SentimentChartPoint | null>(null);
-  const previousRange = useRef(range);
   const [mode, setMode] = useState<SentimentMode>("sentiment");
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
-  const {
-    range: xViewportRange,
-    setAnimated: setAnimatedXViewport,
-    setImmediate: setImmediateXViewport,
-  } = useAnimatedXRange();
 
   const filtered = useMemo(() => (range >= 9999 ? points : points.slice(-range)), [points, range]);
   const chartData = useMemo(
@@ -84,19 +81,13 @@ export function SentimentChart({
     [filtered, mode, range],
   );
 
-  const xDomain = normalizeXDomain(xViewportRange ?? fullXRange(chartData.length), chartData.length);
+  const xDomain = normalizeXDomain(xRange ?? fullXRange(chartData.length), chartData.length);
   const visibleRange = normalizeXRange(xDomain, chartData.length);
   const visibleData = chartData.slice(visibleRange.start, visibleRange.end + 1);
   const ticks = xAxisTicks(visibleRange);
   const yValues = (visibleData.length ? visibleData : chartData).map((point) => point.value);
   const rawYRange = fullYRange(yValues.length ? yValues : [0]);
   const selectedPoint = chartData.find((point) => point.key === selectedPointKey) ?? null;
-
-  useEffect(() => {
-    if (previousRange.current === range) return;
-    previousRange.current = range;
-    setImmediateXViewport(null);
-  }, [range, setImmediateXViewport]);
 
   function pointFromChartEvent(event: ChartClickEvent | undefined) {
     const payloadPoint = event?.activePayload?.[0]?.payload;
@@ -153,7 +144,7 @@ export function SentimentChart({
         xLength={chartData.length}
         xRange={xDomain}
         onClick={selectFromSurfaceClick}
-        onXChange={setImmediateXViewport}
+        onXChange={onXRangeChange}
       >
         {mounted ? (
           <ResponsiveContainer height="100%" width="100%">
@@ -208,12 +199,6 @@ export function SentimentChart({
           </ResponsiveContainer>
         ) : null}
       </ChartGestureSurface>
-      <TimeSeriesRangeBar
-        labels={chartData.map((point) => point.label)}
-        length={chartData.length}
-        range={visibleRange}
-        onChange={(nextRange, animated) => (animated ? setAnimatedXViewport(nextRange, visibleRange) : setImmediateXViewport(nextRange))}
-      />
       {selectedPoint ? <SentimentPointState mode={mode} point={selectedPoint} /> : null}
     </section>
   );

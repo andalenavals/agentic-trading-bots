@@ -11,6 +11,7 @@ type Props = {
   chartType: ChartType;
   markerSize: number;
   markerType: MarkerType;
+  viewportControls?: React.ReactNode;
   logScale: boolean;
   logScaleDisabled?: boolean;
   onAlphaLevelChange: (value: number) => void;
@@ -31,6 +32,7 @@ export function VisualizationControls({
   chartType,
   markerSize,
   markerType,
+  viewportControls,
   logScale,
   logScaleDisabled = false,
   onAlphaLevelChange,
@@ -107,6 +109,7 @@ export function VisualizationControls({
           </label>
         </ControlGroup>
       </div>
+      {viewportControls ? <div className="plot-settings-extra">{viewportControls}</div> : null}
     </details>
   );
 }

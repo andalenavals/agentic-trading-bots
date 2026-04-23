@@ -15,11 +15,10 @@ import {
 } from "recharts";
 import { ChartGestureSurface } from "@/components/dashboard/ChartGestureSurface";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
-import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
-import { useAnimatedXRange } from "@/components/dashboard/useAnimatedRange";
-import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
+import { fullYRange, normalizeXRange, remapXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
+import type { XRange } from "@/lib/analytics/chart-zoom";
 import type {
   AgentActionName,
   AgentDecisionPoint,
@@ -38,7 +37,10 @@ type Props = {
   logScale: boolean;
   markerSize: number;
   markerType: MarkerType;
+  onSharedXRangeChange: (range: XRange, chartLength: number) => void;
   range: number;
+  sharedXRange: XRange;
+  sharedXRangeLength: number;
 };
 
 type ChartClickEvent = {
@@ -62,12 +64,14 @@ export function AgentGym({
   logScale,
   markerSize,
   markerType,
+  onSharedXRangeChange,
   range,
+  sharedXRange,
+  sharedXRangeLength,
 }: Props) {
   const mounted = useClientMounted();
   const [model, setModel] = useState<AgentModelKind>("single_asset_ppo");
   const [split, setSplit] = useState(1);
-  const xRange = useAnimatedXRange();
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
 
   const availableCommodities = useMemo(() => {
@@ -113,7 +117,7 @@ export function AgentGym({
     () => (range >= 99999 ? chartPoints : chartPoints.slice(-range).map((point, index) => ({ ...point, x: index }))),
     [chartPoints, range],
   );
-  const xDomain = normalizeXDomain(xRange.range ?? fullXRange(displayedPoints.length), displayedPoints.length);
+  const xDomain = remapXRange(sharedXRange, sharedXRangeLength, displayedPoints.length);
   const visibleRange = normalizeXRange(xDomain, displayedPoints.length);
   const visiblePoints = displayedPoints.slice(visibleRange.start, visibleRange.end + 1);
   const ticks = xAxisTicks(visibleRange);
@@ -140,13 +144,11 @@ export function AgentGym({
   function handleModelChange(nextModel: AgentModelKind) {
     setModel(nextModel);
     setSelectedPointKey(null);
-    xRange.setImmediate(null);
   }
 
   function handleSplitChange(nextSplit: number) {
     setSplit(nextSplit);
     setSelectedPointKey(null);
-    xRange.setImmediate(null);
   }
 
   function selectFromSurfaceClick(event: React.MouseEvent<HTMLDivElement>) {
@@ -188,7 +190,7 @@ export function AgentGym({
             onClick={selectFromSurfaceClick}
             xLength={displayedPoints.length}
             xRange={xDomain}
-            onXChange={xRange.setImmediate}
+            onXChange={(nextRange) => onSharedXRangeChange(nextRange, displayedPoints.length)}
           >
             {displayedPoints.length === 0 ? (
               <div className="empty-state">
@@ -259,12 +261,6 @@ export function AgentGym({
               </ResponsiveContainer>
             ) : null}
           </ChartGestureSurface>
-          <TimeSeriesRangeBar
-            labels={displayedPoints.map((point) => point.label)}
-            length={displayedPoints.length}
-            range={visibleRange}
-            onChange={(nextRange, animated) => (animated ? xRange.setAnimated(nextRange, visibleRange) : xRange.setImmediate(nextRange))}
-          />
           {selectedPoint ? <BotPointState point={selectedPoint} /> : null}
         </div>
       </div>

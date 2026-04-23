@@ -6,8 +6,7 @@
 node_modules/
 out/
 docs/_build/
-data/processed/
-!data/processed/
+data/processed/*
 !data/processed/finbert_event_sentiment.csv
 data/training/
 data/agent_outputs/

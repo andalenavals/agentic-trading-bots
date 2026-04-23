@@ -85,6 +85,23 @@ export function xAxisTicks(range: XRange, maxTicks = 8): number[] {
   return ticks;
 }
 
+export function remapXRange(range: XRange, fromLength: number, toLength: number): XRange {
+  if (toLength <= 1) return fullXRange(toLength);
+  if (fromLength <= 1) return fullXRange(toLength);
+
+  const normalized = normalizeXDomain(range, fromLength);
+  const fromMax = Math.max(1, fromLength - 1);
+  const toMax = Math.max(1, toLength - 1);
+
+  return normalizeXDomain(
+    {
+      end: (normalized.end / fromMax) * toMax,
+      start: (normalized.start / fromMax) * toMax,
+    },
+    toLength,
+  );
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
