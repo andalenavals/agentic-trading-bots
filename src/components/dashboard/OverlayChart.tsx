@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Scatter, Tooltip, XAxis, YAxis } from "recharts";
+import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
+import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
 import type { Commodity, CommoditySlug, SentimentPoint } from "@/lib/types";
+import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 
 type Props = {
   commodities: Commodity[];
@@ -18,6 +21,10 @@ const RANGES = [
 export function OverlayChart({ commodities, pricesByCommodity }: Props) {
   const mounted = useClientMounted();
   const [range, setRange] = useState(365);
+  const [chartType, setChartType] = useState<ChartType>("line");
+  const [markerSize, setMarkerSize] = useState(4);
+  const [markerType, setMarkerType] = useState<MarkerType>("circle");
+  const [alphaLevel, setAlphaLevel] = useState(0.7);
   const chartData = useMemo(() => buildOverlayData(commodities, pricesByCommodity, range), [commodities, pricesByCommodity, range]);
   const tickInterval = Math.max(1, Math.floor(chartData.length / 8));
 
@@ -30,18 +37,24 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
             Percent change normalized to the first point in range
           </p>
         </div>
-        <div className="segmented">
-          {RANGES.map((item) => (
-            <button className={range === item.value ? "active" : ""} key={item.label} onClick={() => setRange(item.value)} type="button">
-              {item.label}
-            </button>
-          ))}
-        </div>
       </div>
+      <VisualizationControls
+        alphaLevel={alphaLevel}
+        chartType={chartType}
+        markerSize={markerSize}
+        markerType={markerType}
+        range={range}
+        ranges={RANGES}
+        onAlphaLevelChange={setAlphaLevel}
+        onChartTypeChange={setChartType}
+        onMarkerSizeChange={setMarkerSize}
+        onMarkerTypeChange={setMarkerType}
+        onRangeChange={setRange}
+      />
       <div className="chart-box" style={{ height: 330 }}>
         {mounted ? (
           <ResponsiveContainer height="100%" width="100%">
-            <LineChart data={chartData}>
+            <ComposedChart data={chartData}>
               <CartesianGrid stroke="#252b3a" vertical={false} />
               <XAxis axisLine={false} dataKey="label" interval={tickInterval} tick={{ fill: "#697185", fontSize: 11 }} tickLine={false} />
               <YAxis axisLine={false} tick={{ fill: "#697185", fontSize: 11 }} tickFormatter={(value) => `${Number(value).toFixed(0)}%`} tickLine={false} width={54} />
@@ -52,22 +65,62 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
               />
               <Line dataKey={() => 0} dot={false} legendType="none" stroke="#394153" strokeDasharray="4 4" />
               {commodities.map((commodity) => (
-                <Line
-                  connectNulls
+                chartType === "bar" ? (
+                  <Bar dataKey={commodity.slug} fill={commodity.colorHex} key={commodity.slug} opacity={0.56} radius={[2, 2, 0, 0]} />
+                ) : chartType === "area" ? (
+                  <Area
+                    connectNulls
+                    dataKey={commodity.slug}
+                    dot={false}
+                    fill={`${commodity.colorHex}18`}
+                    key={commodity.slug}
+                    stroke={commodity.colorHex}
+                    strokeWidth={2}
+                    type="monotone"
+                  />
+                ) : (
+                  <Line
+                    connectNulls
+                    dataKey={commodity.slug}
+                    dot={false}
+                    key={commodity.slug}
+                    stroke={commodity.colorHex}
+                    strokeWidth={2}
+                    type="monotone"
+                  />
+                )
+              ))}
+              {commodities.map((commodity) => (
+                <Scatter
                   dataKey={commodity.slug}
-                  dot={false}
-                  key={commodity.slug}
-                  stroke={commodity.colorHex}
-                  strokeWidth={2}
-                  type="monotone"
+                  key={`${commodity.slug}-markers`}
+                  shape={<PerformanceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
                 />
               ))}
-            </LineChart>
+            </ComposedChart>
           </ResponsiveContainer>
         ) : null}
       </div>
     </section>
   );
+}
+
+function PerformanceMarker({
+  alphaLevel,
+  color,
+  cx,
+  cy,
+  markerSize,
+  markerType,
+}: {
+  alphaLevel: number;
+  color: string;
+  cx?: number;
+  cy?: number;
+  markerSize: number;
+  markerType: MarkerType;
+}) {
+  return <MarkerGlyph alphaLevel={alphaLevel} color={color} cx={cx} cy={cy} markerType={markerType} size={markerSize} />;
 }
 
 function useClientMounted() {

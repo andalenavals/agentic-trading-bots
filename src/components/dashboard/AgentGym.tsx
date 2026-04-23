@@ -2,6 +2,8 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 import {
+  Area,
+  Bar,
   CartesianGrid,
   ComposedChart,
   Line,
@@ -12,7 +14,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
+import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
 import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
+import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 import type {
   AgentActionName,
   AgentDecisionPoint,
@@ -50,7 +55,11 @@ export function AgentGym({ agentGym, commodities }: Props) {
   const [model, setModel] = useState<AgentModelKind>("single_asset_ppo");
   const [split, setSplit] = useState(1);
   const [commodity, setCommodity] = useState<CommoditySlug>("copper_lme");
+  const [chartType, setChartType] = useState<ChartType>("line");
   const [range, setRange] = useState(99999);
+  const [markerSize, setMarkerSize] = useState(6);
+  const [markerType, setMarkerType] = useState<MarkerType>("circle");
+  const [alphaLevel, setAlphaLevel] = useState(0.88);
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
 
   const availableCommodities = useMemo(() => {
@@ -179,17 +188,21 @@ export function AgentGym({ agentGym, commodities }: Props) {
                 </p>
               </div>
             </div>
-            <div className="toolbar">
-              <div className="segmented">
-                {RANGES.map((item) => (
-                  <button className={range === item.value ? "active" : ""} key={item.label} onClick={() => setRange(item.value)} type="button">
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-              <Legend />
-            </div>
+            <Legend />
           </div>
+          <VisualizationControls
+            alphaLevel={alphaLevel}
+            chartType={chartType}
+            markerSize={markerSize}
+            markerType={markerType}
+            range={range}
+            ranges={RANGES}
+            onAlphaLevelChange={setAlphaLevel}
+            onChartTypeChange={setChartType}
+            onMarkerSizeChange={setMarkerSize}
+            onMarkerTypeChange={setMarkerType}
+            onRangeChange={setRange}
+          />
           <div className="chart-box" style={{ height: 390 }}>
             {displayedPoints.length === 0 ? (
               <div className="empty-state">
@@ -220,7 +233,13 @@ export function AgentGym({ agentGym, commodities }: Props) {
                   />
                   <YAxis axisLine={false} domain={["auto", "auto"]} tick={{ fill: "#697185", fontSize: 11 }} tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`} tickLine={false} width={62} />
                   <Tooltip content={<AgentTooltip />} />
-                  <Line dataKey="price" dot={false} stroke={activeCommodity.colorHex} strokeWidth={2} type="monotone" />
+                  {chartType === "bar" ? (
+                    <Bar dataKey="price" fill={activeCommodity.colorHex} opacity={0.62} radius={[3, 3, 0, 0]} />
+                  ) : chartType === "area" ? (
+                    <Area dataKey="price" dot={false} fill={`${activeCommodity.colorHex}22`} stroke={activeCommodity.colorHex} strokeWidth={2} type="monotone" />
+                  ) : (
+                    <Line dataKey="price" dot={false} stroke={activeCommodity.colorHex} strokeWidth={2} type="monotone" />
+                  )}
                   {testStart ? (
                     <ReferenceLine
                       ifOverflow="extendDomain"
@@ -235,7 +254,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
                       data={displayedPoints.filter((point) => point.actionName === actionName)}
                       dataKey="price"
                       key={actionName}
-                      shape={<DecisionDot />}
+                      shape={<DecisionDot alphaLevel={alphaLevel} markerSize={markerSize} markerType={markerType} />}
                     />
                   ))}
                 </ComposedChart>
@@ -383,20 +402,13 @@ function AgentTooltip({ active, payload }: { active?: boolean; payload?: Array<{
   );
 }
 
-function DecisionDot(props: { cx?: number; cy?: number; payload?: AgentChartPoint }) {
+function DecisionDot(props: { alphaLevel?: number; cx?: number; cy?: number; markerSize?: number; markerType?: MarkerType; payload?: AgentChartPoint }) {
   if (props.cx === undefined || props.cy === undefined || !props.payload) return <g />;
+  const opacity = Math.max(0.15, Math.min(1, (props.alphaLevel ?? 1) * Math.max(0.18, props.payload.confidence)));
+  const radius = (props.markerSize ?? 6) + props.payload.confidence * 2;
+  const color = ACTION_COLOR[props.payload.actionName];
 
-  return (
-    <circle
-      cx={props.cx}
-      cy={props.cy}
-      fill={ACTION_COLOR[props.payload.actionName]}
-      fillOpacity={Math.max(0.18, props.payload.confidence)}
-      r={5 + props.payload.confidence * 5}
-      stroke="#10131a"
-      strokeWidth={1.5}
-    />
-  );
+  return <MarkerGlyph alphaLevel={opacity} color={color} cx={props.cx} cy={props.cy} markerType={props.markerType ?? "circle"} size={radius} strokeWidth={1.5} />;
 }
 
 function useClientMounted() {

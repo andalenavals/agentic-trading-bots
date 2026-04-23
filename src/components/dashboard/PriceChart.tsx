@@ -9,14 +9,16 @@ import {
   Line,
   ReferenceLine,
   ResponsiveContainer,
+  Scatter,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
+import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
 import { computeSignals } from "@/lib/analytics/signals";
 import type { Commodity, SentimentPoint } from "@/lib/types";
-
-type ChartType = "line" | "area" | "bar";
+import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 
 type Props = {
   commodity: Commodity;
@@ -41,6 +43,9 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
   const hoveredPoint = useRef<SentimentPoint | null>(null);
   const [chartType, setChartType] = useState<ChartType>("area");
   const [range, setRange] = useState(365);
+  const [markerSize, setMarkerSize] = useState(5);
+  const [markerType, setMarkerType] = useState<MarkerType>("circle");
+  const [alphaLevel, setAlphaLevel] = useState(0.72);
   const filtered = useMemo(() => (range >= 9999 ? points : points.slice(-range)), [points, range]);
   const signal = computeSignals(filtered);
   const chartData = filtered.map((point) => ({
@@ -86,23 +91,21 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
             </p>
           </div>
         </div>
-        <div className="toolbar">
-          <div className="segmented">
-            {(["line", "area", "bar"] as ChartType[]).map((type) => (
-              <button className={chartType === type ? "active" : ""} key={type} onClick={() => setChartType(type)} type="button">
-                {type}
-              </button>
-            ))}
-          </div>
-          <div className="segmented">
-            {RANGES.map((item) => (
-              <button className={range === item.value ? "active" : ""} key={item.label} onClick={() => setRange(item.value)} type="button">
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
+
+      <VisualizationControls
+        alphaLevel={alphaLevel}
+        chartType={chartType}
+        markerSize={markerSize}
+        markerType={markerType}
+        range={range}
+        ranges={RANGES}
+        onAlphaLevelChange={setAlphaLevel}
+        onChartTypeChange={setChartType}
+        onMarkerSizeChange={setMarkerSize}
+        onMarkerTypeChange={setMarkerType}
+        onRangeChange={setRange}
+      />
 
       <div className="chart-box">
         {mounted ? (
@@ -130,12 +133,35 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
               ) : (
                 <Area dataKey="price" dot={false} fill={`url(#price-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
               )}
+              <Scatter
+                data={chartData}
+                dataKey="price"
+                shape={<PriceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
+              />
             </ComposedChart>
           </ResponsiveContainer>
         ) : null}
       </div>
     </section>
   );
+}
+
+function PriceMarker({
+  alphaLevel,
+  color,
+  cx,
+  cy,
+  markerSize,
+  markerType,
+}: {
+  alphaLevel: number;
+  color: string;
+  cx?: number;
+  cy?: number;
+  markerSize: number;
+  markerType: MarkerType;
+}) {
+  return <MarkerGlyph alphaLevel={alphaLevel} color={color} cx={cx} cy={cy} markerType={markerType} size={markerSize} />;
 }
 
 function useClientMounted() {

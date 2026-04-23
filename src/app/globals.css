@@ -229,6 +229,66 @@ h1 {
   gap: 8px;
 }
 
+.viz-controls {
+  align-items: end;
+  background: #151923;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  padding: 14px 18px;
+}
+
+.viz-control-group {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.viz-control-group > span {
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.viz-control-group select,
+.range-control input {
+  min-width: 0;
+  width: 100%;
+}
+
+.viz-control-group select {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--text);
+  padding: 8px 10px;
+  text-transform: capitalize;
+}
+
+.range-control {
+  align-items: center;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  padding: 6px 9px;
+}
+
+.range-control span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.range-control input {
+  accent-color: var(--gold);
+}
+
 .segmented {
   background: var(--panel-strong);
   border: 1px solid var(--line);
@@ -515,6 +575,10 @@ h1 {
   .gym-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .viz-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -531,6 +595,10 @@ h1 {
   }
 
   .gym-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .viz-controls {
     grid-template-columns: 1fr;
   }
 
