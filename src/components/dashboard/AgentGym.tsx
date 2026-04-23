@@ -14,12 +14,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartGestureSurface } from "@/components/dashboard/ChartGestureSurface";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
 import { YAxisRangeBar } from "@/components/dashboard/YAxisRangeBar";
 import { useAnimatedXRange, useAnimatedYRange } from "@/components/dashboard/useAnimatedRange";
-import { fullXRange, fullYRange, normalizeXRange, normalizeYRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
+import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, normalizeYRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 import type {
@@ -112,7 +113,8 @@ export function AgentGym({ agentGym, commodities }: Props) {
     () => (range >= 99999 ? chartPoints : chartPoints.slice(-range).map((point, index) => ({ ...point, x: index }))),
     [chartPoints, range],
   );
-  const visibleRange = normalizeXRange(xRange.range ?? fullXRange(displayedPoints.length), displayedPoints.length);
+  const xDomain = normalizeXDomain(xRange.range ?? fullXRange(displayedPoints.length), displayedPoints.length);
+  const visibleRange = normalizeXRange(xDomain, displayedPoints.length);
   const ticks = xAxisTicks(visibleRange);
   const rawYFullRange = fullYRange(displayedPoints.map((point) => point.price));
   const yFullRange = logScale ? { ...rawYFullRange, min: Math.max(0.000001, rawYFullRange.min) } : rawYFullRange;
@@ -235,7 +237,16 @@ export function AgentGym({ agentGym, commodities }: Props) {
             onRangeChange={handleRangeChange}
           />
           <div className="chart-y-layout">
-            <div className="chart-box" style={{ height: 390 }}>
+            <ChartGestureSurface
+              className="chart-box"
+              fullYRange={yFullRange}
+              style={{ height: 390 }}
+              xLength={displayedPoints.length}
+              xRange={xDomain}
+              yRange={visibleYRange}
+              onXChange={xRange.setImmediate}
+              onYChange={yRange.setImmediate}
+            >
               {displayedPoints.length === 0 ? (
                 <div className="empty-state">
                   <h3>No bot decisions generated yet</h3>
@@ -258,7 +269,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
                       allowDataOverflow
                       axisLine={false}
                       dataKey="x"
-                      domain={[visibleRange.start, visibleRange.end]}
+                      domain={[xDomain.start, xDomain.end]}
                       tick={{ fill: "#697185", fontSize: 11 }}
                       tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
                       tickLine={false}
@@ -305,7 +316,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
                   </ComposedChart>
                 </ResponsiveContainer>
               ) : null}
-            </div>
+            </ChartGestureSurface>
             <YAxisRangeBar
               formatter={(value) => `$${(value / 1000).toFixed(1)}k`}
               fullRange={yFullRange}

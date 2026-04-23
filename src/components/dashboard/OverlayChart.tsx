@@ -2,12 +2,13 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Scatter, XAxis, YAxis } from "recharts";
+import { ChartGestureSurface } from "@/components/dashboard/ChartGestureSurface";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
 import { YAxisRangeBar } from "@/components/dashboard/YAxisRangeBar";
 import { useAnimatedXRange, useAnimatedYRange } from "@/components/dashboard/useAnimatedRange";
-import { fullXRange, fullYRange, normalizeXRange, normalizeYRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
+import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, normalizeYRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import type { Commodity, CommoditySlug, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 
@@ -33,7 +34,8 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
   const xRange = useAnimatedXRange();
   const yRange = useAnimatedYRange();
   const chartData = useMemo(() => buildOverlayData(commodities, pricesByCommodity, range), [commodities, pricesByCommodity, range]);
-  const visibleRange = normalizeXRange(xRange.range ?? fullXRange(chartData.length), chartData.length);
+  const xDomain = normalizeXDomain(xRange.range ?? fullXRange(chartData.length), chartData.length);
+  const visibleRange = normalizeXRange(xDomain, chartData.length);
   const ticks = xAxisTicks(visibleRange);
   const yFullRange = fullYRange(
     chartData.flatMap((point) =>
@@ -75,7 +77,16 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
         onRangeChange={handleRangeChange}
       />
       <div className="chart-y-layout">
-        <div className="chart-box" style={{ height: 330 }}>
+        <ChartGestureSurface
+          className="chart-box"
+          fullYRange={yFullRange}
+          style={{ height: 330 }}
+          xLength={chartData.length}
+          xRange={xDomain}
+          yRange={visibleYRange}
+          onXChange={xRange.setImmediate}
+          onYChange={yRange.setImmediate}
+        >
           {mounted ? (
             <ResponsiveContainer height="100%" width="100%">
               <ComposedChart data={chartData}>
@@ -84,7 +95,7 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
                   allowDataOverflow
                   axisLine={false}
                   dataKey="x"
-                  domain={[visibleRange.start, visibleRange.end]}
+                  domain={[xDomain.start, xDomain.end]}
                   tick={{ fill: "#697185", fontSize: 11 }}
                   tickFormatter={(value) => String(chartData[Math.round(Number(value))]?.label ?? "")}
                   tickLine={false}
@@ -139,7 +150,7 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
               </ComposedChart>
             </ResponsiveContainer>
           ) : null}
-        </div>
+        </ChartGestureSurface>
         <YAxisRangeBar
           formatter={(value) => `${value.toFixed(0)}%`}
           fullRange={yFullRange}

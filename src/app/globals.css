@@ -430,6 +430,16 @@ h1 {
   padding: 18px;
 }
 
+.gesture-surface {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.gesture-surface.dragging {
+  cursor: grabbing;
+}
+
 .chart-y-layout {
   display: grid;
   grid-template-columns: 46px minmax(0, 1fr);

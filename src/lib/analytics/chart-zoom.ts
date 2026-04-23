@@ -34,6 +34,13 @@ export function normalizeXRange(range: XRange, length: number): XRange {
   return { end, start };
 }
 
+export function normalizeXDomain(range: XRange, length: number): XRange {
+  const max = Math.max(0, length - 1);
+  const start = clamp(Math.min(range.start, range.end), 0, max);
+  const end = clamp(Math.max(range.start, range.end), start, max);
+  return { end, start };
+}
+
 export function normalizeYRange(range: YRange, full: YRange): YRange {
   const min = clamp(Math.min(range.min, range.max), full.min, full.max);
   const max = clamp(Math.max(range.min, range.max), min, full.max);

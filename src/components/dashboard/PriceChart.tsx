@@ -14,12 +14,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartGestureSurface } from "@/components/dashboard/ChartGestureSurface";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
 import { YAxisRangeBar } from "@/components/dashboard/YAxisRangeBar";
 import { useAnimatedXRange, useAnimatedYRange } from "@/components/dashboard/useAnimatedRange";
-import { fullXRange, fullYRange, normalizeXRange, normalizeYRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
+import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, normalizeYRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { computeSignals } from "@/lib/analytics/signals";
 import type { Commodity, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
@@ -59,7 +60,8 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
     x: index,
     label: new Date(point.date).toLocaleDateString("en-US", { month: "short", year: range >= 365 ? "2-digit" : undefined, day: range < 365 ? "numeric" : undefined }),
   }));
-  const visibleRange = normalizeXRange(xRange.range ?? fullXRange(chartData.length), chartData.length);
+  const xDomain = normalizeXDomain(xRange.range ?? fullXRange(chartData.length), chartData.length);
+  const visibleRange = normalizeXRange(xDomain, chartData.length);
   const visibleData = chartData.slice(visibleRange.start, visibleRange.end + 1);
   const signal = computeSignals(visibleData);
   const ticks = xAxisTicks(visibleRange);
@@ -130,7 +132,15 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
       />
 
       <div className="chart-y-layout">
-        <div className="chart-box">
+        <ChartGestureSurface
+          className="chart-box"
+          fullYRange={yFullRange}
+          xLength={chartData.length}
+          xRange={xDomain}
+          yRange={visibleYRange}
+          onXChange={xRange.setImmediate}
+          onYChange={yRange.setImmediate}
+        >
           {mounted ? (
             <ResponsiveContainer height="100%" width="100%">
               <ComposedChart
@@ -149,7 +159,7 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
                   allowDataOverflow
                   axisLine={false}
                   dataKey="x"
-                  domain={[visibleRange.start, visibleRange.end]}
+                  domain={[xDomain.start, xDomain.end]}
                   tick={{ fill: "#697185", fontSize: 11 }}
                   tickFormatter={(value) => chartData[Math.round(Number(value))]?.label ?? ""}
                   tickLine={false}
@@ -185,7 +195,7 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
               </ComposedChart>
             </ResponsiveContainer>
           ) : null}
-        </div>
+        </ChartGestureSurface>
         <YAxisRangeBar
           formatter={(value) => `$${(value / 1000).toFixed(1)}k`}
           fullRange={yFullRange}
