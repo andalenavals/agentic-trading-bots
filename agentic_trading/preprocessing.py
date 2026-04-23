@@ -8,6 +8,13 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Iterable
 
+from agentic_trading.finbert_sentiment import (
+    DEFAULT_FINBERT_MODEL,
+    aggregate_finbert_scores,
+    neutral_finbert_sentiment,
+    score_finbert_events,
+)
+
 
 csv.field_size_limit(sys.maxsize)
 
@@ -195,13 +202,23 @@ def build_prices_with_news(
     write_csv(output, rows, ["date", "commodity", "price", "news_ids", "news_count", "news_items", "news_summary"])
 
 
-def add_sentiment(input_csv: Path, output_csv: Path) -> None:
+def add_sentiment(
+    input_csv: Path,
+    output_csv: Path,
+    finbert_scores_by_event: dict[str, dict[str, float | str]] | None = None,
+) -> None:
     source_rows = read_csv(input_csv)
     require_columns(source_rows, {"date", "commodity", "price", "news_summary"}, input_csv)
     rows = []
     for row in source_rows:
         sentiment = score_sentiment(row.get("news_summary", ""))
-        rows.append({**row, **sentiment})
+        event_ids = [event_id for event_id in row.get("news_ids", "").split(";") if event_id]
+        finbert = (
+            aggregate_finbert_scores(event_ids, finbert_scores_by_event)
+            if finbert_scores_by_event is not None
+            else neutral_finbert_sentiment()
+        )
+        rows.append({**row, **sentiment, **finbert})
 
     write_csv(
         output_csv,
@@ -218,6 +235,11 @@ def add_sentiment(input_csv: Path, output_csv: Path) -> None:
             "neutral",
             "positive",
             "sentiment_score",
+            "finbert_negative",
+            "finbert_neutral",
+            "finbert_positive",
+            "finbert_sentiment_score",
+            "finbert_label",
         ],
     )
 
@@ -248,6 +270,7 @@ def run_all(config: dict[str, str]) -> None:
     prices_with_news = Path(config["prices_with_news"])
     prices_with_sentiment = Path(config["prices_with_sentiment"])
     events = normalized_news_events(Path(config["raw_news"]))
+    include_finbert = bool(config.get("include_finbert", True))
 
     write_csv(
         news_events,
@@ -260,7 +283,15 @@ def run_all(config: dict[str, str]) -> None:
         output=prices_with_news,
         events=events,
     )
-    add_sentiment(prices_with_news, prices_with_sentiment)
+    finbert_scores = None
+    if include_finbert:
+        finbert_scores = score_finbert_events(
+            events=events,
+            cache_path=Path(config.get("finbert_event_sentiment", "data/processed/finbert_event_sentiment.csv")),
+            model_name=config.get("finbert_model", DEFAULT_FINBERT_MODEL),
+            batch_size=int(config.get("finbert_batch_size", 16)),
+        )
+    add_sentiment(prices_with_news, prices_with_sentiment, finbert_scores)
     split_by_commodity(
         input_csv=prices_with_sentiment,
         output_dir=Path(config["commodity_training_dir"]),
@@ -269,7 +300,7 @@ def run_all(config: dict[str, str]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate derived visualization and training data from raw CSVs.")
-    parser.add_argument("command", choices=["all", "news-events", "prices-with-news", "sentiment", "split"])
+    parser.add_argument("command", choices=["all", "news-events", "prices-with-news", "finbert", "sentiment", "split"])
     parser.add_argument("--config", default="configs/preprocessing/default.json")
     args = parser.parse_args()
 
@@ -280,8 +311,23 @@ def main() -> None:
         build_prices_with_news(Path(config["raw_prices"]), Path(config["raw_news"]), Path(config["prices_with_news"]))
     elif args.command == "news-events":
         write_news_events(Path(config["raw_news"]), Path(config["news_events"]))
+    elif args.command == "finbert":
+        score_finbert_events(
+            events=normalized_news_events(Path(config["raw_news"])),
+            cache_path=Path(config.get("finbert_event_sentiment", "data/processed/finbert_event_sentiment.csv")),
+            model_name=config.get("finbert_model", DEFAULT_FINBERT_MODEL),
+            batch_size=int(config.get("finbert_batch_size", 16)),
+        )
     elif args.command == "sentiment":
-        add_sentiment(Path(config["prices_with_news"]), Path(config["prices_with_sentiment"]))
+        finbert_scores = None
+        if bool(config.get("include_finbert", True)):
+            finbert_scores = score_finbert_events(
+                events=normalized_news_events(Path(config["raw_news"])),
+                cache_path=Path(config.get("finbert_event_sentiment", "data/processed/finbert_event_sentiment.csv")),
+                model_name=config.get("finbert_model", DEFAULT_FINBERT_MODEL),
+                batch_size=int(config.get("finbert_batch_size", 16)),
+            )
+        add_sentiment(Path(config["prices_with_news"]), Path(config["prices_with_sentiment"]), finbert_scores)
     elif args.command == "split":
         split_by_commodity(Path(config["prices_with_sentiment"]), Path(config["commodity_training_dir"]))
 

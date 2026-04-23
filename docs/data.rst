@@ -35,7 +35,7 @@ Primary Dashboard Schema
 
 .. code-block:: text
 
-   date,commodity,price,news_ids,news_count,news_items,news_summary,negative,neutral,positive,sentiment_score
+   date,commodity,price,news_ids,news_count,news_items,news_summary,negative,neutral,positive,sentiment_score,finbert_negative,finbert_neutral,finbert_positive,finbert_sentiment_score,finbert_label
 
 ``news_events.csv`` is a normalized event table generated from raw news:
 
@@ -46,6 +46,8 @@ Primary Dashboard Schema
 ``impacted_commodities`` is a semicolon-separated list of canonical slugs. This preserves the real relationship that one news item can affect multiple assets.
 
 ``news_items`` stores the full list of matched news objects as JSON inside the generated CSV row. This solves the case where one price row has more than one relevant news item, while ``news_summary`` remains a compact combined text field for sentiment scoring and quick chart summaries.
+
+The lightweight ``negative``, ``neutral``, ``positive``, and ``sentiment_score`` fields are retained for MVP compatibility and existing PPO configs. The ``finbert_*`` fields are generated with ``ProsusAI/finbert``. The pipeline scores each normalized news event once, caches those outputs in ``data/processed/finbert_event_sentiment.csv``, and averages all linked event scores onto each price row.
 
 The loader maps commodities into canonical slugs:
 

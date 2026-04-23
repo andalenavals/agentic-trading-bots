@@ -18,6 +18,10 @@ agents = [
   "stable-baselines3>=2.3",
   "torch>=2.2",
 ]
+sentiment = [
+  "torch>=2.2",
+  "transformers>=4.40",
+]
 docs = [
   "sphinx>=7.2,<9",
   "sphinx-rtd-theme>=2,<4",

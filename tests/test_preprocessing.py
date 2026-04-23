@@ -44,7 +44,19 @@ class PreprocessingTest(unittest.TestCase):
 
             write_news_events(news, news_events)
             build_prices_with_news(prices, news, prices_with_news)
-            add_sentiment(prices_with_news, prices_with_sentiment)
+            add_sentiment(
+                prices_with_news,
+                prices_with_sentiment,
+                {
+                    "news_000001": {
+                        "finbert_negative": 0.05,
+                        "finbert_neutral": 0.15,
+                        "finbert_positive": 0.80,
+                        "finbert_sentiment_score": 0.75,
+                        "finbert_label": "positive",
+                    }
+                },
+            )
             split_by_commodity(prices_with_sentiment, training_dir)
 
             event_rows = self.read_csv(news_events)
@@ -60,6 +72,8 @@ class PreprocessingTest(unittest.TestCase):
             self.assertEqual(news_items[0]["title"], "Copper and nickel rally")
             self.assertIn("rally", rows[0]["news_summary"])
             self.assertGreater(float(rows[0]["sentiment_score"]), 0)
+            self.assertEqual(rows[0]["finbert_label"], "positive")
+            self.assertGreater(float(rows[0]["finbert_sentiment_score"]), 0)
             self.assertTrue((training_dir / "copper_lme.csv").exists())
             self.assertTrue((training_dir / "nickel_lme.csv").exists())
 

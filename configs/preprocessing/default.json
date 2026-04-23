@@ -2,7 +2,11 @@
   "raw_prices": "data/raw/prices.csv",
   "raw_news": "data/raw/news.csv",
   "news_events": "data/processed/news_events.csv",
+  "finbert_event_sentiment": "data/processed/finbert_event_sentiment.csv",
   "prices_with_news": "data/processed/prices_with_news.csv",
   "prices_with_sentiment": "data/processed/prices_with_sentiment.csv",
-  "commodity_training_dir": "data/training/commodity_outputs"
+  "commodity_training_dir": "data/training/commodity_outputs",
+  "include_finbert": true,
+  "finbert_model": "ProsusAI/finbert",
+  "finbert_batch_size": 32
 }
