@@ -182,14 +182,6 @@ export function AgentGym({
 
       <div className="gym-stack">
         <div className="panel gym-chart">
-          <div className="panel-head">
-            <div style={{ alignItems: "center", display: "flex", gap: 10 }}>
-              <span className="chip" style={{ backgroundColor: `${activeCommodity.colorHex}22`, color: activeCommodity.colorHex }}>
-                {activeCommodity.symbol}
-              </span>
-            </div>
-            <Legend />
-          </div>
           <ChartGestureSurface
             className="chart-box"
             style={{ height: 390 }}
@@ -273,10 +265,7 @@ export function AgentGym({
             range={visibleRange}
             onChange={(nextRange, animated) => (animated ? xRange.setAnimated(nextRange, visibleRange) : xRange.setImmediate(nextRange))}
           />
-        </div>
-
-        <div className="panel gym-side">
-          <div className="panel-head">
+          <div className="panel-head gym-inline-head">
             <div>
               <h3 style={{ fontSize: 15 }}>Clicked decision state</h3>
               <p className="faint" style={{ fontSize: 11, marginTop: 3 }}>
@@ -311,19 +300,6 @@ function Control({ label, children }: { label: string; children: React.ReactNode
       <span>{label}</span>
       {children}
     </label>
-  );
-}
-
-function Legend() {
-  return (
-    <div className="tag-row">
-      {(["hold", "buy", "sell"] as AgentActionName[]).map((name) => (
-        <span className="legend-item" key={name}>
-          <span style={{ backgroundColor: ACTION_COLOR[name] }} />
-          {name}
-        </span>
-      ))}
-    </div>
   );
 }
 
