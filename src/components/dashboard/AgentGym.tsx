@@ -18,10 +18,10 @@ import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
 import { YAxisRangeBar } from "@/components/dashboard/YAxisRangeBar";
+import { useAnimatedXRange, useAnimatedYRange } from "@/components/dashboard/useAnimatedRange";
 import { fullXRange, fullYRange, normalizeXRange, normalizeYRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
-import type { YRange } from "@/lib/analytics/chart-zoom";
 import type {
   AgentActionName,
   AgentDecisionPoint,
@@ -65,8 +65,8 @@ export function AgentGym({ agentGym, commodities }: Props) {
   const [markerType, setMarkerType] = useState<MarkerType>("none");
   const [alphaLevel, setAlphaLevel] = useState(0.88);
   const [logScale, setLogScale] = useState(false);
-  const [xRange, setXRange] = useState<{ end: number; start: number } | null>(null);
-  const [yRange, setYRange] = useState<YRange | null>(null);
+  const xRange = useAnimatedXRange();
+  const yRange = useAnimatedYRange();
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
 
   const availableCommodities = useMemo(() => {
@@ -112,12 +112,12 @@ export function AgentGym({ agentGym, commodities }: Props) {
     () => (range >= 99999 ? chartPoints : chartPoints.slice(-range).map((point, index) => ({ ...point, x: index }))),
     [chartPoints, range],
   );
-  const visibleRange = normalizeXRange(xRange ?? fullXRange(displayedPoints.length), displayedPoints.length);
+  const visibleRange = normalizeXRange(xRange.range ?? fullXRange(displayedPoints.length), displayedPoints.length);
   const visiblePoints = displayedPoints.slice(visibleRange.start, visibleRange.end + 1);
   const ticks = xAxisTicks(visibleRange);
   const rawYFullRange = fullYRange(displayedPoints.map((point) => point.price));
   const yFullRange = logScale ? { ...rawYFullRange, min: Math.max(0.000001, rawYFullRange.min) } : rawYFullRange;
-  const visibleYRange = normalizeYRange(yRange ?? yFullRange, yFullRange);
+  const visibleYRange = normalizeYRange(yRange.range ?? yFullRange, yFullRange);
   const activeCommodity = COMMODITY_LOOKUP[activeCommoditySlug];
   const testStart = visiblePoints.find((point) => point.phase === "test");
   const selectedPoint = chartPoints.find((point) => point.key === selectedPointKey) ?? null;
@@ -139,29 +139,29 @@ export function AgentGym({ agentGym, commodities }: Props) {
   function handleModelChange(nextModel: AgentModelKind) {
     setModel(nextModel);
     setSelectedPointKey(null);
-    setXRange(null);
-    setYRange(null);
+    xRange.setImmediate(null);
+    yRange.setImmediate(null);
   }
 
   function handleSplitChange(nextSplit: number) {
     setSplit(nextSplit);
     setSelectedPointKey(null);
-    setXRange(null);
-    setYRange(null);
+    xRange.setImmediate(null);
+    yRange.setImmediate(null);
   }
 
   function handleCommodityChange(nextCommodity: CommoditySlug) {
     setCommodity(nextCommodity);
     setSelectedPointKey(null);
-    setXRange(null);
-    setYRange(null);
+    xRange.setImmediate(null);
+    yRange.setImmediate(null);
   }
 
   function handleRangeChange(nextRange: number) {
     setRange(nextRange);
     setSelectedPointKey(null);
-    setXRange(null);
-    setYRange(null);
+    xRange.setImmediate(null);
+    yRange.setImmediate(null);
   }
 
   return (
@@ -310,14 +310,14 @@ export function AgentGym({ agentGym, commodities }: Props) {
               formatter={(value) => `$${(value / 1000).toFixed(1)}k`}
               fullRange={yFullRange}
               range={visibleYRange}
-              onChange={setYRange}
+              onChange={(nextRange, animated) => (animated ? yRange.setAnimated(nextRange) : yRange.setImmediate(nextRange))}
             />
           </div>
           <TimeSeriesRangeBar
             labels={displayedPoints.map((point) => point.label)}
             length={displayedPoints.length}
             range={visibleRange}
-            onChange={setXRange}
+            onChange={(nextRange, animated) => (animated ? xRange.setAnimated(nextRange) : xRange.setImmediate(nextRange))}
           />
         </div>
 

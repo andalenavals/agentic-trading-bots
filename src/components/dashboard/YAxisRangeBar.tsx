@@ -6,7 +6,7 @@ import type { YRange } from "@/lib/analytics/chart-zoom";
 type Props = {
   formatter: (value: number) => string;
   fullRange: YRange;
-  onChange: (range: YRange) => void;
+  onChange: (range: YRange, animated?: boolean) => void;
   range: YRange;
 };
 
@@ -26,7 +26,8 @@ export function YAxisRangeBar({ formatter, fullRange, onChange, range }: Props) 
   }
 
   function nudge(direction: -1 | 1) {
-    handleMove(normalized.max + direction * windowSpan * 0.08);
+    const clampedMax = clamp(normalized.max + direction * windowSpan * 0.08, fullRange.min + windowSpan, fullRange.max);
+    onChange(normalizeYRange({ max: clampedMax, min: clampedMax - windowSpan }, fullRange), true);
   }
 
   function maxFromPointer(clientY: number, grabRatio: number) {
@@ -74,10 +75,10 @@ export function YAxisRangeBar({ formatter, fullRange, onChange, range }: Props) 
         <button disabled={disabled || normalized.min <= fullRange.min} onClick={() => nudge(-1)} title="Move down" type="button">
           v
         </button>
-        <button disabled={disabled} onClick={() => onChange(zoomYRangeFromCenter(normalized, fullRange, "out"))} title="Zoom out" type="button">
+        <button disabled={disabled} onClick={() => onChange(zoomYRangeFromCenter(normalized, fullRange, "out"), true)} title="Zoom out" type="button">
           -
         </button>
-        <button disabled={disabled} onClick={() => onChange(zoomYRangeFromCenter(normalized, fullRange, "in"))} title="Zoom in" type="button">
+        <button disabled={disabled} onClick={() => onChange(zoomYRangeFromCenter(normalized, fullRange, "in"), true)} title="Zoom in" type="button">
           +
         </button>
       </div>

@@ -18,11 +18,11 @@ import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
 import { YAxisRangeBar } from "@/components/dashboard/YAxisRangeBar";
+import { useAnimatedXRange, useAnimatedYRange } from "@/components/dashboard/useAnimatedRange";
 import { fullXRange, fullYRange, normalizeXRange, normalizeYRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { computeSignals } from "@/lib/analytics/signals";
 import type { Commodity, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
-import type { YRange } from "@/lib/analytics/chart-zoom";
 
 type Props = {
   commodity: Commodity;
@@ -51,21 +51,21 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
   const [markerType, setMarkerType] = useState<MarkerType>("none");
   const [alphaLevel, setAlphaLevel] = useState(0.72);
   const [logScale, setLogScale] = useState(false);
-  const [xRange, setXRange] = useState<{ end: number; start: number } | null>(null);
-  const [yRange, setYRange] = useState<YRange | null>(null);
+  const xRange = useAnimatedXRange();
+  const yRange = useAnimatedYRange();
   const filtered = useMemo(() => (range >= 9999 ? points : points.slice(-range)), [points, range]);
   const chartData = filtered.map((point, index) => ({
     ...point,
     x: index,
     label: new Date(point.date).toLocaleDateString("en-US", { month: "short", year: range >= 365 ? "2-digit" : undefined, day: range < 365 ? "numeric" : undefined }),
   }));
-  const visibleRange = normalizeXRange(xRange ?? fullXRange(chartData.length), chartData.length);
+  const visibleRange = normalizeXRange(xRange.range ?? fullXRange(chartData.length), chartData.length);
   const visibleData = chartData.slice(visibleRange.start, visibleRange.end + 1);
   const signal = computeSignals(visibleData);
   const ticks = xAxisTicks(visibleRange);
   const rawYFullRange = fullYRange(chartData.map((point) => point.price));
   const yFullRange = logScale ? { ...rawYFullRange, min: Math.max(0.000001, rawYFullRange.min) } : rawYFullRange;
-  const visibleYRange = normalizeYRange(yRange ?? yFullRange, yFullRange);
+  const visibleYRange = normalizeYRange(yRange.range ?? yFullRange, yFullRange);
 
   function pointFromChartEvent(event: ChartClickEvent | undefined) {
     const payloadPoint = event?.activePayload?.[0]?.payload;
@@ -84,8 +84,8 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
 
   function handleRangeChange(nextRange: number) {
     setRange(nextRange);
-    setXRange(null);
-    setYRange(null);
+    xRange.setImmediate(null);
+    yRange.setImmediate(null);
   }
 
   function rememberHoveredPoint(event: ChartClickEvent | undefined) {
@@ -189,14 +189,14 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
           formatter={(value) => `$${(value / 1000).toFixed(1)}k`}
           fullRange={yFullRange}
           range={visibleYRange}
-          onChange={setYRange}
+          onChange={(nextRange, animated) => (animated ? yRange.setAnimated(nextRange) : yRange.setImmediate(nextRange))}
         />
       </div>
       <TimeSeriesRangeBar
         labels={chartData.map((point) => point.label)}
         length={chartData.length}
         range={visibleRange}
-        onChange={setXRange}
+        onChange={(nextRange, animated) => (animated ? xRange.setAnimated(nextRange) : xRange.setImmediate(nextRange))}
       />
     </section>
   );

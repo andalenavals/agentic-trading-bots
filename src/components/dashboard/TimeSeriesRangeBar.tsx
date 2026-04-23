@@ -6,7 +6,7 @@ import type { PointerEvent } from "react";
 type Props = {
   labels: string[];
   length: number;
-  onChange: (range: XRange) => void;
+  onChange: (range: XRange, animated?: boolean) => void;
   range: XRange;
 };
 
@@ -28,7 +28,8 @@ export function TimeSeriesRangeBar({ labels, length, onChange, range }: Props) {
   }
 
   function nudge(direction: -1 | 1) {
-    handleMove(normalized.start + direction);
+    const nextStart = Math.min(maxStart, Math.max(0, normalized.start + direction));
+    onChange(normalizeXRange({ end: nextStart + windowSize - 1, start: nextStart }, length), true);
   }
 
   function startFromPointer(clientX: number, grabRatio: number) {
@@ -100,10 +101,10 @@ export function TimeSeriesRangeBar({ labels, length, onChange, range }: Props) {
         <button disabled={disabled || normalized.end >= length - 1} onClick={() => nudge(1)} title="Move right" type="button">
           {">"}
         </button>
-        <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "out"))} title="Zoom out" type="button">
+        <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "out"), true)} title="Zoom out" type="button">
           -
         </button>
-        <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "in"))} title="Zoom in" type="button">
+        <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "in"), true)} title="Zoom in" type="button">
           +
         </button>
       </div>
