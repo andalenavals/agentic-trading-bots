@@ -15,11 +15,11 @@ import {
   YAxis,
 } from "recharts";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
+import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
-import { fullXRange, normalizeXRange, zoomXRange } from "@/lib/analytics/chart-zoom";
+import { fullXRange, normalizeXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
-import type { WheelEvent } from "react";
 import type {
   AgentActionName,
   AgentDecisionPoint,
@@ -60,7 +60,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
   const [chartType, setChartType] = useState<ChartType>("line");
   const [range, setRange] = useState(99999);
   const [markerSize, setMarkerSize] = useState(6);
-  const [markerType, setMarkerType] = useState<MarkerType>("circle");
+  const [markerType, setMarkerType] = useState<MarkerType>("none");
   const [alphaLevel, setAlphaLevel] = useState(0.88);
   const [logScale, setLogScale] = useState(false);
   const [xRange, setXRange] = useState<{ end: number; start: number } | null>(null);
@@ -111,6 +111,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
   );
   const visibleRange = normalizeXRange(xRange ?? fullXRange(displayedPoints.length), displayedPoints.length);
   const visiblePoints = displayedPoints.slice(visibleRange.start, visibleRange.end + 1);
+  const ticks = xAxisTicks(visibleRange);
   const activeCommodity = COMMODITY_LOOKUP[activeCommoditySlug];
   const testStart = visiblePoints.find((point) => point.phase === "test");
   const selectedPoint = chartPoints.find((point) => point.key === selectedPointKey) ?? null;
@@ -151,14 +152,6 @@ export function AgentGym({ agentGym, commodities }: Props) {
     setRange(nextRange);
     setSelectedPointKey(null);
     setXRange(null);
-  }
-
-  function handleWheelZoom(event: WheelEvent<HTMLDivElement>) {
-    if (!displayedPoints.length) return;
-    event.preventDefault();
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const pointerRatio = (event.clientX - bounds.left) / bounds.width;
-    setXRange((current) => zoomXRange(normalizeXRange(current ?? fullXRange(displayedPoints.length), displayedPoints.length), displayedPoints.length, event.deltaY, pointerRatio));
   }
 
   return (
@@ -232,7 +225,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
             onMarkerTypeChange={setMarkerType}
             onRangeChange={handleRangeChange}
           />
-          <div className="chart-box" style={{ height: 390 }} onWheel={handleWheelZoom}>
+          <div className="chart-box" style={{ height: 390 }}>
             {visiblePoints.length === 0 ? (
               <div className="empty-state">
                 <h3>No bot decisions generated yet</h3>
@@ -258,6 +251,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
                     tick={{ fill: "#697185", fontSize: 11 }}
                     tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
                     tickLine={false}
+                    ticks={ticks}
                     type="number"
                   />
                   <YAxis
@@ -301,6 +295,12 @@ export function AgentGym({ agentGym, commodities }: Props) {
               </ResponsiveContainer>
             ) : null}
           </div>
+          <TimeSeriesRangeBar
+            labels={displayedPoints.map((point) => point.label)}
+            length={displayedPoints.length}
+            range={visibleRange}
+            onChange={setXRange}
+          />
         </div>
 
         <div className="panel gym-side">

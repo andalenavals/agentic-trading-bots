@@ -38,6 +38,23 @@ export function zoomXRange(current: XRange, length: number, deltaY: number, poin
   return normalizeXRange({ end, start }, length);
 }
 
+export function xAxisTicks(range: XRange, maxTicks = 8): number[] {
+  const width = Math.max(0, range.end - range.start);
+  if (width === 0) return [range.start];
+
+  const step = Math.max(1, Math.ceil(width / maxTicks));
+  const ticks: number[] = [];
+  for (let tick = range.start; tick <= range.end; tick += step) {
+    ticks.push(tick);
+  }
+
+  if (ticks[ticks.length - 1] !== range.end) {
+    ticks.push(range.end);
+  }
+
+  return ticks;
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }

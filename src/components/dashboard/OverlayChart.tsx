@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Scatter, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Scatter, XAxis, YAxis } from "recharts";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
+import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
-import { fullXRange, normalizeXRange, zoomXRange } from "@/lib/analytics/chart-zoom";
+import { fullXRange, normalizeXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import type { Commodity, CommoditySlug, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
-import type { WheelEvent } from "react";
 
 type Props = {
   commodities: Commodity[];
@@ -25,26 +25,18 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
   const [range, setRange] = useState(9999);
   const [chartType, setChartType] = useState<ChartType>("line");
   const [markerSize, setMarkerSize] = useState(4);
-  const [markerType, setMarkerType] = useState<MarkerType>("circle");
+  const [markerType, setMarkerType] = useState<MarkerType>("none");
   const [alphaLevel, setAlphaLevel] = useState(0.7);
   const [logScale, setLogScale] = useState(false);
   const [xRange, setXRange] = useState<{ end: number; start: number } | null>(null);
   const chartData = useMemo(() => buildOverlayData(commodities, pricesByCommodity, range), [commodities, pricesByCommodity, range]);
   const visibleRange = normalizeXRange(xRange ?? fullXRange(chartData.length), chartData.length);
   const visibleData = chartData.slice(visibleRange.start, visibleRange.end + 1);
-  const tickInterval = Math.max(1, Math.floor(visibleData.length / 8));
+  const ticks = xAxisTicks(visibleRange);
 
   function handleRangeChange(nextRange: number) {
     setRange(nextRange);
     setXRange(null);
-  }
-
-  function handleWheelZoom(event: WheelEvent<HTMLDivElement>) {
-    if (!chartData.length) return;
-    event.preventDefault();
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const pointerRatio = (event.clientX - bounds.left) / bounds.width;
-    setXRange((current) => zoomXRange(normalizeXRange(current ?? fullXRange(chartData.length), chartData.length), chartData.length, event.deltaY, pointerRatio));
   }
 
   return (
@@ -73,7 +65,7 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
         onMarkerTypeChange={setMarkerType}
         onRangeChange={handleRangeChange}
       />
-      <div className="chart-box" style={{ height: 330 }} onWheel={handleWheelZoom}>
+      <div className="chart-box" style={{ height: 330 }}>
         {mounted ? (
           <ResponsiveContainer height="100%" width="100%">
             <ComposedChart data={visibleData}>
@@ -82,19 +74,13 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
                 axisLine={false}
                 dataKey="x"
                 domain={[visibleRange.start, visibleRange.end]}
-                interval={tickInterval}
                 tick={{ fill: "#697185", fontSize: 11 }}
                 tickFormatter={(value) => String(chartData[Math.round(Number(value))]?.label ?? "")}
                 tickLine={false}
+                ticks={ticks}
                 type="number"
               />
               <YAxis axisLine={false} tick={{ fill: "#697185", fontSize: 11 }} tickFormatter={(value) => `${Number(value).toFixed(0)}%`} tickLine={false} width={54} />
-              <Tooltip
-                contentStyle={{ background: "#202536", border: "1px solid #2c3243", borderRadius: 8 }}
-                formatter={(value, name) => [`${Number(value).toFixed(2)}%`, commodities.find((commodity) => commodity.slug === name)?.name ?? name]}
-                labelFormatter={(value) => String(chartData[Math.round(Number(value))]?.label ?? value)}
-                labelStyle={{ color: "#cbd0dc" }}
-              />
               <Line dataKey={() => 0} dot={false} legendType="none" stroke="#394153" strokeDasharray="4 4" />
               {commodities.map((commodity) => (
                 chartType === "bar" ? (
@@ -135,6 +121,12 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
           </ResponsiveContainer>
         ) : null}
       </div>
+      <TimeSeriesRangeBar
+        labels={chartData.map((point) => String(point.label))}
+        length={chartData.length}
+        range={visibleRange}
+        onChange={setXRange}
+      />
     </section>
   );
 }

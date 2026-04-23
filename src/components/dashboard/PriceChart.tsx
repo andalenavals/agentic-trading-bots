@@ -15,12 +15,12 @@ import {
   YAxis,
 } from "recharts";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
+import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
-import { fullXRange, normalizeXRange, zoomXRange } from "@/lib/analytics/chart-zoom";
+import { fullXRange, normalizeXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { computeSignals } from "@/lib/analytics/signals";
 import type { Commodity, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
-import type { WheelEvent } from "react";
 
 type Props = {
   commodity: Commodity;
@@ -46,7 +46,7 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
   const [chartType, setChartType] = useState<ChartType>("area");
   const [range, setRange] = useState(9999);
   const [markerSize, setMarkerSize] = useState(5);
-  const [markerType, setMarkerType] = useState<MarkerType>("circle");
+  const [markerType, setMarkerType] = useState<MarkerType>("none");
   const [alphaLevel, setAlphaLevel] = useState(0.72);
   const [logScale, setLogScale] = useState(false);
   const [xRange, setXRange] = useState<{ end: number; start: number } | null>(null);
@@ -59,7 +59,7 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
   const visibleRange = normalizeXRange(xRange ?? fullXRange(chartData.length), chartData.length);
   const visibleData = chartData.slice(visibleRange.start, visibleRange.end + 1);
   const signal = computeSignals(visibleData);
-  const tickInterval = Math.max(1, Math.floor(visibleData.length / 8));
+  const ticks = xAxisTicks(visibleRange);
 
   function pointFromChartEvent(event: ChartClickEvent | undefined) {
     const payloadPoint = event?.activePayload?.[0]?.payload;
@@ -79,14 +79,6 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
   function handleRangeChange(nextRange: number) {
     setRange(nextRange);
     setXRange(null);
-  }
-
-  function handleWheelZoom(event: WheelEvent<HTMLDivElement>) {
-    if (!chartData.length) return;
-    event.preventDefault();
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const pointerRatio = (event.clientX - bounds.left) / bounds.width;
-    setXRange((current) => zoomXRange(normalizeXRange(current ?? fullXRange(chartData.length), chartData.length), chartData.length, event.deltaY, pointerRatio));
   }
 
   function rememberHoveredPoint(event: ChartClickEvent | undefined) {
@@ -130,7 +122,7 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
         onRangeChange={handleRangeChange}
       />
 
-      <div className="chart-box" onWheel={handleWheelZoom}>
+      <div className="chart-box">
         {mounted ? (
           <ResponsiveContainer height="100%" width="100%">
             <ComposedChart
@@ -149,10 +141,10 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
                 axisLine={false}
                 dataKey="x"
                 domain={[visibleRange.start, visibleRange.end]}
-                interval={tickInterval}
                 tick={{ fill: "#697185", fontSize: 11 }}
                 tickFormatter={(value) => chartData[Math.round(Number(value))]?.label ?? ""}
                 tickLine={false}
+                ticks={ticks}
                 type="number"
               />
               <YAxis
@@ -185,6 +177,12 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
           </ResponsiveContainer>
         ) : null}
       </div>
+      <TimeSeriesRangeBar
+        labels={chartData.map((point) => point.label)}
+        length={chartData.length}
+        range={visibleRange}
+        onChange={setXRange}
+      />
     </section>
   );
 }
