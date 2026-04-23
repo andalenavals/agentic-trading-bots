@@ -149,7 +149,7 @@ export function PredictionChart({
       <div className="gym-controls">
         <Control label="Model">
           <select value={model} disabled>
-            <option value="ar1_baseline">AR(1) baseline</option>
+            <option value="ar1_baseline">Trend baseline</option>
           </select>
         </Control>
         <Control label="Split">
@@ -272,8 +272,8 @@ function PredictionPointState({ point }: { point: PredictionChartPoint }) {
         <Stat label="Prediction" value={`$${point.predictedPrice?.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
         <Stat label="Error" value={formatSigned(point.error)} />
         <Stat label="Abs error" value={`$${point.absoluteError?.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
-        <Stat label="Alpha" value={point.alpha.toFixed(3)} />
-        <Stat label="Beta" value={point.beta.toFixed(5)} />
+        <Stat label="Anchor" value={`$${point.alpha.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
+        <Stat label="Slope" value={point.beta.toFixed(4)} />
       </div>
     </div>
   );

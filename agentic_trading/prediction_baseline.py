@@ -57,28 +57,26 @@ def walk_forward_boundaries(length: int, n_splits: int):
         yield index + 1, train_end
 
 
-def fit_ar1(train_prices: list[float]) -> tuple[float, float]:
+def fit_trend_slope(train_prices: list[float]) -> float:
     if len(train_prices) < 2:
-        return 0.0, 1.0
+        return 0.0
 
-    x_values = train_prices[:-1]
-    y_values = train_prices[1:]
+    x_values = list(range(len(train_prices)))
     mean_x = sum(x_values) / len(x_values)
-    mean_y = sum(y_values) / len(y_values)
+    mean_y = sum(train_prices) / len(train_prices)
     variance_x = sum((value - mean_x) ** 2 for value in x_values)
 
     if variance_x == 0:
-        return 0.0, 1.0
+        return 0.0
 
-    covariance = sum((x - mean_x) * (y - mean_y) for x, y in zip(x_values, y_values, strict=True))
-    beta = covariance / variance_x
-    alpha = mean_y - beta * mean_x
-    return alpha, beta
+    covariance = sum((x - mean_x) * (y - mean_y) for x, y in zip(x_values, train_prices, strict=True))
+    return covariance / variance_x
 
 
 def generate_full_predictions(rows: list[dict[str, str]], split: int, train_end: int) -> list[dict[str, object]]:
     prices = [to_number(row.get("price", "")) for row in rows]
-    base_alpha, base_beta = fit_ar1(prices[:train_end])
+    anchor_price = prices[train_end - 1] if train_end > 0 else 0.0
+    slope = fit_trend_slope(prices[:train_end])
     generated: list[dict[str, object]] = []
 
     for index, row in enumerate(rows):
@@ -86,12 +84,12 @@ def generate_full_predictions(rows: list[dict[str, str]], split: int, train_end:
         predicted_price = None
         error = None
         absolute_error = None
-        alpha = base_alpha
-        beta = base_beta
+        alpha = anchor_price
+        beta = slope
 
         if phase == "test":
-            alpha, beta = fit_ar1(prices[:index])
-            predicted_price = alpha + beta * prices[index - 1]
+            horizon = index - (train_end - 1)
+            predicted_price = anchor_price + slope * horizon
             error = predicted_price - prices[index]
             absolute_error = abs(error)
 
@@ -112,6 +110,25 @@ def generate_full_predictions(rows: list[dict[str, str]], split: int, train_end:
         )
 
     return generated
+
+
+def fit_ar1(train_prices: list[float]) -> tuple[float, float]:
+    if len(train_prices) < 2:
+        return 0.0, 1.0
+
+    x_values = train_prices[:-1]
+    y_values = train_prices[1:]
+    mean_x = sum(x_values) / len(x_values)
+    mean_y = sum(y_values) / len(y_values)
+    variance_x = sum((value - mean_x) ** 2 for value in x_values)
+
+    if variance_x == 0:
+        return 0.0, 1.0
+
+    covariance = sum((x - mean_x) * (y - mean_y) for x, y in zip(x_values, y_values, strict=True))
+    beta = covariance / variance_x
+    alpha = mean_y - beta * mean_x
+    return alpha, beta
 
 
 def run(config_path: str) -> None:
