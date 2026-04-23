@@ -11,8 +11,11 @@ type Props = {
   chartType: ChartType;
   markerSize: number;
   markerType: MarkerType;
+  logScale: boolean;
+  logScaleDisabled?: boolean;
   onAlphaLevelChange: (value: number) => void;
   onChartTypeChange: (value: ChartType) => void;
+  onLogScaleChange: (value: boolean) => void;
   onMarkerSizeChange: (value: number) => void;
   onMarkerTypeChange: (value: MarkerType) => void;
   onRangeChange: (value: number) => void;
@@ -28,8 +31,11 @@ export function VisualizationControls({
   chartType,
   markerSize,
   markerType,
+  logScale,
+  logScaleDisabled = false,
   onAlphaLevelChange,
   onChartTypeChange,
+  onLogScaleChange,
   onMarkerSizeChange,
   onMarkerTypeChange,
   onRangeChange,
@@ -55,6 +61,23 @@ export function VisualizationControls({
               {type}
             </button>
           ))}
+        </div>
+      </ControlGroup>
+
+      <ControlGroup label="Y scale">
+        <div className="segmented">
+          <button className={!logScale ? "active" : ""} onClick={() => onLogScaleChange(false)} type="button">
+            linear
+          </button>
+          <button
+            className={logScale ? "active" : ""}
+            disabled={logScaleDisabled}
+            onClick={() => onLogScaleChange(true)}
+            title={logScaleDisabled ? "Log scale requires positive values" : undefined}
+            type="button"
+          >
+            log
+          </button>
         </div>
       </ControlGroup>
 

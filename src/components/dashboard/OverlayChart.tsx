@@ -4,8 +4,10 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import { Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Scatter, Tooltip, XAxis, YAxis } from "recharts";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
+import { fullXRange, normalizeXRange, zoomXRange } from "@/lib/analytics/chart-zoom";
 import type { Commodity, CommoditySlug, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
+import type { WheelEvent } from "react";
 
 type Props = {
   commodities: Commodity[];
@@ -20,13 +22,30 @@ const RANGES = [
 
 export function OverlayChart({ commodities, pricesByCommodity }: Props) {
   const mounted = useClientMounted();
-  const [range, setRange] = useState(365);
+  const [range, setRange] = useState(9999);
   const [chartType, setChartType] = useState<ChartType>("line");
   const [markerSize, setMarkerSize] = useState(4);
   const [markerType, setMarkerType] = useState<MarkerType>("circle");
   const [alphaLevel, setAlphaLevel] = useState(0.7);
+  const [logScale, setLogScale] = useState(false);
+  const [xRange, setXRange] = useState<{ end: number; start: number } | null>(null);
   const chartData = useMemo(() => buildOverlayData(commodities, pricesByCommodity, range), [commodities, pricesByCommodity, range]);
-  const tickInterval = Math.max(1, Math.floor(chartData.length / 8));
+  const visibleRange = normalizeXRange(xRange ?? fullXRange(chartData.length), chartData.length);
+  const visibleData = chartData.slice(visibleRange.start, visibleRange.end + 1);
+  const tickInterval = Math.max(1, Math.floor(visibleData.length / 8));
+
+  function handleRangeChange(nextRange: number) {
+    setRange(nextRange);
+    setXRange(null);
+  }
+
+  function handleWheelZoom(event: WheelEvent<HTMLDivElement>) {
+    if (!chartData.length) return;
+    event.preventDefault();
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const pointerRatio = (event.clientX - bounds.left) / bounds.width;
+    setXRange((current) => zoomXRange(normalizeXRange(current ?? fullXRange(chartData.length), chartData.length), chartData.length, event.deltaY, pointerRatio));
+  }
 
   return (
     <section className="panel">
@@ -43,24 +62,37 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
         chartType={chartType}
         markerSize={markerSize}
         markerType={markerType}
+        logScale={logScale}
+        logScaleDisabled
         range={range}
         ranges={RANGES}
         onAlphaLevelChange={setAlphaLevel}
         onChartTypeChange={setChartType}
+        onLogScaleChange={setLogScale}
         onMarkerSizeChange={setMarkerSize}
         onMarkerTypeChange={setMarkerType}
-        onRangeChange={setRange}
+        onRangeChange={handleRangeChange}
       />
-      <div className="chart-box" style={{ height: 330 }}>
+      <div className="chart-box" style={{ height: 330 }} onWheel={handleWheelZoom}>
         {mounted ? (
           <ResponsiveContainer height="100%" width="100%">
-            <ComposedChart data={chartData}>
+            <ComposedChart data={visibleData}>
               <CartesianGrid stroke="#252b3a" vertical={false} />
-              <XAxis axisLine={false} dataKey="label" interval={tickInterval} tick={{ fill: "#697185", fontSize: 11 }} tickLine={false} />
+              <XAxis
+                axisLine={false}
+                dataKey="x"
+                domain={[visibleRange.start, visibleRange.end]}
+                interval={tickInterval}
+                tick={{ fill: "#697185", fontSize: 11 }}
+                tickFormatter={(value) => String(chartData[Math.round(Number(value))]?.label ?? "")}
+                tickLine={false}
+                type="number"
+              />
               <YAxis axisLine={false} tick={{ fill: "#697185", fontSize: 11 }} tickFormatter={(value) => `${Number(value).toFixed(0)}%`} tickLine={false} width={54} />
               <Tooltip
                 contentStyle={{ background: "#202536", border: "1px solid #2c3243", borderRadius: 8 }}
                 formatter={(value, name) => [`${Number(value).toFixed(2)}%`, commodities.find((commodity) => commodity.slug === name)?.name ?? name]}
+                labelFormatter={(value) => String(chartData[Math.round(Number(value))]?.label ?? value)}
                 labelStyle={{ color: "#cbd0dc" }}
               />
               <Line dataKey={() => 0} dot={false} legendType="none" stroke="#394153" strokeDasharray="4 4" />
@@ -159,10 +191,11 @@ function buildOverlayData(
     }),
   ) as Record<CommoditySlug, number>;
 
-  return sortedDates.map((date) => {
+  return sortedDates.map((date, index) => {
     const row: Record<string, string | number | null> = {
       date,
       label: new Date(date).toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+      x: index,
     };
 
     for (const commodity of commodities) {

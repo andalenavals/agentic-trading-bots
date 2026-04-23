@@ -16,9 +16,11 @@ import {
 } from "recharts";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
+import { fullXRange, normalizeXRange, zoomXRange } from "@/lib/analytics/chart-zoom";
 import { computeSignals } from "@/lib/analytics/signals";
 import type { Commodity, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
+import type { WheelEvent } from "react";
 
 type Props = {
   commodity: Commodity;
@@ -27,7 +29,7 @@ type Props = {
 };
 
 type ChartClickEvent = {
-  activeLabel?: string;
+  activeLabel?: number | string;
   activePayload?: Array<{ payload?: SentimentPoint }>;
   activeTooltipIndex?: number | string;
 };
@@ -42,17 +44,22 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
   const mounted = useClientMounted();
   const hoveredPoint = useRef<SentimentPoint | null>(null);
   const [chartType, setChartType] = useState<ChartType>("area");
-  const [range, setRange] = useState(365);
+  const [range, setRange] = useState(9999);
   const [markerSize, setMarkerSize] = useState(5);
   const [markerType, setMarkerType] = useState<MarkerType>("circle");
   const [alphaLevel, setAlphaLevel] = useState(0.72);
+  const [logScale, setLogScale] = useState(false);
+  const [xRange, setXRange] = useState<{ end: number; start: number } | null>(null);
   const filtered = useMemo(() => (range >= 9999 ? points : points.slice(-range)), [points, range]);
-  const signal = computeSignals(filtered);
-  const chartData = filtered.map((point) => ({
+  const chartData = filtered.map((point, index) => ({
     ...point,
+    x: index,
     label: new Date(point.date).toLocaleDateString("en-US", { month: "short", year: range >= 365 ? "2-digit" : undefined, day: range < 365 ? "numeric" : undefined }),
   }));
-  const tickInterval = Math.max(1, Math.floor(chartData.length / 8));
+  const visibleRange = normalizeXRange(xRange ?? fullXRange(chartData.length), chartData.length);
+  const visibleData = chartData.slice(visibleRange.start, visibleRange.end + 1);
+  const signal = computeSignals(visibleData);
+  const tickInterval = Math.max(1, Math.floor(visibleData.length / 8));
 
   function pointFromChartEvent(event: ChartClickEvent | undefined) {
     const payloadPoint = event?.activePayload?.[0]?.payload;
@@ -60,12 +67,26 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
       return payloadPoint;
     }
 
-    const index = Number(event?.activeTooltipIndex);
-    if (Number.isInteger(index) && chartData[index]) {
-      return chartData[index];
+    const tooltipIndex = Number(event?.activeTooltipIndex);
+    if (Number.isInteger(tooltipIndex) && visibleData[tooltipIndex]) {
+      return visibleData[tooltipIndex];
     }
 
-    return chartData.find((point) => point.label === event?.activeLabel) ?? null;
+    const activeX = Number(event?.activeLabel);
+    return visibleData.find((point) => point.x === activeX) ?? null;
+  }
+
+  function handleRangeChange(nextRange: number) {
+    setRange(nextRange);
+    setXRange(null);
+  }
+
+  function handleWheelZoom(event: WheelEvent<HTMLDivElement>) {
+    if (!chartData.length) return;
+    event.preventDefault();
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const pointerRatio = (event.clientX - bounds.left) / bounds.width;
+    setXRange((current) => zoomXRange(normalizeXRange(current ?? fullXRange(chartData.length), chartData.length), chartData.length, event.deltaY, pointerRatio));
   }
 
   function rememberHoveredPoint(event: ChartClickEvent | undefined) {
@@ -98,20 +119,22 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
         chartType={chartType}
         markerSize={markerSize}
         markerType={markerType}
+        logScale={logScale}
         range={range}
         ranges={RANGES}
         onAlphaLevelChange={setAlphaLevel}
         onChartTypeChange={setChartType}
+        onLogScaleChange={setLogScale}
         onMarkerSizeChange={setMarkerSize}
         onMarkerTypeChange={setMarkerType}
-        onRangeChange={setRange}
+        onRangeChange={handleRangeChange}
       />
 
-      <div className="chart-box">
+      <div className="chart-box" onWheel={handleWheelZoom}>
         {mounted ? (
           <ResponsiveContainer height="100%" width="100%">
             <ComposedChart
-              data={chartData}
+              data={visibleData}
               onClick={(event) => selectFromChartEvent(event as ChartClickEvent | undefined)}
               onMouseMove={(event) => rememberHoveredPoint(event as ChartClickEvent | undefined)}
             >
@@ -122,8 +145,26 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
                 </linearGradient>
               </defs>
               <CartesianGrid stroke="#252b3a" vertical={false} />
-              <XAxis axisLine={false} dataKey="label" interval={tickInterval} tick={{ fill: "#697185", fontSize: 11 }} tickLine={false} />
-              <YAxis axisLine={false} domain={["auto", "auto"]} tick={{ fill: "#697185", fontSize: 11 }} tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`} tickLine={false} width={62} />
+              <XAxis
+                axisLine={false}
+                dataKey="x"
+                domain={[visibleRange.start, visibleRange.end]}
+                interval={tickInterval}
+                tick={{ fill: "#697185", fontSize: 11 }}
+                tickFormatter={(value) => chartData[Math.round(Number(value))]?.label ?? ""}
+                tickLine={false}
+                type="number"
+              />
+              <YAxis
+                allowDataOverflow={logScale}
+                axisLine={false}
+                domain={["auto", "auto"]}
+                scale={logScale ? "log" : "auto"}
+                tick={{ fill: "#697185", fontSize: 11 }}
+                tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
+                tickLine={false}
+                width={62}
+              />
               <Tooltip content={<PriceTooltip color={commodity.colorHex} />} />
               <ReferenceLine stroke="#394153" strokeDasharray="4 4" y={signal.average} />
               {chartType === "bar" ? (
@@ -134,7 +175,7 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
                 <Area dataKey="price" dot={false} fill={`url(#price-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
               )}
               <Scatter
-                data={chartData}
+                data={visibleData}
                 dataKey="price"
                 shape={<PriceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
               />

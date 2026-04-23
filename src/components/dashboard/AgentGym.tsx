@@ -16,8 +16,10 @@ import {
 } from "recharts";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
+import { fullXRange, normalizeXRange, zoomXRange } from "@/lib/analytics/chart-zoom";
 import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
+import type { WheelEvent } from "react";
 import type {
   AgentActionName,
   AgentDecisionPoint,
@@ -60,6 +62,8 @@ export function AgentGym({ agentGym, commodities }: Props) {
   const [markerSize, setMarkerSize] = useState(6);
   const [markerType, setMarkerType] = useState<MarkerType>("circle");
   const [alphaLevel, setAlphaLevel] = useState(0.88);
+  const [logScale, setLogScale] = useState(false);
+  const [xRange, setXRange] = useState<{ end: number; start: number } | null>(null);
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
 
   const availableCommodities = useMemo(() => {
@@ -105,16 +109,22 @@ export function AgentGym({ agentGym, commodities }: Props) {
     () => (range >= 99999 ? chartPoints : chartPoints.slice(-range).map((point, index) => ({ ...point, x: index }))),
     [chartPoints, range],
   );
+  const visibleRange = normalizeXRange(xRange ?? fullXRange(displayedPoints.length), displayedPoints.length);
+  const visiblePoints = displayedPoints.slice(visibleRange.start, visibleRange.end + 1);
   const activeCommodity = COMMODITY_LOOKUP[activeCommoditySlug];
-  const testStart = displayedPoints.find((point) => point.phase === "test");
+  const testStart = visiblePoints.find((point) => point.phase === "test");
   const selectedPoint = chartPoints.find((point) => point.key === selectedPointKey) ?? null;
 
   function pointFromChartEvent(event: ChartClickEvent | undefined) {
     const payloadPoint = event?.activePayload?.[0]?.payload;
     if (payloadPoint) return payloadPoint;
 
-    const index = Number(event?.activeTooltipIndex ?? event?.activeLabel);
-    if (Number.isInteger(index) && displayedPoints[index]) return displayedPoints[index];
+    const tooltipIndex = Number(event?.activeTooltipIndex);
+    if (Number.isInteger(tooltipIndex) && visiblePoints[tooltipIndex]) return visiblePoints[tooltipIndex];
+
+    const activeX = Number(event?.activeLabel);
+    const pointByX = visiblePoints.find((point) => point.x === activeX);
+    if (pointByX) return pointByX;
 
     return null;
   }
@@ -122,16 +132,33 @@ export function AgentGym({ agentGym, commodities }: Props) {
   function handleModelChange(nextModel: AgentModelKind) {
     setModel(nextModel);
     setSelectedPointKey(null);
+    setXRange(null);
   }
 
   function handleSplitChange(nextSplit: number) {
     setSplit(nextSplit);
     setSelectedPointKey(null);
+    setXRange(null);
   }
 
   function handleCommodityChange(nextCommodity: CommoditySlug) {
     setCommodity(nextCommodity);
     setSelectedPointKey(null);
+    setXRange(null);
+  }
+
+  function handleRangeChange(nextRange: number) {
+    setRange(nextRange);
+    setSelectedPointKey(null);
+    setXRange(null);
+  }
+
+  function handleWheelZoom(event: WheelEvent<HTMLDivElement>) {
+    if (!displayedPoints.length) return;
+    event.preventDefault();
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const pointerRatio = (event.clientX - bounds.left) / bounds.width;
+    setXRange((current) => zoomXRange(normalizeXRange(current ?? fullXRange(displayedPoints.length), displayedPoints.length), displayedPoints.length, event.deltaY, pointerRatio));
   }
 
   return (
@@ -195,16 +222,18 @@ export function AgentGym({ agentGym, commodities }: Props) {
             chartType={chartType}
             markerSize={markerSize}
             markerType={markerType}
+            logScale={logScale}
             range={range}
             ranges={RANGES}
             onAlphaLevelChange={setAlphaLevel}
             onChartTypeChange={setChartType}
+            onLogScaleChange={setLogScale}
             onMarkerSizeChange={setMarkerSize}
             onMarkerTypeChange={setMarkerType}
-            onRangeChange={setRange}
+            onRangeChange={handleRangeChange}
           />
-          <div className="chart-box" style={{ height: 390 }}>
-            {displayedPoints.length === 0 ? (
+          <div className="chart-box" style={{ height: 390 }} onWheel={handleWheelZoom}>
+            {visiblePoints.length === 0 ? (
               <div className="empty-state">
                 <h3>No bot decisions generated yet</h3>
                 <p>
@@ -215,7 +244,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
             ) : mounted ? (
               <ResponsiveContainer height="100%" width="100%">
                 <ComposedChart
-                  data={displayedPoints}
+                  data={visiblePoints}
                   onClick={(event) => {
                     const point = pointFromChartEvent(event as ChartClickEvent | undefined);
                     if (point) setSelectedPointKey(point.key);
@@ -225,13 +254,22 @@ export function AgentGym({ agentGym, commodities }: Props) {
                   <XAxis
                     axisLine={false}
                     dataKey="x"
-                    domain={["dataMin", "dataMax"]}
+                    domain={[visibleRange.start, visibleRange.end]}
                     tick={{ fill: "#697185", fontSize: 11 }}
                     tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
                     tickLine={false}
                     type="number"
                   />
-                  <YAxis axisLine={false} domain={["auto", "auto"]} tick={{ fill: "#697185", fontSize: 11 }} tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`} tickLine={false} width={62} />
+                  <YAxis
+                    allowDataOverflow={logScale}
+                    axisLine={false}
+                    domain={["auto", "auto"]}
+                    scale={logScale ? "log" : "auto"}
+                    tick={{ fill: "#697185", fontSize: 11 }}
+                    tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
+                    tickLine={false}
+                    width={62}
+                  />
                   <Tooltip content={<AgentTooltip />} />
                   {chartType === "bar" ? (
                     <Bar dataKey="price" fill={activeCommodity.colorHex} opacity={0.62} radius={[3, 3, 0, 0]} />
@@ -251,7 +289,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
                   ) : null}
                   {(["hold", "buy", "sell"] as AgentActionName[]).map((actionName) => (
                     <Scatter
-                      data={displayedPoints.filter((point) => point.actionName === actionName)}
+                      data={visiblePoints.filter((point) => point.actionName === actionName)}
                       dataKey="price"
                       key={actionName}
                       shape={<DecisionDot alphaLevel={alphaLevel} markerSize={markerSize} markerType={markerType} />}
