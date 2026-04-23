@@ -59,6 +59,7 @@ export type DashboardData = {
   pricesByCommodity: Record<CommoditySlug, SentimentPoint[]>;
   news: NewsEvent[];
   agentGym: AgentGymData;
+  predictionChart: PredictionChartData;
 };
 
 export type AgentModelKind = "single_asset_ppo" | "multiple_asset_ppo";
@@ -94,6 +95,33 @@ export type AgentGymData = {
   sources: Array<{
     model: AgentModelKind;
     dataset: AgentDatasetKind;
+    split: number;
+    commodity?: CommoditySlug;
+    path: string;
+  }>;
+};
+
+export type PredictionModelKind = "ar1_baseline";
+
+export type PredictionPoint = {
+  model: PredictionModelKind;
+  split: number;
+  datasetIndex: number;
+  phase: "train" | "test";
+  date: string;
+  commodity: CommoditySlug;
+  price: number;
+  predictedPrice: number | null;
+  error: number | null;
+  absoluteError: number | null;
+  alpha: number;
+  beta: number;
+};
+
+export type PredictionChartData = {
+  points: PredictionPoint[];
+  sources: Array<{
+    model: PredictionModelKind;
     split: number;
     commodity?: CommoditySlug;
     path: string;

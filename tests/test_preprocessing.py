@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from agentic_trading.prediction_baseline import generate_full_predictions
 from agentic_trading.preprocessing import add_sentiment, build_prices_with_news, split_by_commodity, write_news_events
 
 
@@ -83,6 +84,25 @@ class PreprocessingTest(unittest.TestCase):
             self.assertGreater(float(rows[0]["finbert_sentiment_score"]), 0)
             self.assertTrue((training_dir / "copper_lme.csv").exists())
             self.assertTrue((training_dir / "nickel_lme.csv").exists())
+
+    def test_prediction_baseline_generates_test_forecasts(self) -> None:
+        rows = [
+            {"date": "2026-01-01", "commodity": "copper_lme", "price": "100"},
+            {"date": "2026-01-02", "commodity": "copper_lme", "price": "102"},
+            {"date": "2026-01-03", "commodity": "copper_lme", "price": "101"},
+            {"date": "2026-01-04", "commodity": "copper_lme", "price": "103"},
+            {"date": "2026-01-05", "commodity": "copper_lme", "price": "104"},
+            {"date": "2026-01-06", "commodity": "copper_lme", "price": "106"},
+        ]
+
+        generated = generate_full_predictions(rows, split=1, train_end=3)
+
+        self.assertEqual(len(generated), len(rows))
+        self.assertEqual(generated[0]["phase"], "train")
+        self.assertEqual(generated[3]["phase"], "test")
+        self.assertEqual(generated[2]["predicted_price"], "")
+        self.assertNotEqual(generated[3]["predicted_price"], "")
+        self.assertNotEqual(generated[4]["error"], "")
 
     def test_pipeline_fails_fast_when_required_columns_are_missing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

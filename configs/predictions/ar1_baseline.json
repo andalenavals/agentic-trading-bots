@@ -1,0 +1,5 @@
+{
+  "input_csv": "data/training/commodity_outputs/*.csv",
+  "output_dir": "data/prediction_outputs/ar1_baseline",
+  "n_splits": 3
+}

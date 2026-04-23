@@ -1,0 +1,319 @@
+"use client";
+
+import { useMemo, useState, useSyncExternalStore } from "react";
+import {
+  Area,
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ReferenceLine,
+  ResponsiveContainer,
+  Scatter,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { ChartGestureSurface } from "@/components/dashboard/ChartGestureSurface";
+import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
+import { fullYRange, normalizeXRange, remapXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
+import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
+import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
+import type { XRange } from "@/lib/analytics/chart-zoom";
+import type { CommoditySlug, PredictionChartData, PredictionModelKind, PredictionPoint } from "@/lib/types";
+
+type Props = {
+  activeCommodity: CommoditySlug;
+  alphaLevel: number;
+  chartType: ChartType;
+  logScale: boolean;
+  markerSize: number;
+  markerType: MarkerType;
+  onSharedXRangeChange: (range: XRange, chartLength: number) => void;
+  predictionChart: PredictionChartData;
+  range: number;
+  sharedXRange: XRange;
+  sharedXRangeLength: number;
+};
+
+type ChartClickEvent = {
+  activeLabel?: number | string;
+  activePayload?: Array<{ payload?: PredictionChartPoint }>;
+  activeTooltipIndex?: number | string;
+};
+
+type PredictionChartPoint = PredictionPoint & {
+  key: string;
+  label: string;
+  x: number;
+};
+
+const PREDICTION_COLOR = "#f6c85f";
+
+export function PredictionChart({
+  activeCommodity,
+  alphaLevel,
+  chartType,
+  logScale,
+  markerSize,
+  markerType,
+  onSharedXRangeChange,
+  predictionChart,
+  range,
+  sharedXRange,
+  sharedXRangeLength,
+}: Props) {
+  const mounted = useClientMounted();
+  const [model] = useState<PredictionModelKind>("ar1_baseline");
+  const [split, setSplit] = useState(1);
+  const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
+
+  const splitOptions = useMemo(() => {
+    const splits = new Set(
+      predictionChart.points
+        .filter((point) => point.model === model && point.commodity === activeCommodity)
+        .map((point) => point.split),
+    );
+    return splits.size ? Array.from(splits).sort((a, b) => a - b) : [split];
+  }, [activeCommodity, model, predictionChart.points, split]);
+  const activeSplit = splitOptions.includes(split) ? split : splitOptions[0];
+
+  const chartPoints = useMemo(
+    () =>
+      predictionChart.points
+        .filter((point) => point.model === model && point.commodity === activeCommodity && point.split === activeSplit)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map((point, index) => ({
+          ...point,
+          key: `${point.model}-${point.commodity}-${point.split}-${point.datasetIndex}-${point.date}`,
+          label: new Date(point.date).toLocaleDateString("en-US", {
+            day: range < 365 ? "numeric" : undefined,
+            month: "short",
+            year: range >= 365 ? "2-digit" : undefined,
+          }),
+          x: index,
+        })),
+    [activeCommodity, activeSplit, model, predictionChart.points, range],
+  );
+
+  const displayedPoints = useMemo(
+    () => (range >= 99999 ? chartPoints : chartPoints.slice(-range).map((point, index) => ({ ...point, x: index }))),
+    [chartPoints, range],
+  );
+  const xDomain = remapXRange(sharedXRange, sharedXRangeLength, displayedPoints.length);
+  const visibleRange = normalizeXRange(xDomain, displayedPoints.length);
+  const visiblePoints = displayedPoints.slice(visibleRange.start, visibleRange.end + 1);
+  const ticks = xAxisTicks(visibleRange);
+  const values = (visiblePoints.length ? visiblePoints : displayedPoints).flatMap((point) =>
+    point.predictedPrice === null ? [point.price] : [point.price, point.predictedPrice],
+  );
+  const rawYRange = fullYRange(values);
+  const visibleYRange = logScale ? { ...rawYRange, min: Math.max(0.000001, rawYRange.min) } : rawYRange;
+  const commodity = COMMODITY_LOOKUP[activeCommodity];
+  const testStart = displayedPoints.find((point) => point.phase === "test");
+  const selectedPoint = chartPoints.find((point) => point.key === selectedPointKey) ?? null;
+
+  function pointFromChartEvent(event: ChartClickEvent | undefined) {
+    const payloadPoint = event?.activePayload?.[0]?.payload;
+    if (payloadPoint) return payloadPoint;
+
+    const tooltipIndex = Number(event?.activeTooltipIndex);
+    if (Number.isInteger(tooltipIndex) && displayedPoints[tooltipIndex]) return displayedPoints[tooltipIndex];
+
+    const activeX = Number(event?.activeLabel);
+    return displayedPoints.find((point) => point.x === activeX) ?? null;
+  }
+
+  function selectPoint(point: PredictionChartPoint | null) {
+    if (!point || point.predictedPrice === null) {
+      setSelectedPointKey(null);
+      return;
+    }
+    setSelectedPointKey(point.key);
+  }
+
+  function selectFromSurfaceClick(event: React.MouseEvent<HTMLDivElement>) {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (bounds.width <= 0 || !displayedPoints.length) return;
+
+    const plotLeft = 62;
+    const plotRight = 8;
+    const plotWidth = Math.max(1, bounds.width - plotLeft - plotRight);
+    const relativeX = Math.min(1, Math.max(0, (event.clientX - bounds.left - plotLeft) / plotWidth));
+    const index = Math.round(xDomain.start + relativeX * (xDomain.end - xDomain.start));
+    const clampedIndex = Math.min(displayedPoints.length - 1, Math.max(0, index));
+    selectPoint(displayedPoints[clampedIndex] ?? null);
+  }
+
+  return (
+    <section className="agent-gym">
+      <div className="gym-controls">
+        <Control label="Model">
+          <select value={model} disabled>
+            <option value="ar1_baseline">AR(1) baseline</option>
+          </select>
+        </Control>
+        <Control label="Split">
+          <select value={activeSplit} onChange={(event) => setSplit(Number(event.target.value))}>
+            {splitOptions.map((item) => (
+              <option key={item} value={item}>Split {item}</option>
+            ))}
+          </select>
+        </Control>
+      </div>
+
+      <div className="gym-stack">
+        <div className="panel gym-chart">
+          <ChartGestureSurface
+            className="chart-box"
+            style={{ height: 390 }}
+            onClick={selectFromSurfaceClick}
+            xLength={displayedPoints.length}
+            xRange={xDomain}
+            onXChange={(nextRange) => onSharedXRangeChange(nextRange, displayedPoints.length)}
+          >
+            {displayedPoints.length === 0 ? (
+              <div className="empty-state">
+                <h3>No predictions generated yet</h3>
+                <p>Run <code>npm run predict:baseline</code> to generate baseline forecast files under <code>data/prediction_outputs</code>.</p>
+              </div>
+            ) : mounted ? (
+              <ResponsiveContainer height="100%" width="100%">
+                <ComposedChart
+                  data={displayedPoints}
+                  onClick={(event) => selectPoint(pointFromChartEvent(event as ChartClickEvent | undefined))}
+                >
+                  <CartesianGrid stroke="#252b3a" vertical={false} />
+                  <XAxis
+                    allowDataOverflow
+                    axisLine={false}
+                    dataKey="x"
+                    domain={[xDomain.start, xDomain.end]}
+                    tick={{ fill: "#697185", fontSize: 11 }}
+                    tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
+                    tickLine={false}
+                    ticks={ticks}
+                    type="number"
+                  />
+                  <YAxis
+                    allowDataOverflow
+                    axisLine={false}
+                    domain={[visibleYRange.min, visibleYRange.max]}
+                    scale={logScale ? "log" : "auto"}
+                    tick={{ fill: "#697185", fontSize: 11 }}
+                    tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
+                    tickLine={false}
+                    width={62}
+                  />
+                  {chartType === "bar" ? (
+                    <Bar dataKey="price" fill={commodity.colorHex} opacity={0.62} radius={[3, 3, 0, 0]} />
+                  ) : chartType === "area" ? (
+                    <Area dataKey="price" dot={false} fill={`${commodity.colorHex}22`} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
+                  ) : (
+                    <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
+                  )}
+                  <Line
+                    connectNulls={false}
+                    dataKey="predictedPrice"
+                    dot={false}
+                    isAnimationActive={false}
+                    stroke={PREDICTION_COLOR}
+                    strokeDasharray="6 4"
+                    strokeWidth={2}
+                    type="monotone"
+                  />
+                  {testStart ? (
+                    <ReferenceLine
+                      ifOverflow="extendDomain"
+                      label={{ fill: "#b6bdcf", fontSize: 11, position: "insideTopRight", value: "test" }}
+                      stroke="#f6c85f"
+                      strokeDasharray="5 5"
+                      x={testStart.x}
+                    />
+                  ) : null}
+                  {markerType === "none" ? null : (
+                    <Scatter
+                      data={displayedPoints.filter((point) => point.predictedPrice !== null)}
+                      dataKey="predictedPrice"
+                      shape={<PredictionMarker alphaLevel={alphaLevel} markerSize={markerSize} markerType={markerType} />}
+                    />
+                  )}
+                </ComposedChart>
+              </ResponsiveContainer>
+            ) : null}
+          </ChartGestureSurface>
+          {selectedPoint && selectedPoint.predictedPrice !== null ? <PredictionPointState point={selectedPoint} /> : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Control({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label>
+      <span>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function PredictionPointState({ point }: { point: PredictionChartPoint }) {
+  return (
+    <div style={{ display: "grid", gap: 14, padding: 18 }}>
+      <div className="bot-state-hero">
+        <span className="source">{new Date(point.date).toLocaleDateString()}</span>
+        <strong style={{ color: PREDICTION_COLOR }}>
+          ${point.predictedPrice?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+        </strong>
+        <p className="faint">Predicted price</p>
+      </div>
+      <div className="stat-grid">
+        <Stat label="Actual" value={`$${point.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
+        <Stat label="Prediction" value={`$${point.predictedPrice?.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
+        <Stat label="Error" value={formatSigned(point.error)} />
+        <Stat label="Abs error" value={`$${point.absoluteError?.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
+        <Stat label="Alpha" value={point.alpha.toFixed(3)} />
+        <Stat label="Beta" value={point.beta.toFixed(5)} />
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="stat">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function formatSigned(value: number | null) {
+  if (value === null) return "n/a";
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
+
+function PredictionMarker({
+  alphaLevel,
+  cx,
+  cy,
+  markerSize,
+  markerType,
+}: {
+  alphaLevel: number;
+  cx?: number;
+  cy?: number;
+  markerSize: number;
+  markerType: MarkerType;
+}) {
+  return <MarkerGlyph alphaLevel={alphaLevel} color={PREDICTION_COLOR} cx={cx} cy={cy} markerType={markerType} size={markerSize} />;
+}
+
+function useClientMounted() {
+  return useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
+}

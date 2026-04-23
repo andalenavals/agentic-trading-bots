@@ -5,6 +5,7 @@ import { AgentGym } from "@/components/dashboard/AgentGym";
 import { CommodityCards } from "@/components/dashboard/CommodityCards";
 import { EventFeed } from "@/components/dashboard/EventFeed";
 import { PriceChart } from "@/components/dashboard/PriceChart";
+import { PredictionChart } from "@/components/dashboard/PredictionChart";
 import { SentimentChart } from "@/components/dashboard/SentimentChart";
 import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
 import { useAnimatedXRange } from "@/components/dashboard/useAnimatedRange";
@@ -177,6 +178,24 @@ export function Dashboard({ data }: Props) {
               markerSize={markerSize}
               markerType={markerType}
               onSharedXRangeChange={handleViewportChangeFromChart}
+              range={range}
+              sharedXRange={sharedXDomain}
+              sharedXRangeLength={filteredPoints.length}
+            />
+          </div>
+        </details>
+        <details className="panel market-panel news-chart-panel decision-chart-panel">
+          <summary>Predictions Chart</summary>
+          <div className="news-chart-body">
+            <PredictionChart
+              activeCommodity={activeCommodity}
+              alphaLevel={alphaLevel}
+              chartType={chartType}
+              logScale={logScale}
+              markerSize={markerSize}
+              markerType={markerType}
+              onSharedXRangeChange={handleViewportChangeFromChart}
+              predictionChart={data.predictionChart}
               range={range}
               sharedXRange={sharedXDomain}
               sharedXRangeLength={filteredPoints.length}
