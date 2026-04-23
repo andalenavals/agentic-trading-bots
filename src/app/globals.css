@@ -121,6 +121,13 @@ h1 {
   margin-top: 18px;
 }
 
+.market-news-layout > .plot-settings {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
 .market-panel {
   overflow: hidden;
 }

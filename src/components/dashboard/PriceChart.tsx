@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import {
   Area,
   Bar,
@@ -16,7 +16,6 @@ import {
 import { ChartGestureSurface } from "@/components/dashboard/ChartGestureSurface";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
-import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
 import { useAnimatedXRange } from "@/components/dashboard/useAnimatedRange";
 import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { computeSignals } from "@/lib/analytics/signals";
@@ -25,10 +24,16 @@ import type { Commodity, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 
 type Props = {
+  alphaLevel: number;
+  chartType: ChartType;
   commodity: Commodity;
   embedded?: boolean;
+  logScale: boolean;
+  markerSize: number;
+  markerType: MarkerType;
   onSelectPoint: (point: SentimentPoint) => void;
   points: SentimentPoint[];
+  range: number;
   selector?: ReactNode;
 };
 
@@ -38,29 +43,34 @@ type ChartClickEvent = {
   activeTooltipIndex?: number | string;
 };
 
-const RANGES = [
-  { label: "90D", value: 90 },
-  { label: "1Y", value: 365 },
-  { label: "ALL", value: 9999 },
-];
-
-export function PriceChart({ commodity, embedded = false, onSelectPoint, points, selector }: Props) {
+export function PriceChart({
+  alphaLevel,
+  chartType,
+  commodity,
+  embedded = false,
+  logScale,
+  markerSize,
+  markerType,
+  onSelectPoint,
+  points,
+  range,
+  selector,
+}: Props) {
   const mounted = useClientMounted();
   const hoveredPoint = useRef<SentimentPoint | null>(null);
-  const [chartType, setChartType] = useState<ChartType>("area");
-  const [range, setRange] = useState(9999);
-  const [markerSize, setMarkerSize] = useState(5);
-  const [markerType, setMarkerType] = useState<MarkerType>("none");
-  const [alphaLevel, setAlphaLevel] = useState(0.72);
-  const [logScale, setLogScale] = useState(false);
-  const xRange = useAnimatedXRange();
+  const previousRange = useRef(range);
+  const {
+    range: xViewportRange,
+    setAnimated: setAnimatedXViewport,
+    setImmediate: setImmediateXViewport,
+  } = useAnimatedXRange();
   const filtered = useMemo(() => (range >= 9999 ? points : points.slice(-range)), [points, range]);
   const chartData = filtered.map((point, index) => ({
     ...point,
     x: index,
     label: new Date(point.date).toLocaleDateString("en-US", { month: "short", year: range >= 365 ? "2-digit" : undefined, day: range < 365 ? "numeric" : undefined }),
   }));
-  const xDomain = normalizeXDomain(xRange.range ?? fullXRange(chartData.length), chartData.length);
+  const xDomain = normalizeXDomain(xViewportRange ?? fullXRange(chartData.length), chartData.length);
   const visibleRange = normalizeXRange(xDomain, chartData.length);
   const visibleData = chartData.slice(visibleRange.start, visibleRange.end + 1);
   const signal = computeSignals(visibleData);
@@ -83,10 +93,11 @@ export function PriceChart({ commodity, embedded = false, onSelectPoint, points,
     return chartData.find((point) => point.x === activeX) ?? null;
   }
 
-  function handleRangeChange(nextRange: number) {
-    setRange(nextRange);
-    xRange.setImmediate(null);
-  }
+  useEffect(() => {
+    if (previousRange.current === range) return;
+    previousRange.current = range;
+    setImmediateXViewport(null);
+  }, [range, setImmediateXViewport]);
 
   function rememberHoveredPoint(event: ChartClickEvent | undefined) {
     hoveredPoint.current = pointFromChartEvent(event);
@@ -118,28 +129,12 @@ export function PriceChart({ commodity, embedded = false, onSelectPoint, points,
         </div>
       ) : null}
 
-      <VisualizationControls
-        alphaLevel={alphaLevel}
-        chartType={chartType}
-        markerSize={markerSize}
-        markerType={markerType}
-        logScale={logScale}
-        range={range}
-        ranges={RANGES}
-        onAlphaLevelChange={setAlphaLevel}
-        onChartTypeChange={setChartType}
-        onLogScaleChange={setLogScale}
-        onMarkerSizeChange={setMarkerSize}
-        onMarkerTypeChange={setMarkerType}
-        onRangeChange={handleRangeChange}
-      />
-
       <ChartGestureSurface
         className="chart-box"
         xLength={chartData.length}
         xRange={xDomain}
         onClick={selectFromSurfaceClick}
-        onXChange={xRange.setImmediate}
+        onXChange={setImmediateXViewport}
       >
         {mounted ? (
           <ResponsiveContainer height="100%" width="100%">
@@ -199,7 +194,7 @@ export function PriceChart({ commodity, embedded = false, onSelectPoint, points,
         labels={chartData.map((point) => point.label)}
         length={chartData.length}
         range={visibleRange}
-        onChange={(nextRange, animated) => (animated ? xRange.setAnimated(nextRange, visibleRange) : xRange.setImmediate(nextRange))}
+        onChange={(nextRange, animated) => (animated ? setAnimatedXViewport(nextRange, visibleRange) : setImmediateXViewport(nextRange))}
       />
     </section>
   );

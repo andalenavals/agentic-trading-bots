@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { XRange } from "@/lib/analytics/chart-zoom";
 
 const ANIMATION_MS = 220;
@@ -23,14 +23,14 @@ function useAnimatedRange<T>(initial: T | null, interpolate: (from: T, to: T, pr
     [],
   );
 
-  function setImmediate(next: T | null) {
+  const setImmediate = useCallback(function setImmediate(next: T | null) {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     frameRef.current = null;
     rangeRef.current = next;
     setRange(next);
-  }
+  }, []);
 
-  function setAnimated(next: T, fallbackFrom?: T) {
+  const setAnimated = useCallback(function setAnimated(next: T, fallbackFrom?: T) {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
 
     const from = rangeRef.current ?? fallbackFrom ?? next;
@@ -50,7 +50,7 @@ function useAnimatedRange<T>(initial: T | null, interpolate: (from: T, to: T, pr
     }
 
     frameRef.current = requestAnimationFrame(animate);
-  }
+  }, [interpolate]);
 
   return { range, setAnimated, setImmediate };
 }
