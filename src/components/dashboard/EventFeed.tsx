@@ -15,14 +15,6 @@ export function EventFeed({ commodity, embedded = false, selectedPoint }: Props)
 
   return (
     <aside className={`${embedded ? "market-news-section " : "panel "}event-feed`}>
-      <div className="panel-head">
-        <p className="faint" style={{ fontSize: 12 }}>
-          {selectedPoint
-            ? `${commodity.name} on ${new Date(selectedPoint.date).toLocaleDateString()}`
-            : "Click the time series to load the relevant events"}
-        </p>
-        {selectedPoint ? <span className="badge neutral">{selectedPoint.newsCount} events</span> : null}
-      </div>
       <div className="events">
         {!selectedPoint ? (
           <div className="empty-state">

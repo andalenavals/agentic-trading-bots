@@ -265,12 +265,6 @@ export function AgentGym({
             range={visibleRange}
             onChange={(nextRange, animated) => (animated ? xRange.setAnimated(nextRange, visibleRange) : xRange.setImmediate(nextRange))}
           />
-          <div className="panel-head gym-inline-head">
-            <p className="faint" style={{ fontSize: 11 }}>
-              {selectedPoint ? `${activeCommodity.name} on ${selectedPoint.label}` : "Click a decision marker in the time series"}
-            </p>
-            {selectedPoint ? <span className="badge neutral">{selectedPoint.phase}</span> : null}
-          </div>
           {selectedPoint ? (
             <BotPointState point={selectedPoint} />
           ) : (
