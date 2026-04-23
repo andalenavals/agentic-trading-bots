@@ -43,26 +43,25 @@ export function Dashboard({ data }: Props) {
       </div>
 
       {layer === "market" ? (
-        <details className="panel market-panel news-chart-panel">
-          <summary>News Chart</summary>
-          <div className="news-chart-body">
-            <PriceChart
-              commodity={activeCommodityMeta}
-              embedded
-              onSelectPoint={setSelectedPoint}
-              points={activePoints}
-              selector={
-                <CommodityCards
-                  activeCommodity={activeCommodity}
-                  commodities={data.commodities}
-                  embedded
-                  onSelect={selectCommodity}
-                />
-              }
-            />
-            <EventFeed commodity={activeCommodityMeta} embedded selectedPoint={selectedPoint} />
-          </div>
-        </details>
+        <section className="market-news-layout">
+          <CommodityCards
+            activeCommodity={activeCommodity}
+            commodities={data.commodities}
+            onSelect={selectCommodity}
+          />
+          <details className="panel market-panel news-chart-panel">
+            <summary>News Chart</summary>
+            <div className="news-chart-body">
+              <PriceChart
+                commodity={activeCommodityMeta}
+                embedded
+                onSelectPoint={setSelectedPoint}
+                points={activePoints}
+              />
+              <EventFeed commodity={activeCommodityMeta} embedded selectedPoint={selectedPoint} />
+            </div>
+          </details>
+        </section>
       ) : (
         <AgentGym
           agentGym={data.agentGym}
