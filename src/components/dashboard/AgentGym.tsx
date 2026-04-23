@@ -16,7 +16,6 @@ import {
 import { ChartGestureSurface } from "@/components/dashboard/ChartGestureSurface";
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
-import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
 import { useAnimatedXRange } from "@/components/dashboard/useAnimatedRange";
 import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
@@ -31,9 +30,15 @@ import type {
 } from "@/lib/types";
 
 type Props = {
+  alphaLevel: number;
   activeCommodity: CommoditySlug;
   agentGym: AgentGymData;
+  chartType: ChartType;
   commodities: Commodity[];
+  logScale: boolean;
+  markerSize: number;
+  markerType: MarkerType;
+  range: number;
 };
 
 type ChartClickEvent = {
@@ -48,22 +53,20 @@ const ACTION_COLOR: Record<AgentActionName, string> = {
   sell: "#ef5350",
 };
 
-const RANGES = [
-  { label: "90D", value: 90 },
-  { label: "1Y", value: 365 },
-  { label: "ALL", value: 99999 },
-];
-
-export function AgentGym({ activeCommodity: selectedCommodity, agentGym, commodities }: Props) {
+export function AgentGym({
+  alphaLevel,
+  activeCommodity: selectedCommodity,
+  agentGym,
+  chartType,
+  commodities,
+  logScale,
+  markerSize,
+  markerType,
+  range,
+}: Props) {
   const mounted = useClientMounted();
   const [model, setModel] = useState<AgentModelKind>("single_asset_ppo");
   const [split, setSplit] = useState(1);
-  const [chartType, setChartType] = useState<ChartType>("line");
-  const [range, setRange] = useState(99999);
-  const [markerSize, setMarkerSize] = useState(6);
-  const [markerType, setMarkerType] = useState<MarkerType>("none");
-  const [alphaLevel, setAlphaLevel] = useState(0.88);
-  const [logScale, setLogScale] = useState(false);
   const xRange = useAnimatedXRange();
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
 
@@ -146,12 +149,6 @@ export function AgentGym({ activeCommodity: selectedCommodity, agentGym, commodi
     xRange.setImmediate(null);
   }
 
-  function handleRangeChange(nextRange: number) {
-    setRange(nextRange);
-    setSelectedPointKey(null);
-    xRange.setImmediate(null);
-  }
-
   function selectFromSurfaceClick(event: React.MouseEvent<HTMLDivElement>) {
     const bounds = event.currentTarget.getBoundingClientRect();
     if (bounds.width <= 0 || !displayedPoints.length) return;
@@ -190,30 +187,9 @@ export function AgentGym({ activeCommodity: selectedCommodity, agentGym, commodi
               <span className="chip" style={{ backgroundColor: `${activeCommodity.colorHex}22`, color: activeCommodity.colorHex }}>
                 {activeCommodity.symbol}
               </span>
-              <div>
-                <h3 style={{ fontSize: 15 }}>Price series with bot decisions</h3>
-                <p className="faint" style={{ fontSize: 11, marginTop: 3 }}>
-                  Full diagnostic series with a vertical split between training history and out-of-sample test period
-                </p>
-              </div>
             </div>
             <Legend />
           </div>
-          <VisualizationControls
-            alphaLevel={alphaLevel}
-            chartType={chartType}
-            markerSize={markerSize}
-            markerType={markerType}
-            logScale={logScale}
-            range={range}
-            ranges={RANGES}
-            onAlphaLevelChange={setAlphaLevel}
-            onChartTypeChange={setChartType}
-            onLogScaleChange={setLogScale}
-            onMarkerSizeChange={setMarkerSize}
-            onMarkerTypeChange={setMarkerType}
-            onRangeChange={handleRangeChange}
-          />
           <ChartGestureSurface
             className="chart-box"
             style={{ height: 390 }}

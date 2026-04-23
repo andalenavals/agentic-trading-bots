@@ -16,7 +16,7 @@ type Props = {
 const MARKET_RANGES = [
   { label: "90D", value: 90 },
   { label: "1Y", value: 365 },
-  { label: "ALL", value: 9999 },
+  { label: "ALL", value: 99999 },
 ];
 
 export function Dashboard({ data }: Props) {
@@ -95,9 +95,15 @@ export function Dashboard({ data }: Props) {
           <summary>Decision Chart</summary>
           <div className="news-chart-body">
             <AgentGym
+              alphaLevel={alphaLevel}
               activeCommodity={activeCommodity}
               agentGym={data.agentGym}
+              chartType={chartType}
               commodities={data.commodities}
+              logScale={logScale}
+              markerSize={markerSize}
+              markerType={markerType}
+              range={range}
             />
           </div>
         </details>
