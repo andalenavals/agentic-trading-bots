@@ -83,7 +83,6 @@ export function AgentGym({ agentGym, commodities }: Props) {
     () => buildChartPoints(matching, activeSplit, splitCount),
     [activeSplit, matching, splitCount],
   );
-  const stats = useMemo(() => summarizeAgentPoints(chartPoints), [chartPoints]);
   const activeCommodity = COMMODITY_LOOKUP[activeCommoditySlug];
   const testStart = chartPoints.find((point) => point.phase === "test");
   const selectedPoint = chartPoints.find((point) => point.key === selectedPointKey) ?? null;
@@ -216,22 +215,19 @@ export function AgentGym({ agentGym, commodities }: Props) {
         <div className="panel gym-side">
           <div className="panel-head">
             <div>
-              <h3 style={{ fontSize: 15 }}>Bot state</h3>
+              <h3 style={{ fontSize: 15 }}>Clicked decision state</h3>
               <p className="faint" style={{ fontSize: 11, marginTop: 3 }}>
-                {selectedPoint ? selectedPoint.label : "Click a decision marker in the chart"}
+                {selectedPoint ? `${activeCommodity.name} on ${selectedPoint.label}` : "Click a decision marker in the time series"}
               </p>
             </div>
+            {selectedPoint ? <span className="badge neutral">{selectedPoint.phase}</span> : null}
           </div>
           {selectedPoint ? (
             <BotPointState point={selectedPoint} />
           ) : (
-            <div className="stat-grid" style={{ padding: 18 }}>
-              <Stat label="Buy" value={`${stats.buyPct.toFixed(1)}%`} />
-              <Stat label="Hold" value={`${stats.holdPct.toFixed(1)}%`} />
-              <Stat label="Sell" value={`${stats.sellPct.toFixed(1)}%`} />
-              <Stat label="Avg confidence" value={`${(stats.avgConfidence * 100).toFixed(1)}%`} />
-              <Stat label="Avg uncertainty" value={`${(stats.avgUncertainty * 100).toFixed(1)}%`} />
-              <Stat label="Net worth" value={`$${stats.latestNetWorth.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
+            <div className="empty-state">
+              <h3>No decision selected</h3>
+              <p>Decision state appears here only after clicking a buy, hold, or sell marker in the chart.</p>
             </div>
           )}
           <div className="gym-note">
@@ -353,27 +349,6 @@ function DecisionDot(props: { cx?: number; cy?: number; payload?: AgentChartPoin
       strokeWidth={1.5}
     />
   );
-}
-
-function summarizeAgentPoints(points: AgentChartPoint[]) {
-  const count = Math.max(points.length, 1);
-  const buy = points.filter((point) => point.actionName === "buy").length;
-  const hold = points.filter((point) => point.actionName === "hold").length;
-  const sell = points.filter((point) => point.actionName === "sell").length;
-
-  return {
-    buyPct: (buy / count) * 100,
-    holdPct: (hold / count) * 100,
-    sellPct: (sell / count) * 100,
-    avgConfidence: average(points.map((point) => point.confidence)),
-    avgUncertainty: average(points.map((point) => point.normalizedEntropy || 1 - point.confidence)),
-    latestNetWorth: points[points.length - 1]?.netWorth ?? 0,
-  };
-}
-
-function average(values: number[]) {
-  if (values.length === 0) return 0;
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function useClientMounted() {
