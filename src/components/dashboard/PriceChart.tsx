@@ -26,6 +26,7 @@ import type { ChartType, MarkerType } from "@/components/dashboard/Visualization
 
 type Props = {
   commodity: Commodity;
+  embedded?: boolean;
   onSelectPoint: (point: SentimentPoint) => void;
   points: SentimentPoint[];
   selector?: ReactNode;
@@ -43,7 +44,7 @@ const RANGES = [
   { label: "ALL", value: 9999 },
 ];
 
-export function PriceChart({ commodity, onSelectPoint, points, selector }: Props) {
+export function PriceChart({ commodity, embedded = false, onSelectPoint, points, selector }: Props) {
   const mounted = useClientMounted();
   const hoveredPoint = useRef<SentimentPoint | null>(null);
   const [chartType, setChartType] = useState<ChartType>("area");
@@ -87,6 +88,10 @@ export function PriceChart({ commodity, onSelectPoint, points, selector }: Props
     xRange.setImmediate(null);
   }
 
+  function toggleMarkers() {
+    setMarkerType((current) => (current === "none" ? "circle" : "none"));
+  }
+
   function rememberHoveredPoint(event: ChartClickEvent | undefined) {
     hoveredPoint.current = pointFromChartEvent(event);
   }
@@ -110,8 +115,15 @@ export function PriceChart({ commodity, onSelectPoint, points, selector }: Props
   }
 
   return (
-    <section className="panel">
-      {selector ? <div className="panel-head chart-selector-head">{selector}</div> : null}
+    <section className={embedded ? "market-chart-section" : "panel"}>
+      {selector ? (
+        <div className="panel-head chart-selector-head">
+          {selector}
+          <button className={`marker-toggle ${markerType !== "none" ? "active" : ""}`} onClick={toggleMarkers} type="button">
+            {markerType === "none" ? "Show markers" : "Hide markers"}
+          </button>
+        </div>
+      ) : null}
 
       <VisualizationControls
         alphaLevel={alphaLevel}

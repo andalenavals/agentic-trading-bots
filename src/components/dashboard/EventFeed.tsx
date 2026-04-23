@@ -6,14 +6,15 @@ import type { Commodity, SentimentPoint } from "@/lib/types";
 
 type Props = {
   commodity: Commodity;
+  embedded?: boolean;
   selectedPoint: SentimentPoint | null;
 };
 
-export function EventFeed({ commodity, selectedPoint }: Props) {
+export function EventFeed({ commodity, embedded = false, selectedPoint }: Props) {
   const news = selectedPoint?.newsItems ?? [];
 
   return (
-    <aside className="panel event-feed">
+    <aside className={`${embedded ? "market-news-section " : "panel "}event-feed`}>
       <div className="panel-head">
         <div>
           <h2 style={{ fontSize: 17 }}>Clicked news context</h2>

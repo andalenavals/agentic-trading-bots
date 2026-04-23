@@ -34,18 +34,19 @@ export function Dashboard({ data }: Props) {
 
       <div className="layer-switch">
         <button className={layer === "market" ? "active" : ""} onClick={() => setLayer("market")} type="button">
-          Demo: market + news
+          News
         </button>
         <button className={layer === "gym" ? "active" : ""} onClick={() => setLayer("gym")} type="button">
-          Demo: trading bots gym
+          Bots
         </button>
-        <a href="docs/">Sphinx docs</a>
+        <a href="docs/">Docs</a>
       </div>
 
       {layer === "market" ? (
-        <section className="grid market-stack" style={{ marginTop: 18 }}>
+        <section className="panel market-panel">
           <PriceChart
             commodity={activeCommodityMeta}
+            embedded
             onSelectPoint={setSelectedPoint}
             points={activePoints}
             selector={
@@ -57,7 +58,7 @@ export function Dashboard({ data }: Props) {
               />
             }
           />
-          <EventFeed commodity={activeCommodityMeta} selectedPoint={selectedPoint} />
+          <EventFeed commodity={activeCommodityMeta} embedded selectedPoint={selectedPoint} />
         </section>
       ) : (
         <AgentGym

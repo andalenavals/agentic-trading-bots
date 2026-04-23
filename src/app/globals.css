@@ -57,6 +57,11 @@ h1 {
   line-height: 1.05;
 }
 
+.topbar h1 {
+  color: #f2c94c;
+  font-size: 28px;
+}
+
 .grid {
   display: grid;
   gap: 18px;
@@ -80,7 +85,7 @@ h1 {
 }
 
 .chart-selector-head {
-  justify-content: flex-start;
+  justify-content: space-between;
 }
 
 .commodity-picker label {
@@ -110,6 +115,15 @@ h1 {
 
 .market-stack {
   grid-template-columns: 1fr;
+}
+
+.market-panel {
+  margin-top: 18px;
+  overflow: hidden;
+}
+
+.market-chart-section {
+  display: block;
 }
 
 .panel,
@@ -464,6 +478,22 @@ h1 {
   padding: 18px;
 }
 
+.marker-toggle {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 9px 11px;
+  white-space: nowrap;
+}
+
+.marker-toggle.active {
+  background: var(--gold);
+  color: #10131a;
+}
+
 .gesture-surface {
   cursor: grab;
   touch-action: none;
@@ -492,6 +522,11 @@ h1 {
 .events {
   max-height: 420px;
   overflow: auto;
+}
+
+.market-news-section {
+  border-top: 1px solid var(--line);
+  display: block;
 }
 
 .event {
