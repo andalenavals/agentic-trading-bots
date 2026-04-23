@@ -63,24 +63,31 @@ export function PredictionChart({
   sharedXRangeLength,
 }: Props) {
   const mounted = useClientMounted();
-  const [model] = useState<PredictionModelKind>("ar1_baseline");
+  const [model, setModel] = useState<PredictionModelKind>("ridge_arx");
   const [split, setSplit] = useState(1);
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
+  const availableModels = useMemo<PredictionModelKind[]>(() => {
+    const models = new Set(predictionChart.points.filter((point) => point.commodity === activeCommodity).map((point) => point.model));
+    return models.size
+      ? (Array.from(models).sort() as PredictionModelKind[])
+      : (["ridge_arx", "ar1_baseline"] as PredictionModelKind[]);
+  }, [activeCommodity, predictionChart.points]);
+  const activeModel = availableModels.includes(model) ? model : availableModels[0];
 
   const splitOptions = useMemo(() => {
     const splits = new Set(
       predictionChart.points
-        .filter((point) => point.model === model && point.commodity === activeCommodity)
+        .filter((point) => point.model === activeModel && point.commodity === activeCommodity)
         .map((point) => point.split),
     );
     return splits.size ? Array.from(splits).sort((a, b) => a - b) : [split];
-  }, [activeCommodity, model, predictionChart.points, split]);
+  }, [activeCommodity, activeModel, predictionChart.points, split]);
   const activeSplit = splitOptions.includes(split) ? split : splitOptions[0];
 
   const chartPoints = useMemo(
     () =>
       predictionChart.points
-        .filter((point) => point.model === model && point.commodity === activeCommodity && point.split === activeSplit)
+        .filter((point) => point.model === activeModel && point.commodity === activeCommodity && point.split === activeSplit)
         .sort((a, b) => a.date.localeCompare(b.date))
         .map((point, index) => ({
           ...point,
@@ -92,7 +99,7 @@ export function PredictionChart({
           }),
           x: index,
         })),
-    [activeCommodity, activeSplit, model, predictionChart.points, range],
+    [activeCommodity, activeModel, activeSplit, predictionChart.points, range],
   );
 
   const displayedPoints = useMemo(
@@ -148,8 +155,16 @@ export function PredictionChart({
     <section className="agent-gym">
       <div className="gym-controls">
         <Control label="Model">
-          <select value={model} disabled>
-            <option value="ar1_baseline">Trend baseline</option>
+          <select
+            value={activeModel}
+            onChange={(event) => {
+              setModel(event.target.value as PredictionModelKind);
+              setSelectedPointKey(null);
+            }}
+          >
+            {availableModels.map((item) => (
+              <option key={item} value={item}>{modelLabel(item)}</option>
+            ))}
           </select>
         </Control>
         <Control label="Split">
@@ -174,7 +189,10 @@ export function PredictionChart({
             {displayedPoints.length === 0 ? (
               <div className="empty-state">
                 <h3>No predictions generated yet</h3>
-                <p>Run <code>npm run predict:baseline</code> to generate baseline forecast files under <code>data/prediction_outputs</code>.</p>
+                <p>
+                  Run <code>npm run predict:ridge</code> or <code>npm run predict:baseline</code> to generate forecast files under{" "}
+                  <code>data/prediction_outputs</code>.
+                </p>
               </div>
             ) : mounted ? (
               <ResponsiveContainer height="100%" width="100%">
@@ -241,7 +259,7 @@ export function PredictionChart({
               </ResponsiveContainer>
             ) : null}
           </ChartGestureSurface>
-          {selectedPoint && selectedPoint.predictedPrice !== null ? <PredictionPointState point={selectedPoint} /> : null}
+          {selectedPoint && selectedPoint.predictedPrice !== null ? <PredictionPointState model={activeModel} point={selectedPoint} /> : null}
         </div>
       </div>
     </section>
@@ -257,7 +275,7 @@ function Control({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-function PredictionPointState({ point }: { point: PredictionChartPoint }) {
+function PredictionPointState({ model, point }: { model: PredictionModelKind; point: PredictionChartPoint }) {
   return (
     <div style={{ display: "grid", gap: 14, padding: 18 }}>
       <div className="bot-state-hero">
@@ -272,11 +290,22 @@ function PredictionPointState({ point }: { point: PredictionChartPoint }) {
         <Stat label="Prediction" value={`$${point.predictedPrice?.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
         <Stat label="Error" value={formatSigned(point.error)} />
         <Stat label="Abs error" value={`$${point.absoluteError?.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
-        <Stat label="Anchor" value={`$${point.alpha.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
-        <Stat label="Slope" value={point.beta.toFixed(4)} />
+        <Stat
+          label={model === "ridge_arx" ? "Intercept" : "Anchor"}
+          value={model === "ridge_arx" ? point.alpha.toFixed(6) : `$${point.alpha.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+        />
+        <Stat
+          label={model === "ridge_arx" ? "Lag1 coeff" : "Slope"}
+          value={point.beta.toFixed(6)}
+        />
       </div>
     </div>
   );
+}
+
+function modelLabel(model: PredictionModelKind) {
+  if (model === "ridge_arx") return "Ridge ARX";
+  return "Trend baseline";
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

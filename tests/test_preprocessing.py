@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from agentic_trading.prediction_baseline import generate_full_predictions
+from agentic_trading.prediction_ridge_arx import generate_full_predictions as generate_ridge_predictions
 from agentic_trading.preprocessing import add_sentiment, build_prices_with_news, split_by_commodity, write_news_events
 
 
@@ -109,6 +110,33 @@ class PreprocessingTest(unittest.TestCase):
         slope = float(generated[4]["beta"])
         self.assertAlmostEqual(first_pred, anchor + slope)
         self.assertAlmostEqual(second_pred, anchor + 2 * slope)
+
+    def test_ridge_arx_generates_pointwise_test_forecasts(self) -> None:
+        rows = []
+        for index in range(40):
+            rows.append(
+                {
+                    "date": f"2026-02-{index + 1:02d}",
+                    "commodity": "copper_lme",
+                    "price": str(100 + index * 1.5 + (index % 3) * 0.2),
+                    "news_count": str((index % 4) + 1),
+                    "sentiment_score": str(0.1 if index % 2 == 0 else -0.05),
+                    "finbert_sentiment_score": str(0.2 if index % 3 == 0 else -0.03),
+                    "positive": "0.4",
+                    "neutral": "0.4",
+                    "negative": "0.2",
+                    "finbert_positive": "0.5",
+                    "finbert_neutral": "0.3",
+                    "finbert_negative": "0.2",
+                }
+            )
+
+        generated = generate_ridge_predictions(rows, split=1, train_end=25, ridge_alpha=1.0)
+        test_rows = [row for row in generated if row["phase"] == "test" and row["predicted_price"] != ""]
+
+        self.assertGreater(len(test_rows), 0)
+        self.assertTrue(any(float(row["absolute_error"]) > 0 for row in test_rows))
+        self.assertNotEqual(test_rows[0]["predicted_price"], rows[25]["price"])
 
     def test_pipeline_fails_fast_when_required_columns_are_missing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -28,8 +28,16 @@ export const loadPredictionChartData = cache(async (): Promise<PredictionChartDa
 });
 
 async function discoverPredictionSources(): Promise<PredictionChartData["sources"]> {
-  const files = await safeReadDir(path.join(PREDICTION_ROOT, "ar1_baseline"));
-  return files.flatMap((file) => predictionSource(file));
+  const modelDirs = await safeReadDir(PREDICTION_ROOT);
+  const discovered = await Promise.all(
+    modelDirs.map(async (modelDir) => {
+      if (modelDir !== "ar1_baseline" && modelDir !== "ridge_arx") return [];
+      const files = await safeReadDir(path.join(PREDICTION_ROOT, modelDir));
+      return files.flatMap((file) => predictionSource(modelDir, file));
+    }),
+  );
+
+  return discovered.flat().sort((a, b) => `${a.model}-${a.split}-${a.path}`.localeCompare(`${b.model}-${b.split}-${b.path}`));
 }
 
 async function safeReadDir(directory: string) {
@@ -49,21 +57,21 @@ async function exists(filePath: string) {
   }
 }
 
-function predictionSource(file: string): PredictionChartData["sources"] {
+function predictionSource(model: "ar1_baseline" | "ridge_arx", file: string): PredictionChartData["sources"] {
   const match = file.match(/^full_dataset_predictions_([a-z_]+)_split_(\d+)\.csv$/);
   if (!match) return [];
 
   return [{
-    model: "ar1_baseline",
+    model,
     split: Number(match[2]),
     commodity: normalizeCommodity(match[1]) ?? undefined,
-    path: `ar1_baseline/${file}`,
+    path: `${model}/${file}`,
   }];
 }
 
 function parsePredictionRow(
   row: Record<string, string>,
-  model: "ar1_baseline",
+  model: "ar1_baseline" | "ridge_arx",
   split: number,
 ): PredictionPoint[] {
   const commodity = normalizeCommodity(row.commodity);

@@ -101,7 +101,7 @@ export type AgentGymData = {
   }>;
 };
 
-export type PredictionModelKind = "ar1_baseline";
+export type PredictionModelKind = "ar1_baseline" | "ridge_arx";
 
 export type PredictionPoint = {
   model: PredictionModelKind;

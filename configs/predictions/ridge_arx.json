@@ -1,0 +1,8 @@
+{
+  "input_csv": "data/training/commodity_outputs/*.csv",
+  "output_dir": "data/prediction_outputs/ridge_arx",
+  "n_splits": 3,
+  "ridge_alpha": 4.0,
+  "lags": [1, 2, 5, 10],
+  "windows": [5, 20]
+}
