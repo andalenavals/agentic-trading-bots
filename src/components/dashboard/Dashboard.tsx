@@ -5,6 +5,7 @@ import { AgentGym } from "@/components/dashboard/AgentGym";
 import { CommodityCards } from "@/components/dashboard/CommodityCards";
 import { EventFeed } from "@/components/dashboard/EventFeed";
 import { PriceChart } from "@/components/dashboard/PriceChart";
+import { SentimentChart } from "@/components/dashboard/SentimentChart";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
 import type { CommoditySlug, DashboardData, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
@@ -89,6 +90,21 @@ export function Dashboard({ data }: Props) {
               range={range}
             />
             <EventFeed commodity={activeCommodityMeta} embedded selectedPoint={selectedPoint} />
+          </div>
+        </details>
+        <details className="panel market-panel news-chart-panel decision-chart-panel">
+          <summary>Sentiment Chart</summary>
+          <div className="news-chart-body">
+            <SentimentChart
+              alphaLevel={alphaLevel}
+              chartType={chartType}
+              commodity={activeCommodityMeta}
+              key={activeCommodity}
+              markerSize={markerSize}
+              markerType={markerType}
+              points={activePoints}
+              range={range}
+            />
           </div>
         </details>
         <details className="panel market-panel news-chart-panel decision-chart-panel">

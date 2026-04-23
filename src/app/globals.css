@@ -610,6 +610,47 @@ h1 {
   overflow: hidden;
 }
 
+.sentiment-panel {
+  background: rgba(19, 23, 34, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.sentiment-controls {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 260px);
+  padding: 16px 18px;
+}
+
+.sentiment-controls label {
+  display: grid;
+  gap: 6px;
+}
+
+.sentiment-controls span {
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.sentiment-controls select {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--text);
+  min-width: 0;
+  padding: 9px 10px;
+}
+
+.sentiment-state {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
 .gym-controls {
   display: grid;
   gap: 12px;
@@ -769,6 +810,10 @@ h1 {
 
   .viz-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sentiment-controls {
+    grid-template-columns: 1fr;
   }
 }
 
