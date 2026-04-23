@@ -78,21 +78,22 @@ def fit_ar1(train_prices: list[float]) -> tuple[float, float]:
 
 def generate_full_predictions(rows: list[dict[str, str]], split: int, train_end: int) -> list[dict[str, object]]:
     prices = [to_number(row.get("price", "")) for row in rows]
-    alpha, beta = fit_ar1(prices[:train_end])
+    base_alpha, base_beta = fit_ar1(prices[:train_end])
     generated: list[dict[str, object]] = []
-    rollout_price = prices[train_end - 1] if train_end > 0 else 0.0
 
     for index, row in enumerate(rows):
         phase = "train" if index < train_end else "test"
         predicted_price = None
         error = None
         absolute_error = None
+        alpha = base_alpha
+        beta = base_beta
 
         if phase == "test":
-            predicted_price = alpha + beta * rollout_price
+            alpha, beta = fit_ar1(prices[:index])
+            predicted_price = alpha + beta * prices[index - 1]
             error = predicted_price - prices[index]
             absolute_error = abs(error)
-            rollout_price = predicted_price
 
         generated.append(
             {
