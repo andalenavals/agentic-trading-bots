@@ -299,7 +299,7 @@ h1 {
   padding: 12px 18px 14px;
 }
 
-.time-range-bar button {
+.time-range-bar > button {
   background: var(--panel-strong);
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -310,19 +310,43 @@ h1 {
   line-height: 1;
 }
 
-.time-range-bar button:disabled {
+.time-range-bar > button:disabled {
   color: #454b5b;
   cursor: not-allowed;
 }
 
-.time-range-bar label {
+.time-range-control {
   display: grid;
   gap: 6px;
 }
 
-.time-range-bar input {
-  accent-color: var(--gold);
+.time-range-track {
+  background: #0f121a;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  height: 28px;
+  overflow: hidden;
+  position: relative;
   width: 100%;
+}
+
+.time-range-window {
+  background: linear-gradient(180deg, rgba(201, 164, 74, 0.9), rgba(201, 164, 74, 0.62));
+  border: 1px solid rgba(255, 226, 155, 0.45);
+  border-radius: 5px;
+  bottom: 3px;
+  cursor: grab;
+  min-width: 18px;
+  position: absolute;
+  top: 3px;
+}
+
+.time-range-window:active {
+  cursor: grabbing;
+}
+
+.time-range-window:disabled {
+  cursor: not-allowed;
 }
 
 .time-range-bar span {
