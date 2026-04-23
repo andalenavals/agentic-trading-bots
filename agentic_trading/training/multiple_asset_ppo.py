@@ -159,12 +159,14 @@ def load_and_prepare_data(
         pivot.columns = [f"{feature}_{commodity}" for commodity in pivot.columns]
         wide_parts.append(pivot)
 
-    return pd.concat(wide_parts, axis=1).sort_index().reset_index().dropna().reset_index(drop=True)
+    prepared = pd.concat(wide_parts, axis=1).sort_index().reset_index().dropna().reset_index(drop=True)
+    prepared["dataset_index"] = np.arange(len(prepared))
+    return prepared
 
 
 def transform_with_scaler(data: pd.DataFrame, scaler: StandardScaler) -> pd.DataFrame:
     scaled = data.copy()
-    scale_columns = [column for column in scaled.columns if column != "date"]
+    scale_columns = [column for column in scaled.columns if column not in {"date", "dataset_index"}]
     scaled[scale_columns] = scaler.transform(scaled[scale_columns])
     return scaled
 
@@ -173,7 +175,7 @@ def scale_split(
     train_data: pd.DataFrame,
     test_data: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame, StandardScaler]:
-    scale_columns = [column for column in train_data.columns if column != "date"]
+    scale_columns = [column for column in train_data.columns if column not in {"date", "dataset_index"}]
     scaler = StandardScaler()
     scaler.fit(train_data[scale_columns])
     return transform_with_scaler(train_data, scaler), transform_with_scaler(test_data, scaler), scaler
@@ -242,8 +244,12 @@ def build_evaluation_row(
     reward: float,
     balance: float,
     capital_mode: str,
+    train_end_index: int | None,
 ) -> dict[str, object]:
     row = dict(base_row)
+    dataset_index = int(row.get("dataset_index", 0))
+    row["dataset_index"] = dataset_index
+    row["phase"] = "test" if train_end_index is not None and dataset_index >= train_end_index else "train"
     per_asset_entropy = []
 
     for index, commodity in enumerate(commodities):
@@ -272,7 +278,13 @@ def build_evaluation_row(
     return row
 
 
-def evaluate_model(model: PPO, env: MultiAssetTradingEnv, commodities: list[str], epsilon: float) -> pd.DataFrame:
+def evaluate_model(
+    model: PPO,
+    env: MultiAssetTradingEnv,
+    commodities: list[str],
+    epsilon: float,
+    train_end_index: int | None = None,
+) -> pd.DataFrame:
     rows = []
     observation, _ = env.reset()
     terminated = False
@@ -292,6 +304,7 @@ def evaluate_model(model: PPO, env: MultiAssetTradingEnv, commodities: list[str]
                 reward=reward,
                 balance=info["balance"],
                 capital_mode=info["capital_mode"],
+                train_end_index=train_end_index,
             )
         )
         observation = next_observation
@@ -343,6 +356,7 @@ def run(config_path: str) -> None:
             seed=config["seed"],
         )
         model.learn(total_timesteps=config["total_timesteps"])
+        train_end_index = int(raw_train["dataset_index"].max()) + 1
 
         test_env = MultiAssetTradingEnv(
             raw_data=raw_test,
@@ -353,7 +367,7 @@ def run(config_path: str) -> None:
             initial_balance=config["initial_balance"],
             allow_infinite_capital=config["allow_infinite_capital"],
         )
-        evaluation = evaluate_model(model, test_env, commodities, config["epsilon"])
+        evaluation = evaluate_model(model, test_env, commodities, config["epsilon"], train_end_index)
         evaluation.to_csv(
             output_dir / f"evaluation_split_{split}_multi_asset_{capital_suffix}.csv",
             index=False,
@@ -369,7 +383,7 @@ def run(config_path: str) -> None:
             initial_balance=config["initial_balance"],
             allow_infinite_capital=config["allow_infinite_capital"],
         )
-        full_evaluation = evaluate_model(model, full_env, commodities, config["epsilon"])
+        full_evaluation = evaluate_model(model, full_env, commodities, config["epsilon"], train_end_index)
         full_evaluation.to_csv(
             output_dir / f"evaluation_full_dataset_split_{split}_multi_asset_{capital_suffix}.csv",
             index=False,

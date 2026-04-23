@@ -40,7 +40,7 @@ The equivalent direct Python commands are:
 Single-Asset PPO
 ----------------
 
-The single-asset agent trains one PPO policy for an individual commodity. It uses price and sentiment features and emits per-step actions:
+The single-asset agent trains one PPO policy per commodity CSV under ``data/training/commodity_outputs/``. It uses price and sentiment features and emits per-step actions:
 
 * ``0``: hold
 * ``1``: buy
@@ -65,7 +65,7 @@ The browser demo does not retrain PPO models. If generated PPO outputs exist und
 * net worth and reward
 * position when available
 
-The dashboard discovers output files dynamically from ``data/agent_outputs/single_asset_ppo`` and ``data/agent_outputs/multiple_asset_ppo``. Changing ``n_splits`` or switching multi-asset capital mode does not require a UI code change as long as the trainer filename conventions are preserved.
+The dashboard discovers output files dynamically from ``data/agent_outputs/single_asset_ppo`` and ``data/agent_outputs/multiple_asset_ppo``. Single-asset filenames include the commodity slug, so the gym can switch between available assets. Changing ``n_splits`` or switching multi-asset capital mode does not require a UI code change as long as the trainer filename conventions are preserved.
 
 Decision-marker opacity is derived from confidence:
 

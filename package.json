@@ -12,8 +12,8 @@
     "typecheck": "tsc --noEmit --incremental false",
     "docs:install": "python3 -m pip install -r docs/requirements.txt",
     "docs:build": "python3 -m sphinx -b html docs out/docs",
-    "train:single": "python3 -m agentic_trading.training.single_asset_ppo --config configs/agents/single_asset_ppo.json",
-    "train:multi": "python3 -m agentic_trading.training.multiple_asset_ppo --config configs/agents/multiple_asset_ppo.json",
+    "train:single": "sh scripts/train-single.sh",
+    "train:multi": "sh scripts/train-multi.sh",
     "test:py": "python3 -m unittest discover -s tests -p 'test_*.py'",
     "test": "npm run typecheck && npm run lint && npm run test:py"
   },

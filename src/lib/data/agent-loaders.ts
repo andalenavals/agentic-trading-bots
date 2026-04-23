@@ -29,8 +29,8 @@ export const loadAgentGymData = cache(async (): Promise<AgentGymData> => {
       const text = await readFile(fullPath, "utf8");
       const rows = parseCsv(text);
       const points = source.model === "single_asset_ppo"
-        ? rows.flatMap((row) => parseSingleAssetRow(row, source.model, source.dataset, source.split))
-        : rows.flatMap((row) => parseMultipleAssetRow(row, source.model, source.dataset, source.split));
+        ? rows.flatMap((row, rowIndex) => parseSingleAssetRow(row, source.model, source.dataset, source.split, rowIndex))
+        : rows.flatMap((row, rowIndex) => parseMultipleAssetRow(row, source.model, source.dataset, source.split, rowIndex));
 
       return { source, points };
     }),
@@ -74,6 +74,28 @@ async function exists(filePath: string) {
 }
 
 function singleAssetSource(file: string): AgentGymData["sources"] {
+  const commodityTest = file.match(/^evaluation_([a-z_]+)_split_(\d+)\.csv$/);
+  if (commodityTest) {
+    return [{
+      model: "single_asset_ppo",
+      dataset: "test",
+      split: Number(commodityTest[2]),
+      commodity: normalizeCommodity(commodityTest[1]) ?? undefined,
+      path: `single_asset_ppo/${file}`,
+    }];
+  }
+
+  const commodityFull = file.match(/^full_dataset_predictions_([a-z_]+)_split_(\d+)\.csv$/);
+  if (commodityFull) {
+    return [{
+      model: "single_asset_ppo",
+      dataset: "full",
+      split: Number(commodityFull[2]),
+      commodity: normalizeCommodity(commodityFull[1]) ?? undefined,
+      path: `single_asset_ppo/${file}`,
+    }];
+  }
+
   const test = file.match(/^evaluation_split_(\d+)\.csv$/);
   if (test) {
     return [{ model: "single_asset_ppo", dataset: "test", split: Number(test[1]), path: `single_asset_ppo/${file}` }];
@@ -106,6 +128,7 @@ function parseSingleAssetRow(
   model: AgentModelKind,
   dataset: AgentDatasetKind,
   split: number,
+  rowIndex: number,
 ): AgentDecisionPoint[] {
   const commodity = normalizeCommodity(row.commodity);
   if (!commodity) return [];
@@ -121,6 +144,8 @@ function parseSingleAssetRow(
       model,
       dataset,
       split,
+      datasetIndex: row.dataset_index ? toNumber(row.dataset_index) : rowIndex,
+      phase: row.phase === "test" ? "test" : "train",
       date: row.date,
       commodity,
       price: toNumber(row.raw_price || row.price),
@@ -146,6 +171,7 @@ function parseMultipleAssetRow(
   model: AgentModelKind,
   dataset: AgentDatasetKind,
   split: number,
+  rowIndex: number,
 ): AgentDecisionPoint[] {
   const commodities: CommoditySlug[] = ["aluminium_lme", "copper_lme", "nickel_lme"];
 
@@ -161,6 +187,8 @@ function parseMultipleAssetRow(
       model,
       dataset,
       split,
+      datasetIndex: row.dataset_index ? toNumber(row.dataset_index) : rowIndex,
+      phase: row.phase === "test" ? "test" : "train",
       date: row.date,
       commodity,
       price: toNumber(row[`price_${commodity}`]),

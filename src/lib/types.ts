@@ -64,6 +64,8 @@ export type AgentDecisionPoint = {
   model: AgentModelKind;
   dataset: AgentDatasetKind;
   split: number;
+  datasetIndex: number;
+  phase: "train" | "test";
   date: string;
   commodity: CommoditySlug;
   price: number;
@@ -88,6 +90,7 @@ export type AgentGymData = {
     model: AgentModelKind;
     dataset: AgentDatasetKind;
     split: number;
+    commodity?: CommoditySlug;
     path: string;
   }>;
 };

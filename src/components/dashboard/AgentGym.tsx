@@ -5,6 +5,7 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
+  ReferenceLine,
   ResponsiveContainer,
   Scatter,
   Tooltip,
@@ -15,14 +16,11 @@ import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
 import type {
   AgentActionName,
   AgentDecisionPoint,
-  AgentDatasetKind,
   AgentGymData,
   AgentModelKind,
   Commodity,
   CommoditySlug,
 } from "@/lib/types";
-
-type Granularity = "day" | "month" | "year" | "all";
 
 type Props = {
   agentGym: AgentGymData;
@@ -38,19 +36,29 @@ const ACTION_COLOR: Record<AgentActionName, string> = {
 export function AgentGym({ agentGym, commodities }: Props) {
   const mounted = useClientMounted();
   const [model, setModel] = useState<AgentModelKind>("single_asset_ppo");
-  const [dataset, setDataset] = useState<AgentDatasetKind>("full");
   const [split, setSplit] = useState(1);
   const [commodity, setCommodity] = useState<CommoditySlug>("copper_lme");
-  const [granularity, setGranularity] = useState<Granularity>("month");
+
+  const availableCommodities = useMemo(() => {
+    const slugs = new Set(
+      agentGym.points
+        .filter((point) => point.model === model && point.dataset === "full")
+        .map((point) => point.commodity),
+    );
+    return commodities.filter((item) => slugs.has(item.slug));
+  }, [agentGym.points, commodities, model]);
+  const activeCommoditySlug = availableCommodities.some((item) => item.slug === commodity)
+    ? commodity
+    : availableCommodities[0]?.slug ?? commodity;
 
   const splitOptions = useMemo(() => {
     const splits = new Set(
       agentGym.points
-        .filter((point) => point.model === model && point.dataset === dataset && point.commodity === commodity)
+        .filter((point) => point.model === model && point.dataset === "full" && point.commodity === activeCommoditySlug)
         .map((point) => point.split),
     );
     return splits.size ? Array.from(splits).sort((a, b) => a - b) : [split];
-  }, [agentGym.points, commodity, dataset, model, split]);
+  }, [activeCommoditySlug, agentGym.points, model, split]);
   const activeSplit = splitOptions.includes(split) ? split : splitOptions[0];
 
   const matching = useMemo(
@@ -58,29 +66,21 @@ export function AgentGym({ agentGym, commodities }: Props) {
       agentGym.points.filter(
         (point) =>
           point.model === model &&
-          point.dataset === dataset &&
+          point.dataset === "full" &&
           point.split === activeSplit &&
-          point.commodity === commodity,
+          point.commodity === activeCommoditySlug,
       ),
-    [activeSplit, agentGym.points, commodity, dataset, model],
+    [activeCommoditySlug, activeSplit, agentGym.points, model],
   );
 
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-
-  const availableStart = matching[0]?.date.slice(0, 10) ?? "";
-  const availableEnd = matching[matching.length - 1]?.date.slice(0, 10) ?? "";
-
-  const filtered = useMemo(() => {
-    return matching.filter((point) => {
-      const day = point.date.slice(0, 10);
-      return (!startDate || day >= startDate) && (!endDate || day <= endDate);
-    });
-  }, [endDate, matching, startDate]);
-
-  const aggregated = useMemo(() => aggregateAgentPoints(filtered, granularity), [filtered, granularity]);
-  const stats = useMemo(() => summarizeAgentPoints(filtered), [filtered]);
-  const activeCommodity = COMMODITY_LOOKUP[commodity];
+  const splitCount = splitOptions[splitOptions.length - 1] ?? 1;
+  const chartPoints = useMemo(
+    () => buildChartPoints(matching, activeSplit, splitCount),
+    [activeSplit, matching, splitCount],
+  );
+  const stats = useMemo(() => summarizeAgentPoints(chartPoints), [chartPoints]);
+  const activeCommodity = COMMODITY_LOOKUP[activeCommoditySlug];
+  const testStart = chartPoints.find((point) => point.phase === "test");
 
   return (
     <section className="agent-gym">
@@ -104,12 +104,6 @@ export function AgentGym({ agentGym, commodities }: Props) {
             <option value="multiple_asset_ppo">Multi asset PPO</option>
           </select>
         </Control>
-        <Control label="Dataset">
-          <select value={dataset} onChange={(event) => setDataset(event.target.value as AgentDatasetKind)}>
-            <option value="full">Full dataset</option>
-            <option value="test">Test split</option>
-          </select>
-        </Control>
         <Control label="Split">
           <select value={activeSplit} onChange={(event) => setSplit(Number(event.target.value))}>
             {splitOptions.map((item) => (
@@ -118,26 +112,12 @@ export function AgentGym({ agentGym, commodities }: Props) {
           </select>
         </Control>
         <Control label="Commodity">
-          <select value={commodity} onChange={(event) => setCommodity(event.target.value as CommoditySlug)}>
-            {commodities.map((item) => (
+          <select value={activeCommoditySlug} onChange={(event) => setCommodity(event.target.value as CommoditySlug)}>
+            {(availableCommodities.length ? availableCommodities : commodities).map((item) => (
               <option key={item.slug} value={item.slug}>
                 {item.name}
               </option>
             ))}
-          </select>
-        </Control>
-        <Control label="From">
-          <input min={availableStart} max={availableEnd} onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
-        </Control>
-        <Control label="To">
-          <input min={availableStart} max={availableEnd} onChange={(event) => setEndDate(event.target.value)} type="date" value={endDate} />
-        </Control>
-        <Control label="Granularity">
-          <select value={granularity} onChange={(event) => setGranularity(event.target.value as Granularity)}>
-            <option value="day">Days</option>
-            <option value="month">Months</option>
-            <option value="year">Years</option>
-            <option value="all">All</option>
           </select>
         </Control>
       </div>
@@ -152,14 +132,14 @@ export function AgentGym({ agentGym, commodities }: Props) {
               <div>
                 <h3 style={{ fontSize: 15 }}>Price series with bot decisions</h3>
                 <p className="faint" style={{ fontSize: 11, marginTop: 3 }}>
-                  Buy, hold, and sell markers over {granularity === "all" ? "the full selected window" : `${granularity}-level`} price data
+                  Full diagnostic series with a vertical split between training history and out-of-sample test period
                 </p>
               </div>
             </div>
             <Legend />
           </div>
           <div className="chart-box" style={{ height: 390 }}>
-            {aggregated.length === 0 ? (
+            {chartPoints.length === 0 ? (
               <div className="empty-state">
                 <h3>No bot decisions generated yet</h3>
                 <p>
@@ -169,15 +149,32 @@ export function AgentGym({ agentGym, commodities }: Props) {
               </div>
             ) : mounted ? (
               <ResponsiveContainer height="100%" width="100%">
-                <ComposedChart data={aggregated}>
+                <ComposedChart data={chartPoints}>
                   <CartesianGrid stroke="#252b3a" vertical={false} />
-                  <XAxis axisLine={false} dataKey="label" tick={{ fill: "#697185", fontSize: 11 }} tickLine={false} />
+                  <XAxis
+                    axisLine={false}
+                    dataKey="x"
+                    domain={["dataMin", "dataMax"]}
+                    tick={{ fill: "#697185", fontSize: 11 }}
+                    tickFormatter={(value) => chartPoints[Math.round(Number(value))]?.label ?? ""}
+                    tickLine={false}
+                    type="number"
+                  />
                   <YAxis axisLine={false} domain={["auto", "auto"]} tick={{ fill: "#697185", fontSize: 11 }} tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`} tickLine={false} width={62} />
                   <Tooltip content={<AgentTooltip />} />
                   <Line dataKey="price" dot={false} stroke={activeCommodity.colorHex} strokeWidth={2} type="monotone" />
+                  {testStart ? (
+                    <ReferenceLine
+                      ifOverflow="extendDomain"
+                      label={{ fill: "#b6bdcf", fontSize: 11, position: "insideTopRight", value: "test" }}
+                      stroke="#f6c85f"
+                      strokeDasharray="5 5"
+                      x={testStart.x}
+                    />
+                  ) : null}
                   {(["hold", "buy", "sell"] as AgentActionName[]).map((actionName) => (
                     <Scatter
-                      data={aggregated.filter((point) => point.actionName === actionName)}
+                      data={chartPoints.filter((point) => point.actionName === actionName)}
                       dataKey="price"
                       key={actionName}
                       shape={<DecisionDot />}
@@ -187,14 +184,14 @@ export function AgentGym({ agentGym, commodities }: Props) {
               </ResponsiveContainer>
             ) : null}
           </div>
-          <ActionTimeline points={aggregated} />
+          <ActionTimeline points={chartPoints} />
         </div>
 
         <div className="panel gym-side">
           <div className="panel-head">
             <div>
               <h3 style={{ fontSize: 15 }}>Bot state</h3>
-              <p className="faint" style={{ fontSize: 11, marginTop: 3 }}>{filtered.length} decisions in view</p>
+              <p className="faint" style={{ fontSize: 11, marginTop: 3 }}>{chartPoints.length} full-series decisions</p>
             </div>
           </div>
           <div className="stat-grid" style={{ padding: 18 }}>
@@ -208,7 +205,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
           <div className="gym-note">
             <strong>Included training code</strong>
             <p>
-              Python PPO trainers live in `agentic_trading/training` and read configs from `configs/agents`. This panel visualizes saved evaluation outputs rather than retraining in the browser.
+              Python PPO trainers live in `agentic_trading/training` and read configs from `configs/agents`. This panel uses full-dataset diagnostic outputs; the vertical line marks where the out-of-sample test period begins for the selected split.
             </p>
           </div>
         </div>
@@ -217,7 +214,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
   );
 }
 
-function ActionTimeline({ points }: { points: AggregatedAgentPoint[] }) {
+function ActionTimeline({ points }: { points: AgentChartPoint[] }) {
   return (
     <div className="action-timeline">
       {points.map((point) => (
@@ -267,52 +264,28 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-type AggregatedAgentPoint = {
+type AgentChartPoint = AgentDecisionPoint & {
   key: string;
   label: string;
-  price: number;
-  probHold: number;
-  probBuy: number;
-  probSell: number;
-  confidence: number;
   uncertainty: number;
-  actionName: AgentActionName;
-  netWorth: number;
-  reward: number;
+  x: number;
 };
 
-function aggregateAgentPoints(points: AgentDecisionPoint[], granularity: Granularity): AggregatedAgentPoint[] {
-  const buckets = new Map<string, AgentDecisionPoint[]>();
+function buildChartPoints(points: AgentDecisionPoint[], activeSplit: number, splitCount: number): AgentChartPoint[] {
+  const ordered = [...points].sort((a, b) => a.date.localeCompare(b.date));
+  const fallbackBoundary = Math.floor(ordered.length * (activeSplit / (splitCount + 1)));
 
-  for (const point of points) {
-    const key = bucketKey(point.date, granularity);
-    buckets.set(key, [...(buckets.get(key) ?? []), point]);
-  }
-
-  return Array.from(buckets.entries()).map(([key, bucket]) => {
-    const probHold = average(bucket.map((point) => point.probHold));
-    const probBuy = average(bucket.map((point) => point.probBuy));
-    const probSell = average(bucket.map((point) => point.probSell));
-    const actionName = dominantAction({ probHold, probBuy, probSell });
-    const confidence = Math.max(probHold, probBuy, probSell);
-
-    return {
-      key,
-      label: labelForKey(key, granularity),
-      price: average(bucket.map((point) => point.price)),
-      probHold,
-      probBuy,
-      probSell,
-      confidence,
-      uncertainty: 1 - confidence,
-      actionName,
-      netWorth: bucket[bucket.length - 1]?.netWorth ?? 0,
-      reward: bucket.reduce((sum, point) => sum + point.reward, 0),
-    };
-  });
+  return ordered.map((point, index) => ({
+    ...point,
+    key: `${point.model}-${point.commodity}-${point.split}-${point.datasetIndex}-${point.date}`,
+    label: new Date(point.date).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "2-digit" }),
+    phase: point.phase === "test" || index >= fallbackBoundary ? "test" : "train",
+    uncertainty: point.normalizedEntropy || 1 - point.confidence,
+    x: index,
+  }));
 }
 
-function AgentTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: AggregatedAgentPoint }> }) {
+function AgentTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: AgentChartPoint }> }) {
   if (!active || !payload?.[0]) return null;
   const point = payload[0].payload;
 
@@ -326,11 +299,12 @@ function AgentTooltip({ active, payload }: { active?: boolean; payload?: Array<{
       <p className="muted" style={{ fontSize: 12, lineHeight: 1.45, marginTop: 8 }}>
         Hold {(point.probHold * 100).toFixed(1)}% · Buy {(point.probBuy * 100).toFixed(1)}% · Sell {(point.probSell * 100).toFixed(1)}%
       </p>
+      <p className="faint" style={{ fontSize: 11, marginTop: 8, textTransform: "uppercase" }}>{point.phase}</p>
     </div>
   );
 }
 
-function DecisionDot(props: { cx?: number; cy?: number; payload?: AggregatedAgentPoint }) {
+function DecisionDot(props: { cx?: number; cy?: number; payload?: AgentChartPoint }) {
   if (props.cx === undefined || props.cy === undefined || !props.payload) return <g />;
 
   return (
@@ -346,7 +320,7 @@ function DecisionDot(props: { cx?: number; cy?: number; payload?: AggregatedAgen
   );
 }
 
-function summarizeAgentPoints(points: AgentDecisionPoint[]) {
+function summarizeAgentPoints(points: AgentChartPoint[]) {
   const count = Math.max(points.length, 1);
   const buy = points.filter((point) => point.actionName === "buy").length;
   const hold = points.filter((point) => point.actionName === "hold").length;
@@ -360,29 +334,6 @@ function summarizeAgentPoints(points: AgentDecisionPoint[]) {
     avgUncertainty: average(points.map((point) => point.normalizedEntropy || 1 - point.confidence)),
     latestNetWorth: points[points.length - 1]?.netWorth ?? 0,
   };
-}
-
-function bucketKey(date: string, granularity: Granularity) {
-  const day = date.slice(0, 10);
-  if (granularity === "all") return "all";
-  if (granularity === "year") return day.slice(0, 4);
-  if (granularity === "month") return day.slice(0, 7);
-  return day;
-}
-
-function labelForKey(key: string, granularity: Granularity) {
-  if (granularity === "all") return "All";
-  if (granularity === "year") return key;
-  if (granularity === "month") {
-    return new Date(`${key}-01T00:00:00`).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-  }
-  return new Date(`${key}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function dominantAction(probs: { probHold: number; probBuy: number; probSell: number }): AgentActionName {
-  if (probs.probBuy >= probs.probHold && probs.probBuy >= probs.probSell) return "buy";
-  if (probs.probSell >= probs.probHold && probs.probSell >= probs.probBuy) return "sell";
-  return "hold";
 }
 
 function average(values: number[]) {

@@ -1,5 +1,5 @@
 {
-  "input_csv": "data/training/commodity_outputs/copper_lme.csv",
+  "input_csv": "data/training/commodity_outputs/*.csv",
   "output_dir": "data/agent_outputs/single_asset_ppo",
   "window_size": 10,
   "initial_balance": 1000.0,
@@ -11,4 +11,3 @@
   "gamma": 0.99,
   "seed": 42
 }
-

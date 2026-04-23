@@ -154,6 +154,7 @@ def evaluate_model(
     data: pd.DataFrame,
     window_size: int,
     initial_balance: float,
+    train_end_index: int | None = None,
 ) -> pd.DataFrame:
     env = SingleAssetTradingEnv(data, window_size, initial_balance)
     rows = []
@@ -168,8 +169,11 @@ def evaluate_model(
         next_obs, reward, terminated, _, info = env.step(action)
 
         row = data.iloc[current_idx].to_dict()
+        dataset_index = int(row.get("dataset_index", current_idx))
         row.update(
             {
+                "dataset_index": dataset_index,
+                "phase": "test" if train_end_index is not None and dataset_index >= train_end_index else "train",
                 "action": action,
                 "greedy_action": int(np.argmax(probabilities)),
                 "prob_hold": float(probabilities[0]),
@@ -190,43 +194,63 @@ def evaluate_model(
 def run(config_path: str) -> None:
     config = load_config(config_path)
     require_config_keys(config, REQUIRED_CONFIG_KEYS, config_path)
-    data = load_dataset(config["input_csv"])
     output_dir = Path(config["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    for split, train_raw, test_raw in walk_forward_split(data, config["n_splits"]):
-        train, test, scaler = prepare_features(train_raw, test_raw)
-        train_env = SingleAssetTradingEnv(train, config["window_size"], config["initial_balance"])
+    for input_csv in resolve_input_files(config["input_csv"]):
+        data = load_dataset(input_csv)
+        commodity = str(data.iloc[0]["commodity"])
 
-        model = PPO(
-            "MlpPolicy",
-            train_env,
-            policy_kwargs=policy_kwargs(),
-            verbose=0,
-            learning_rate=config["learning_rate"],
-            n_steps=config["n_steps"],
-            batch_size=config["batch_size"],
-            gamma=config["gamma"],
-            seed=config["seed"],
-        )
-        model.learn(total_timesteps=config["total_timesteps"])
+        for split, train_raw, test_raw in walk_forward_split(data, config["n_splits"]):
+            train, test, scaler = prepare_features(train_raw, test_raw)
+            train_env = SingleAssetTradingEnv(train, config["window_size"], config["initial_balance"])
 
-        evaluation = evaluate_model(
-            model=model,
-            data=test,
-            window_size=config["window_size"],
-            initial_balance=config["initial_balance"],
-        )
-        evaluation.to_csv(output_dir / f"evaluation_split_{split}.csv", index=False)
+            model = PPO(
+                "MlpPolicy",
+                train_env,
+                policy_kwargs=policy_kwargs(),
+                verbose=0,
+                learning_rate=config["learning_rate"],
+                n_steps=config["n_steps"],
+                batch_size=config["batch_size"],
+                gamma=config["gamma"],
+                seed=config["seed"],
+            )
+            model.learn(total_timesteps=config["total_timesteps"])
 
-        full_data = transform_full_dataset(data, scaler)
-        full_predictions = evaluate_model(
-            model=model,
-            data=full_data,
-            window_size=config["window_size"],
-            initial_balance=config["initial_balance"],
-        )
-        full_predictions.to_csv(output_dir / f"full_dataset_predictions_split_{split}.csv", index=False)
+            train_end_index = int(train_raw["dataset_index"].max()) + 1
+            evaluation = evaluate_model(
+                model=model,
+                data=test,
+                window_size=config["window_size"],
+                initial_balance=config["initial_balance"],
+                train_end_index=train_end_index,
+            )
+            evaluation.to_csv(output_dir / f"evaluation_{commodity}_split_{split}.csv", index=False)
+
+            full_data = transform_full_dataset(data, scaler)
+            full_predictions = evaluate_model(
+                model=model,
+                data=full_data,
+                window_size=config["window_size"],
+                initial_balance=config["initial_balance"],
+                train_end_index=train_end_index,
+            )
+            full_predictions.to_csv(output_dir / f"full_dataset_predictions_{commodity}_split_{split}.csv", index=False)
+
+
+def resolve_input_files(input_csv: str) -> list[str]:
+    path = Path(input_csv)
+    if any(character in input_csv for character in "*?[]"):
+        files = sorted(str(file) for file in path.parent.glob(path.name))
+    elif path.is_dir():
+        files = sorted(str(file) for file in path.glob("*.csv"))
+    else:
+        files = [input_csv]
+
+    if not files:
+        raise ValueError(f"No single-asset input CSVs matched {input_csv!r}.")
+    return files
 
 
 def load_dataset(input_csv: str) -> pd.DataFrame:
@@ -237,7 +261,9 @@ def load_dataset(input_csv: str) -> pd.DataFrame:
         raise ValueError(f"{input_csv} is missing required columns: {sorted(missing)}")
     if "date" in data.columns:
         data = data.sort_values("date")
-    return data.reset_index(drop=True)
+    data = data.reset_index(drop=True)
+    data["dataset_index"] = np.arange(len(data))
+    return data
 
 
 def main() -> None:
