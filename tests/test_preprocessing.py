@@ -138,6 +138,37 @@ class PreprocessingTest(unittest.TestCase):
         self.assertTrue(any(float(row["absolute_error"]) > 0 for row in test_rows))
         self.assertNotEqual(test_rows[0]["predicted_price"], rows[25]["price"])
 
+    def test_ridge_arx_does_not_use_current_target_price(self) -> None:
+        rows = []
+        for index in range(40):
+            rows.append(
+                {
+                    "date": f"2026-03-{index + 1:02d}",
+                    "commodity": "copper_lme",
+                    "price": str(100 + index * 2.0),
+                    "news_count": str((index % 3) + 1),
+                    "sentiment_score": str(0.05),
+                    "finbert_sentiment_score": str(0.08),
+                    "positive": "0.4",
+                    "neutral": "0.4",
+                    "negative": "0.2",
+                    "finbert_positive": "0.5",
+                    "finbert_neutral": "0.3",
+                    "finbert_negative": "0.2",
+                }
+            )
+
+        original = generate_ridge_predictions(rows, split=1, train_end=25, ridge_alpha=1.0)
+        mutated_rows = [row.copy() for row in rows]
+        mutated_rows[25]["price"] = "1000"
+        mutated = generate_ridge_predictions(mutated_rows, split=1, train_end=25, ridge_alpha=1.0)
+
+        original_test = [row for row in original if row["phase"] == "test" and row["predicted_price"] != ""]
+        mutated_test = [row for row in mutated if row["phase"] == "test" and row["predicted_price"] != ""]
+
+        self.assertGreaterEqual(len(original_test), 1)
+        self.assertEqual(original_test[0]["predicted_price"], mutated_test[0]["predicted_price"])
+
     def test_pipeline_fails_fast_when_required_columns_are_missing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -223,11 +223,20 @@ export function PredictionChart({
                     width={62}
                   />
                   {chartType === "bar" ? (
-                    <Bar dataKey="price" fill={commodity.colorHex} opacity={0.62} radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="price" fill={commodity.colorHex} opacity={0.42} radius={[3, 3, 0, 0]} />
                   ) : chartType === "area" ? (
-                    <Area dataKey="price" dot={false} fill={`${commodity.colorHex}22`} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
+                    <Area
+                      dataKey="price"
+                      dot={false}
+                      fill={`${commodity.colorHex}22`}
+                      fillOpacity={0.45}
+                      stroke={commodity.colorHex}
+                      strokeOpacity={0.62}
+                      strokeWidth={2}
+                      type="monotone"
+                    />
                   ) : (
-                    <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
+                    <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeOpacity={0.62} strokeWidth={2} type="monotone" />
                   )}
                   <Line
                     connectNulls={false}
@@ -236,7 +245,7 @@ export function PredictionChart({
                     isAnimationActive={false}
                     stroke={PREDICTION_COLOR}
                     strokeDasharray="6 4"
-                    strokeWidth={2}
+                    strokeWidth={3}
                     type="monotone"
                   />
                   {testStart ? (
@@ -283,11 +292,11 @@ function PredictionPointState({ model, point }: { model: PredictionModelKind; po
         <strong style={{ color: PREDICTION_COLOR }}>
           ${point.predictedPrice?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
         </strong>
-        <p className="faint">Predicted price</p>
+        <p className="faint">Next-day forecast</p>
       </div>
       <div className="stat-grid">
         <Stat label="Actual" value={`$${point.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
-        <Stat label="Prediction" value={`$${point.predictedPrice?.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
+        <Stat label="Forecast" value={`$${point.predictedPrice?.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
         <Stat label="Error" value={formatSigned(point.error)} />
         <Stat label="Abs error" value={`$${point.absoluteError?.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
         <Stat

@@ -71,11 +71,11 @@ def generate_full_predictions(
 ) -> list[dict[str, object]]:
     lags = lags or list(DEFAULT_LAGS)
     windows = windows or list(DEFAULT_WINDOWS)
-    prices = [to_number(row.get("price", "")) for row in rows]
-    returns = price_returns(prices)
+    actual_prices = [to_number(row.get("price", "")) for row in rows]
+    actual_returns = price_returns(actual_prices)
     feature_start = max(max(lags, default=1) + 1, max(windows, default=1) + 1)
     train_sample_end = max(feature_start, train_end)
-    model = fit_ridge_arx_model(rows, prices, returns, feature_start, train_sample_end, ridge_alpha, lags, windows)
+    model = fit_ridge_arx_model(rows, actual_prices, actual_returns, feature_start, train_sample_end, ridge_alpha, lags, windows)
     generated: list[dict[str, object]] = []
 
     for index, row in enumerate(rows):
@@ -85,10 +85,10 @@ def generate_full_predictions(
         absolute_error = None
 
         if phase == "test" and index >= feature_start:
-            features = build_feature_vector(rows, prices, returns, index, lags, windows)
+            features = build_feature_vector(rows, actual_prices, actual_returns, index, lags, windows)
             predicted_return = predict_return(model, features)
-            predicted_price = prices[index - 1] * (1 + predicted_return)
-            error = predicted_price - prices[index]
+            predicted_price = actual_prices[index - 1] * (1 + predicted_return)
+            error = predicted_price - actual_prices[index]
             absolute_error = abs(error)
 
         generated.append(
@@ -145,6 +145,9 @@ def fit_ridge_arx_model(
     intercept = sum(y_values) / len(y_values)
     centered_y = [value - intercept for value in y_values]
     coefficients = ridge_fit(standardized, centered_y, ridge_alpha)
+    observed_min = min(y_values)
+    observed_max = max(y_values)
+    observed_span = max(0.01, observed_max - observed_min)
 
     return {
         "coefficients": coefficients,
@@ -152,6 +155,8 @@ def fit_ridge_arx_model(
         "intercept": intercept,
         "means": means,
         "scales": scales,
+        "return_floor": max(-0.2, observed_min - observed_span * 0.5),
+        "return_ceiling": min(0.2, observed_max + observed_span * 0.5),
     }
 
 
@@ -205,8 +210,12 @@ def predict_return(model: dict[str, object], features: list[float]) -> float:
     means = model["means"]
     scales = model["scales"]
     intercept = float(model["intercept"])
-    standardized = [(value - mean) / scale for value, mean, scale in zip(features, means, scales, strict=True)]
-    return intercept + sum(coefficient * value for coefficient, value in zip(coefficients, standardized, strict=True))
+    standardized = [
+        clamp((value - mean) / scale, -8.0, 8.0)
+        for value, mean, scale in zip(features, means, scales, strict=True)
+    ]
+    raw_prediction = intercept + sum(coefficient * value for coefficient, value in zip(coefficients, standardized, strict=True))
+    return clamp(raw_prediction, float(model["return_floor"]), float(model["return_ceiling"]))
 
 
 def build_feature_vector(
@@ -229,7 +238,6 @@ def build_feature_vector(
         variance = sum((value - mean) ** 2 for value in window_returns) / len(window_returns)
         features.extend([mean, math.sqrt(variance)])
 
-    previous_price = prices[index - 1]
     features.extend([
         to_number(previous.get("sentiment_score", "")),
         to_number(previous.get("finbert_sentiment_score", "")),
@@ -240,7 +248,6 @@ def build_feature_vector(
         to_number(previous.get("finbert_neutral", "")),
         to_number(previous.get("finbert_negative", "")),
         to_number(previous.get("news_count", "")),
-        previous_price,
     ])
 
     return features
@@ -260,7 +267,6 @@ def feature_names(lags: list[int], windows: list[int]) -> list[str]:
         "finbert_neutral",
         "finbert_negative",
         "news_count",
-        "previous_price",
     ])
     return names
 
@@ -289,6 +295,8 @@ def empty_model(names: list[str]) -> dict[str, object]:
         "intercept": 0.0,
         "means": [0.0 for _ in names],
         "scales": [1.0 for _ in names],
+        "return_floor": -0.2,
+        "return_ceiling": 0.2,
     }
 
 
@@ -297,6 +305,10 @@ def to_number(value: str) -> float:
         return float(value)
     except (TypeError, ValueError):
         return 0.0
+
+
+def clamp(value: float, lower: float, upper: float) -> float:
+    return max(lower, min(upper, value))
 
 
 def run(config_path: str) -> None:
