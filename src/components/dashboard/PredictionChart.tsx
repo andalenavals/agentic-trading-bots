@@ -63,6 +63,7 @@ export function PredictionChart({
   sharedXRangeLength,
 }: Props) {
   const mounted = useClientMounted();
+  const markersOnly = markerType !== "none";
   const [model, setModel] = useState<PredictionModelKind>("ridge_arx");
   const [evaluationMode, setEvaluationMode] = useState<PredictionEvaluationMode>("observed_history");
   const [split, setSplit] = useState(1);
@@ -252,7 +253,7 @@ export function PredictionChart({
                     tickLine={false}
                     width={62}
                   />
-                  {chartType === "bar" ? (
+                  {markersOnly ? null : chartType === "bar" ? (
                     <Bar dataKey="price" fill={commodity.colorHex} opacity={0.42} radius={[3, 3, 0, 0]} />
                   ) : chartType === "area" ? (
                     <Area
@@ -268,16 +269,18 @@ export function PredictionChart({
                   ) : (
                     <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeOpacity={0.62} strokeWidth={2} type="monotone" />
                   )}
-                  <Line
-                    connectNulls={false}
-                    dataKey="predictedPrice"
-                    dot={false}
-                    isAnimationActive={false}
-                    stroke={PREDICTION_COLOR}
-                    strokeDasharray="6 4"
-                    strokeWidth={3}
-                    type="monotone"
-                  />
+                  {markersOnly ? null : (
+                    <Line
+                      connectNulls={false}
+                      dataKey="predictedPrice"
+                      dot={false}
+                      isAnimationActive={false}
+                      stroke={PREDICTION_COLOR}
+                      strokeDasharray="6 4"
+                      strokeWidth={3}
+                      type="monotone"
+                    />
+                  )}
                   {testStart ? (
                     <ReferenceLine
                       ifOverflow="extendDomain"
@@ -287,13 +290,20 @@ export function PredictionChart({
                       x={testStart.x}
                     />
                   ) : null}
-                  {markerType === "none" ? null : (
-                    <Scatter
-                      data={displayedPoints.filter((point) => point.predictedPrice !== null)}
-                      dataKey="predictedPrice"
-                      shape={<PredictionMarker alphaLevel={alphaLevel} markerSize={markerSize} markerType={markerType} />}
-                    />
-                  )}
+                  {markersOnly ? (
+                    <>
+                      <Scatter
+                        data={displayedPoints}
+                        dataKey="price"
+                        shape={<SeriesMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
+                      />
+                      <Scatter
+                        data={displayedPoints.filter((point) => point.predictedPrice !== null)}
+                        dataKey="predictedPrice"
+                        shape={<SeriesMarker alphaLevel={alphaLevel} color={PREDICTION_COLOR} markerSize={markerSize} markerType={markerType} />}
+                      />
+                    </>
+                  ) : null}
                 </ComposedChart>
               </ResponsiveContainer>
             ) : null}
@@ -367,20 +377,22 @@ function formatSigned(value: number | null) {
   return `${prefix}$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 }
 
-function PredictionMarker({
+function SeriesMarker({
   alphaLevel,
+  color,
   cx,
   cy,
   markerSize,
   markerType,
 }: {
   alphaLevel: number;
+  color: string;
   cx?: number;
   cy?: number;
   markerSize: number;
   markerType: MarkerType;
 }) {
-  return <MarkerGlyph alphaLevel={alphaLevel} color={PREDICTION_COLOR} cx={cx} cy={cy} markerType={markerType} size={markerSize} />;
+  return <MarkerGlyph alphaLevel={alphaLevel} color={color} cx={cx} cy={cy} markerType={markerType} size={markerSize} />;
 }
 
 function useClientMounted() {

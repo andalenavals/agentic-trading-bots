@@ -87,7 +87,7 @@ export function VisualizationControls({
 
         <ControlGroup label="Marker size">
           <label className="range-control">
-            <input max="12" min="3" onChange={(event) => onMarkerSizeChange(Number(event.target.value))} step="1" type="range" value={markerSize} />
+            <input max="12" min="1" onChange={(event) => onMarkerSizeChange(Number(event.target.value))} step="1" type="range" value={markerSize} />
             <span>{markerSize}px</span>
           </label>
         </ControlGroup>
