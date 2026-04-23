@@ -10,7 +10,6 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Scatter,
-  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
@@ -183,7 +182,6 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
                 tickLine={false}
                 width={62}
               />
-              <Tooltip content={<PriceTooltip color={commodity.colorHex} />} />
               <ReferenceLine stroke="#394153" strokeDasharray="4 4" y={signal.average} />
               {chartType === "bar" ? (
                 <Bar dataKey="price" fill={commodity.colorHex} opacity={0.78} radius={[3, 3, 0, 0]} />
@@ -240,17 +238,5 @@ function useClientMounted() {
     () => () => undefined,
     () => true,
     () => false,
-  );
-}
-
-function PriceTooltip({ active, payload, color }: { active?: boolean; payload?: Array<{ payload: SentimentPoint }>; color: string }) {
-  if (!active || !payload?.[0]) return null;
-  const point = payload[0].payload;
-  return (
-    <div className="panel" style={{ maxWidth: 340, padding: 12 }}>
-      <p className="faint" style={{ fontSize: 12 }}>{new Date(point.date).toLocaleDateString()}</p>
-      <p style={{ color, fontWeight: 800, marginTop: 4 }}>${point.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-      <p className="muted" style={{ fontSize: 12, lineHeight: 1.35, marginTop: 8 }}>Click to show the news context.</p>
-    </div>
   );
 }
