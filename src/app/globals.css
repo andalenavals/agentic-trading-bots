@@ -411,29 +411,6 @@ h1 {
   width: 9px;
 }
 
-.action-timeline {
-  border-top: 1px solid var(--line);
-  display: grid;
-  gap: 2px;
-  grid-template-columns: repeat(auto-fit, minmax(5px, 1fr));
-  padding: 14px 18px;
-}
-
-.action-mark-wrap {
-  align-items: end;
-  display: flex;
-  justify-content: center;
-  min-height: 34px;
-}
-
-.action-mark {
-  border-radius: 999px;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
-  display: block;
-  height: 20px;
-  width: 7px;
-}
-
 .gym-note {
   border-top: 1px solid var(--line);
   color: var(--muted);
@@ -445,6 +422,21 @@ h1 {
   color: var(--text);
   display: block;
   margin-bottom: 8px;
+}
+
+.bot-state-hero {
+  background: #151923;
+  border: 1px solid #222838;
+  border-radius: 6px;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.bot-state-hero strong {
+  font-size: 28px;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .empty-state {

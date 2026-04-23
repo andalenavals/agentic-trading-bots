@@ -27,6 +27,10 @@ type Props = {
   commodities: Commodity[];
 };
 
+type ChartClickEvent = {
+  activePayload?: Array<{ payload?: AgentChartPoint }>;
+};
+
 const ACTION_COLOR: Record<AgentActionName, string> = {
   hold: "#f6c85f",
   buy: "#4caf50",
@@ -38,6 +42,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
   const [model, setModel] = useState<AgentModelKind>("single_asset_ppo");
   const [split, setSplit] = useState(1);
   const [commodity, setCommodity] = useState<CommoditySlug>("copper_lme");
+  const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
 
   const availableCommodities = useMemo(() => {
     const slugs = new Set(
@@ -81,6 +86,22 @@ export function AgentGym({ agentGym, commodities }: Props) {
   const stats = useMemo(() => summarizeAgentPoints(chartPoints), [chartPoints]);
   const activeCommodity = COMMODITY_LOOKUP[activeCommoditySlug];
   const testStart = chartPoints.find((point) => point.phase === "test");
+  const selectedPoint = chartPoints.find((point) => point.key === selectedPointKey) ?? null;
+
+  function handleModelChange(nextModel: AgentModelKind) {
+    setModel(nextModel);
+    setSelectedPointKey(null);
+  }
+
+  function handleSplitChange(nextSplit: number) {
+    setSplit(nextSplit);
+    setSelectedPointKey(null);
+  }
+
+  function handleCommodityChange(nextCommodity: CommoditySlug) {
+    setCommodity(nextCommodity);
+    setSelectedPointKey(null);
+  }
 
   return (
     <section className="agent-gym">
@@ -99,20 +120,20 @@ export function AgentGym({ agentGym, commodities }: Props) {
 
       <div className="gym-controls">
         <Control label="Model">
-          <select value={model} onChange={(event) => setModel(event.target.value as AgentModelKind)}>
+          <select value={model} onChange={(event) => handleModelChange(event.target.value as AgentModelKind)}>
             <option value="single_asset_ppo">Single asset PPO</option>
             <option value="multiple_asset_ppo">Multi asset PPO</option>
           </select>
         </Control>
         <Control label="Split">
-          <select value={activeSplit} onChange={(event) => setSplit(Number(event.target.value))}>
+          <select value={activeSplit} onChange={(event) => handleSplitChange(Number(event.target.value))}>
             {splitOptions.map((item) => (
               <option key={item} value={item}>Split {item}</option>
             ))}
           </select>
         </Control>
         <Control label="Commodity">
-          <select value={activeCommoditySlug} onChange={(event) => setCommodity(event.target.value as CommoditySlug)}>
+          <select value={activeCommoditySlug} onChange={(event) => handleCommodityChange(event.target.value as CommoditySlug)}>
             {(availableCommodities.length ? availableCommodities : commodities).map((item) => (
               <option key={item.slug} value={item.slug}>
                 {item.name}
@@ -149,7 +170,13 @@ export function AgentGym({ agentGym, commodities }: Props) {
               </div>
             ) : mounted ? (
               <ResponsiveContainer height="100%" width="100%">
-                <ComposedChart data={chartPoints}>
+                <ComposedChart
+                  data={chartPoints}
+                  onClick={(event) => {
+                    const point = ((event as ChartClickEvent | undefined)?.activePayload?.[0]?.payload ?? null);
+                    if (point) setSelectedPointKey(point.key);
+                  }}
+                >
                   <CartesianGrid stroke="#252b3a" vertical={false} />
                   <XAxis
                     axisLine={false}
@@ -184,24 +211,29 @@ export function AgentGym({ agentGym, commodities }: Props) {
               </ResponsiveContainer>
             ) : null}
           </div>
-          <ActionTimeline points={chartPoints} />
         </div>
 
         <div className="panel gym-side">
           <div className="panel-head">
             <div>
               <h3 style={{ fontSize: 15 }}>Bot state</h3>
-              <p className="faint" style={{ fontSize: 11, marginTop: 3 }}>{chartPoints.length} full-series decisions</p>
+              <p className="faint" style={{ fontSize: 11, marginTop: 3 }}>
+                {selectedPoint ? selectedPoint.label : "Click a decision marker in the chart"}
+              </p>
             </div>
           </div>
-          <div className="stat-grid" style={{ padding: 18 }}>
-            <Stat label="Buy" value={`${stats.buyPct.toFixed(1)}%`} />
-            <Stat label="Hold" value={`${stats.holdPct.toFixed(1)}%`} />
-            <Stat label="Sell" value={`${stats.sellPct.toFixed(1)}%`} />
-            <Stat label="Avg confidence" value={`${(stats.avgConfidence * 100).toFixed(1)}%`} />
-            <Stat label="Avg uncertainty" value={`${(stats.avgUncertainty * 100).toFixed(1)}%`} />
-            <Stat label="Net worth" value={`$${stats.latestNetWorth.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
-          </div>
+          {selectedPoint ? (
+            <BotPointState point={selectedPoint} />
+          ) : (
+            <div className="stat-grid" style={{ padding: 18 }}>
+              <Stat label="Buy" value={`${stats.buyPct.toFixed(1)}%`} />
+              <Stat label="Hold" value={`${stats.holdPct.toFixed(1)}%`} />
+              <Stat label="Sell" value={`${stats.sellPct.toFixed(1)}%`} />
+              <Stat label="Avg confidence" value={`${(stats.avgConfidence * 100).toFixed(1)}%`} />
+              <Stat label="Avg uncertainty" value={`${(stats.avgUncertainty * 100).toFixed(1)}%`} />
+              <Stat label="Net worth" value={`$${stats.latestNetWorth.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
+            </div>
+          )}
           <div className="gym-note">
             <strong>Included training code</strong>
             <p>
@@ -211,25 +243,6 @@ export function AgentGym({ agentGym, commodities }: Props) {
         </div>
       </div>
     </section>
-  );
-}
-
-function ActionTimeline({ points }: { points: AgentChartPoint[] }) {
-  return (
-    <div className="action-timeline">
-      {points.map((point) => (
-        <div className="action-mark-wrap" key={point.key}>
-          <span
-            className="action-mark"
-            style={{
-              backgroundColor: ACTION_COLOR[point.actionName],
-              opacity: Math.max(0.18, point.confidence),
-            }}
-            title={`${point.label}: ${point.actionName} (${(point.confidence * 100).toFixed(1)}% confidence)`}
-          />
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -260,6 +273,28 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="stat">
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function BotPointState({ point }: { point: AgentChartPoint }) {
+  return (
+    <div style={{ display: "grid", gap: 14, padding: 18 }}>
+      <div className="bot-state-hero">
+        <span className="source">{point.phase}</span>
+        <strong style={{ color: ACTION_COLOR[point.actionName] }}>{point.actionName}</strong>
+        <p className="faint">{(point.confidence * 100).toFixed(1)}% confidence</p>
+      </div>
+      <div className="stat-grid">
+        <Stat label="Price" value={`$${point.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
+        <Stat label="Hold prob" value={`${(point.probHold * 100).toFixed(1)}%`} />
+        <Stat label="Buy prob" value={`${(point.probBuy * 100).toFixed(1)}%`} />
+        <Stat label="Sell prob" value={`${(point.probSell * 100).toFixed(1)}%`} />
+        <Stat label="Uncertainty" value={`${(point.uncertainty * 100).toFixed(1)}%`} />
+        <Stat label="Net worth" value={`$${point.netWorth.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
+        <Stat label="Reward" value={point.reward.toFixed(4)} />
+        <Stat label="Position" value={point.position === null ? "n/a" : point.position.toLocaleString()} />
+      </div>
     </div>
   );
 }
