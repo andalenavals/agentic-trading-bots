@@ -5,9 +5,11 @@ import { Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Sca
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
-import { fullXRange, normalizeXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
+import { YAxisRangeBar } from "@/components/dashboard/YAxisRangeBar";
+import { fullXRange, fullYRange, normalizeXRange, normalizeYRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import type { Commodity, CommoditySlug, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
+import type { YRange } from "@/lib/analytics/chart-zoom";
 
 type Props = {
   commodities: Commodity[];
@@ -29,14 +31,22 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
   const [alphaLevel, setAlphaLevel] = useState(0.7);
   const [logScale, setLogScale] = useState(false);
   const [xRange, setXRange] = useState<{ end: number; start: number } | null>(null);
+  const [yRange, setYRange] = useState<YRange | null>(null);
   const chartData = useMemo(() => buildOverlayData(commodities, pricesByCommodity, range), [commodities, pricesByCommodity, range]);
   const visibleRange = normalizeXRange(xRange ?? fullXRange(chartData.length), chartData.length);
   const visibleData = chartData.slice(visibleRange.start, visibleRange.end + 1);
   const ticks = xAxisTicks(visibleRange);
+  const yFullRange = fullYRange(
+    chartData.flatMap((point) =>
+      commodities.map((commodity) => point[commodity.slug]).filter((value): value is number => typeof value === "number"),
+    ),
+  );
+  const visibleYRange = normalizeYRange(yRange ?? yFullRange, yFullRange);
 
   function handleRangeChange(nextRange: number) {
     setRange(nextRange);
     setXRange(null);
+    setYRange(null);
   }
 
   return (
@@ -65,61 +75,77 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
         onMarkerTypeChange={setMarkerType}
         onRangeChange={handleRangeChange}
       />
-      <div className="chart-box" style={{ height: 330 }}>
-        {mounted ? (
-          <ResponsiveContainer height="100%" width="100%">
-            <ComposedChart data={visibleData}>
-              <CartesianGrid stroke="#252b3a" vertical={false} />
-              <XAxis
-                axisLine={false}
-                dataKey="x"
-                domain={[visibleRange.start, visibleRange.end]}
-                tick={{ fill: "#697185", fontSize: 11 }}
-                tickFormatter={(value) => String(chartData[Math.round(Number(value))]?.label ?? "")}
-                tickLine={false}
-                ticks={ticks}
-                type="number"
-              />
-              <YAxis axisLine={false} tick={{ fill: "#697185", fontSize: 11 }} tickFormatter={(value) => `${Number(value).toFixed(0)}%`} tickLine={false} width={54} />
-              <Line dataKey={() => 0} dot={false} legendType="none" stroke="#394153" strokeDasharray="4 4" />
-              {commodities.map((commodity) => (
-                chartType === "bar" ? (
-                  <Bar dataKey={commodity.slug} fill={commodity.colorHex} key={commodity.slug} opacity={0.56} radius={[2, 2, 0, 0]} />
-                ) : chartType === "area" ? (
-                  <Area
-                    connectNulls
-                    dataKey={commodity.slug}
-                    dot={false}
-                    fill={`${commodity.colorHex}18`}
-                    key={commodity.slug}
-                    stroke={commodity.colorHex}
-                    strokeWidth={2}
-                    type="monotone"
-                  />
-                ) : (
-                  <Line
-                    connectNulls
-                    dataKey={commodity.slug}
-                    dot={false}
-                    key={commodity.slug}
-                    stroke={commodity.colorHex}
-                    strokeWidth={2}
-                    type="monotone"
-                  />
-                )
-              ))}
-              {markerType === "none"
-                ? null
-                : commodities.map((commodity) => (
-                    <Scatter
+      <div className="chart-y-layout">
+        <div className="chart-box" style={{ height: 330 }}>
+          {mounted ? (
+            <ResponsiveContainer height="100%" width="100%">
+              <ComposedChart data={visibleData}>
+                <CartesianGrid stroke="#252b3a" vertical={false} />
+                <XAxis
+                  axisLine={false}
+                  dataKey="x"
+                  domain={[visibleRange.start, visibleRange.end]}
+                  tick={{ fill: "#697185", fontSize: 11 }}
+                  tickFormatter={(value) => String(chartData[Math.round(Number(value))]?.label ?? "")}
+                  tickLine={false}
+                  ticks={ticks}
+                  type="number"
+                />
+                <YAxis
+                  allowDataOverflow
+                  axisLine={false}
+                  domain={[visibleYRange.min, visibleYRange.max]}
+                  tick={{ fill: "#697185", fontSize: 11 }}
+                  tickFormatter={(value) => `${Number(value).toFixed(0)}%`}
+                  tickLine={false}
+                  width={54}
+                />
+                <Line dataKey={() => 0} dot={false} legendType="none" stroke="#394153" strokeDasharray="4 4" />
+                {commodities.map((commodity) => (
+                  chartType === "bar" ? (
+                    <Bar dataKey={commodity.slug} fill={commodity.colorHex} key={commodity.slug} opacity={0.56} radius={[2, 2, 0, 0]} />
+                  ) : chartType === "area" ? (
+                    <Area
+                      connectNulls
                       dataKey={commodity.slug}
-                      key={`${commodity.slug}-markers`}
-                      shape={<PerformanceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
+                      dot={false}
+                      fill={`${commodity.colorHex}18`}
+                      key={commodity.slug}
+                      stroke={commodity.colorHex}
+                      strokeWidth={2}
+                      type="monotone"
                     />
-                  ))}
-            </ComposedChart>
-          </ResponsiveContainer>
-        ) : null}
+                  ) : (
+                    <Line
+                      connectNulls
+                      dataKey={commodity.slug}
+                      dot={false}
+                      key={commodity.slug}
+                      stroke={commodity.colorHex}
+                      strokeWidth={2}
+                      type="monotone"
+                    />
+                  )
+                ))}
+                {markerType === "none"
+                  ? null
+                  : commodities.map((commodity) => (
+                      <Scatter
+                        dataKey={commodity.slug}
+                        key={`${commodity.slug}-markers`}
+                        shape={<PerformanceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
+                      />
+                    ))}
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : null}
+        </div>
+        <YAxisRangeBar
+          formatter={(value) => `${value.toFixed(0)}%`}
+          fullRange={yFullRange}
+          range={visibleYRange}
+          onChange={setYRange}
+        />
       </div>
       <TimeSeriesRangeBar
         labels={chartData.map((point) => String(point.label))}
