@@ -167,19 +167,6 @@ export function AgentGym({ activeCommodity: selectedCommodity, agentGym, commodi
 
   return (
     <section className="agent-gym">
-      <div className="panel-head">
-        <div>
-          <h2 style={{ fontSize: 19 }}>Trading bots gym</h2>
-          <p className="faint" style={{ fontSize: 12, marginTop: 3 }}>
-            Inspect the price series with trained PPO decisions overlaid. Marker opacity represents decision confidence, so faint marks are uncertain.
-          </p>
-        </div>
-        <div className="tag-row">
-          <span className="source">single + multi PPO</span>
-          <span className="source">{agentGym.sources.length} output files</span>
-        </div>
-      </div>
-
       <div className="gym-controls">
         <Control label="Model">
           <select value={model} onChange={(event) => handleModelChange(event.target.value as AgentModelKind)}>
