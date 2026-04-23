@@ -266,12 +266,6 @@ export function AgentGym({
             onChange={(nextRange, animated) => (animated ? xRange.setAnimated(nextRange, visibleRange) : xRange.setImmediate(nextRange))}
           />
           {selectedPoint ? <BotPointState point={selectedPoint} /> : null}
-          <div className="gym-note">
-            <strong>Included training code</strong>
-            <p>
-              Python PPO trainers live in `agentic_trading/training` and read configs from `configs/agents`. This panel uses full-dataset diagnostic outputs; the vertical line marks where the out-of-sample test period begins for the selected split.
-            </p>
-          </div>
         </div>
       </div>
     </section>
