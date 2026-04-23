@@ -1,14 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import type { XRange, YRange } from "@/lib/analytics/chart-zoom";
+import type { XRange } from "@/lib/analytics/chart-zoom";
 
 const ANIMATION_MS = 220;
 
 export function useAnimatedXRange(initial: XRange | null = null) {
   return useAnimatedRange<XRange>(initial, interpolateXRange);
-}
-
-export function useAnimatedYRange(initial: YRange | null = null) {
-  return useAnimatedRange<YRange>(initial, interpolateYRange);
 }
 
 function useAnimatedRange<T>(initial: T | null, interpolate: (from: T, to: T, progress: number) => T) {
@@ -63,13 +59,6 @@ function interpolateXRange(from: XRange, to: XRange, progress: number): XRange {
   return {
     end: lerp(from.end, to.end, progress),
     start: lerp(from.start, to.start, progress),
-  };
-}
-
-function interpolateYRange(from: YRange, to: YRange, progress: number): YRange {
-  return {
-    max: lerp(from.max, to.max, progress),
-    min: lerp(from.min, to.min, progress),
   };
 }
 

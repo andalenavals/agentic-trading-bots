@@ -1,18 +1,15 @@
 import { useRef, useState } from "react";
-import { normalizeXDomain, normalizeYRange } from "@/lib/analytics/chart-zoom";
+import { normalizeXDomain } from "@/lib/analytics/chart-zoom";
 import type { CSSProperties, MouseEvent, PointerEvent, ReactNode } from "react";
-import type { XRange, YRange } from "@/lib/analytics/chart-zoom";
+import type { XRange } from "@/lib/analytics/chart-zoom";
 
 type Props = {
   children: ReactNode;
   className?: string;
-  fullYRange: YRange;
   onXChange: (range: XRange) => void;
-  onYChange: (range: YRange) => void;
   style?: CSSProperties;
   xLength: number;
   xRange: XRange;
-  yRange: YRange;
 };
 
 type PointerPoint = {
@@ -26,12 +23,11 @@ type GestureState = {
   startDistance: number;
   startPointers: Map<number, PointerPoint>;
   startXRange: XRange;
-  startYRange: YRange;
 };
 
 const CLICK_SUPPRESS_MS = 120;
 
-export function ChartGestureSurface({ children, className, fullYRange, onXChange, onYChange, style, xLength, xRange, yRange }: Props) {
+export function ChartGestureSurface({ children, className, onXChange, style, xLength, xRange }: Props) {
   const gestureRef = useRef<GestureState | null>(null);
   const suppressClickUntilRef = useRef(0);
   const [dragging, setDragging] = useState(false);
@@ -51,7 +47,6 @@ export function ChartGestureSurface({ children, className, fullYRange, onXChange
       startDistance: distance(Array.from(pointers.values())),
       startPointers: new Map(pointers),
       startXRange: xRange,
-      startYRange: yRange,
     };
     setDragging(true);
   }
@@ -61,7 +56,7 @@ export function ChartGestureSurface({ children, className, fullYRange, onXChange
     if (!gesture?.pointers.has(event.pointerId)) return;
 
     const bounds = event.currentTarget.getBoundingClientRect();
-    if (bounds.width <= 0 || bounds.height <= 0) return;
+    if (bounds.width <= 0) return;
 
     gesture.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     const points = Array.from(gesture.pointers.values());
@@ -75,7 +70,6 @@ export function ChartGestureSurface({ children, className, fullYRange, onXChange
 
     const pinchRatio = points.length >= 2 && gesture.startDistance > 0 ? distance(points) / gesture.startDistance : 1;
     onXChange(nextXRange(gesture.startXRange, xLength, bounds.width, dx, pinchRatio));
-    onYChange(nextYRange(gesture.startYRange, fullYRange, bounds.height, dy, pinchRatio));
   }
 
   function endGesture(event: PointerEvent<HTMLDivElement>) {
@@ -97,7 +91,6 @@ export function ChartGestureSurface({ children, className, fullYRange, onXChange
       startDistance: distance(Array.from(gesture.pointers.values())),
       startPointers: new Map(gesture.pointers),
       startXRange: xRange,
-      startYRange: yRange,
     };
   }
 
@@ -130,15 +123,6 @@ function nextXRange(startRange: XRange, length: number, width: number, dx: numbe
   const startCenter = (startRange.start + startRange.end) / 2;
   const centerShift = -(dx / width) * startSpan;
   return normalizeXDomain(centeredXRange(startCenter + centerShift, nextSpan), length);
-}
-
-function nextYRange(startRange: YRange, fullRange: YRange, height: number, dy: number, pinchRatio: number) {
-  const startSpan = Math.max(0.000001, startRange.max - startRange.min);
-  const fullSpan = Math.max(0.000001, fullRange.max - fullRange.min);
-  const nextSpan = clamp(startSpan / Math.max(0.2, pinchRatio), fullSpan * 0.02, fullSpan);
-  const startCenter = (startRange.min + startRange.max) / 2;
-  const centerShift = (dy / height) * startSpan;
-  return normalizeYRange({ max: startCenter + centerShift + nextSpan / 2, min: startCenter + centerShift - nextSpan / 2 }, fullRange);
 }
 
 function centeredXRange(centerValue: number, span: number): XRange {

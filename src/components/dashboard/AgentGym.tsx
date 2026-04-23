@@ -18,9 +18,8 @@ import { ChartGestureSurface } from "@/components/dashboard/ChartGestureSurface"
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
-import { YAxisRangeBar } from "@/components/dashboard/YAxisRangeBar";
-import { useAnimatedXRange, useAnimatedYRange } from "@/components/dashboard/useAnimatedRange";
-import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, normalizeYRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
+import { useAnimatedXRange } from "@/components/dashboard/useAnimatedRange";
+import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 import type {
@@ -67,7 +66,6 @@ export function AgentGym({ agentGym, commodities }: Props) {
   const [alphaLevel, setAlphaLevel] = useState(0.88);
   const [logScale, setLogScale] = useState(false);
   const xRange = useAnimatedXRange();
-  const yRange = useAnimatedYRange();
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
 
   const availableCommodities = useMemo(() => {
@@ -115,10 +113,10 @@ export function AgentGym({ agentGym, commodities }: Props) {
   );
   const xDomain = normalizeXDomain(xRange.range ?? fullXRange(displayedPoints.length), displayedPoints.length);
   const visibleRange = normalizeXRange(xDomain, displayedPoints.length);
+  const visiblePoints = displayedPoints.slice(visibleRange.start, visibleRange.end + 1);
   const ticks = xAxisTicks(visibleRange);
-  const rawYFullRange = fullYRange(displayedPoints.map((point) => point.price));
-  const yFullRange = logScale ? { ...rawYFullRange, min: Math.max(0.000001, rawYFullRange.min) } : rawYFullRange;
-  const visibleYRange = normalizeYRange(yRange.range ?? yFullRange, yFullRange);
+  const rawYRange = fullYRange((visiblePoints.length ? visiblePoints : displayedPoints).map((point) => point.price));
+  const visibleYRange = logScale ? { ...rawYRange, min: Math.max(0.000001, rawYRange.min) } : rawYRange;
   const activeCommodity = COMMODITY_LOOKUP[activeCommoditySlug];
   const testStart = displayedPoints.find((point) => point.phase === "test");
   const selectedPoint = chartPoints.find((point) => point.key === selectedPointKey) ?? null;
@@ -141,28 +139,24 @@ export function AgentGym({ agentGym, commodities }: Props) {
     setModel(nextModel);
     setSelectedPointKey(null);
     xRange.setImmediate(null);
-    yRange.setImmediate(null);
   }
 
   function handleSplitChange(nextSplit: number) {
     setSplit(nextSplit);
     setSelectedPointKey(null);
     xRange.setImmediate(null);
-    yRange.setImmediate(null);
   }
 
   function handleCommodityChange(nextCommodity: CommoditySlug) {
     setCommodity(nextCommodity);
     setSelectedPointKey(null);
     xRange.setImmediate(null);
-    yRange.setImmediate(null);
   }
 
   function handleRangeChange(nextRange: number) {
     setRange(nextRange);
     setSelectedPointKey(null);
     xRange.setImmediate(null);
-    yRange.setImmediate(null);
   }
 
   return (
@@ -236,94 +230,83 @@ export function AgentGym({ agentGym, commodities }: Props) {
             onMarkerTypeChange={setMarkerType}
             onRangeChange={handleRangeChange}
           />
-          <div className="chart-y-layout">
-            <ChartGestureSurface
-              className="chart-box"
-              fullYRange={yFullRange}
-              style={{ height: 390 }}
-              xLength={displayedPoints.length}
-              xRange={xDomain}
-              yRange={visibleYRange}
-              onXChange={xRange.setImmediate}
-              onYChange={yRange.setImmediate}
-            >
-              {displayedPoints.length === 0 ? (
-                <div className="empty-state">
-                  <h3>No bot decisions generated yet</h3>
-                  <p>
-                    Run <code>npm run train:single</code> or <code>npm run train:multi</code> to generate files under <code>data/agent_outputs</code>.
-                    The app only requires raw data in Git; bot outputs are generated artifacts.
-                  </p>
-                </div>
-              ) : mounted ? (
-                <ResponsiveContainer height="100%" width="100%">
-                  <ComposedChart
-                    data={displayedPoints}
-                    onClick={(event) => {
-                      const point = pointFromChartEvent(event as ChartClickEvent | undefined);
-                      if (point) setSelectedPointKey(point.key);
-                    }}
-                  >
-                    <CartesianGrid stroke="#252b3a" vertical={false} />
-                    <XAxis
-                      allowDataOverflow
-                      axisLine={false}
-                      dataKey="x"
-                      domain={[xDomain.start, xDomain.end]}
-                      tick={{ fill: "#697185", fontSize: 11 }}
-                      tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
-                      tickLine={false}
-                      ticks={ticks}
-                      type="number"
+          <ChartGestureSurface
+            className="chart-box"
+            style={{ height: 390 }}
+            xLength={displayedPoints.length}
+            xRange={xDomain}
+            onXChange={xRange.setImmediate}
+          >
+            {displayedPoints.length === 0 ? (
+              <div className="empty-state">
+                <h3>No bot decisions generated yet</h3>
+                <p>
+                  Run <code>npm run train:single</code> or <code>npm run train:multi</code> to generate files under <code>data/agent_outputs</code>.
+                  The app only requires raw data in Git; bot outputs are generated artifacts.
+                </p>
+              </div>
+            ) : mounted ? (
+              <ResponsiveContainer height="100%" width="100%">
+                <ComposedChart
+                  data={displayedPoints}
+                  onClick={(event) => {
+                    const point = pointFromChartEvent(event as ChartClickEvent | undefined);
+                    if (point) setSelectedPointKey(point.key);
+                  }}
+                >
+                  <CartesianGrid stroke="#252b3a" vertical={false} />
+                  <XAxis
+                    allowDataOverflow
+                    axisLine={false}
+                    dataKey="x"
+                    domain={[xDomain.start, xDomain.end]}
+                    tick={{ fill: "#697185", fontSize: 11 }}
+                    tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
+                    tickLine={false}
+                    ticks={ticks}
+                    type="number"
+                  />
+                  <YAxis
+                    allowDataOverflow
+                    axisLine={false}
+                    domain={[visibleYRange.min, visibleYRange.max]}
+                    scale={logScale ? "log" : "auto"}
+                    tick={{ fill: "#697185", fontSize: 11 }}
+                    tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
+                    tickLine={false}
+                    width={62}
+                  />
+                  <Tooltip content={<AgentTooltip />} />
+                  {chartType === "bar" ? (
+                    <Bar dataKey="price" fill={activeCommodity.colorHex} opacity={0.62} radius={[3, 3, 0, 0]} />
+                  ) : chartType === "area" ? (
+                    <Area dataKey="price" dot={false} fill={`${activeCommodity.colorHex}22`} stroke={activeCommodity.colorHex} strokeWidth={2} type="monotone" />
+                  ) : (
+                    <Line dataKey="price" dot={false} stroke={activeCommodity.colorHex} strokeWidth={2} type="monotone" />
+                  )}
+                  {testStart ? (
+                    <ReferenceLine
+                      ifOverflow="extendDomain"
+                      label={{ fill: "#b6bdcf", fontSize: 11, position: "insideTopRight", value: "test" }}
+                      stroke="#f6c85f"
+                      strokeDasharray="5 5"
+                      x={testStart.x}
                     />
-                    <YAxis
-                      allowDataOverflow
-                      axisLine={false}
-                      domain={[visibleYRange.min, visibleYRange.max]}
-                      scale={logScale ? "log" : "auto"}
-                      tick={{ fill: "#697185", fontSize: 11 }}
-                      tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
-                      tickLine={false}
-                      width={62}
-                    />
-                    <Tooltip content={<AgentTooltip />} />
-                    {chartType === "bar" ? (
-                      <Bar dataKey="price" fill={activeCommodity.colorHex} opacity={0.62} radius={[3, 3, 0, 0]} />
-                    ) : chartType === "area" ? (
-                      <Area dataKey="price" dot={false} fill={`${activeCommodity.colorHex}22`} stroke={activeCommodity.colorHex} strokeWidth={2} type="monotone" />
-                    ) : (
-                      <Line dataKey="price" dot={false} stroke={activeCommodity.colorHex} strokeWidth={2} type="monotone" />
-                    )}
-                    {testStart ? (
-                      <ReferenceLine
-                        ifOverflow="extendDomain"
-                        label={{ fill: "#b6bdcf", fontSize: 11, position: "insideTopRight", value: "test" }}
-                        stroke="#f6c85f"
-                        strokeDasharray="5 5"
-                        x={testStart.x}
-                      />
-                    ) : null}
-                    {markerType === "none"
-                      ? null
-                      : (["hold", "buy", "sell"] as AgentActionName[]).map((actionName) => (
-                          <Scatter
-                            data={displayedPoints.filter((point) => point.actionName === actionName)}
-                            dataKey="price"
-                            key={actionName}
-                            shape={<DecisionDot alphaLevel={alphaLevel} markerSize={markerSize} markerType={markerType} />}
-                          />
-                        ))}
-                  </ComposedChart>
-                </ResponsiveContainer>
-              ) : null}
-            </ChartGestureSurface>
-            <YAxisRangeBar
-              formatter={(value) => `$${(value / 1000).toFixed(1)}k`}
-              fullRange={yFullRange}
-              range={visibleYRange}
-              onChange={(nextRange, animated) => (animated ? yRange.setAnimated(nextRange, visibleYRange) : yRange.setImmediate(nextRange))}
-            />
-          </div>
+                  ) : null}
+                  {markerType === "none"
+                    ? null
+                    : (["hold", "buy", "sell"] as AgentActionName[]).map((actionName) => (
+                        <Scatter
+                          data={displayedPoints.filter((point) => point.actionName === actionName)}
+                          dataKey="price"
+                          key={actionName}
+                          shape={<DecisionDot alphaLevel={alphaLevel} markerSize={markerSize} markerType={markerType} />}
+                        />
+                      ))}
+                </ComposedChart>
+              </ResponsiveContainer>
+            ) : null}
+          </ChartGestureSurface>
           <TimeSeriesRangeBar
             labels={displayedPoints.map((point) => point.label)}
             length={displayedPoints.length}

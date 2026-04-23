@@ -18,9 +18,8 @@ import { ChartGestureSurface } from "@/components/dashboard/ChartGestureSurface"
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { TimeSeriesRangeBar } from "@/components/dashboard/TimeSeriesRangeBar";
 import { VisualizationControls } from "@/components/dashboard/VisualizationControls";
-import { YAxisRangeBar } from "@/components/dashboard/YAxisRangeBar";
-import { useAnimatedXRange, useAnimatedYRange } from "@/components/dashboard/useAnimatedRange";
-import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, normalizeYRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
+import { useAnimatedXRange } from "@/components/dashboard/useAnimatedRange";
+import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { computeSignals } from "@/lib/analytics/signals";
 import type { Commodity, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
@@ -53,7 +52,6 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
   const [alphaLevel, setAlphaLevel] = useState(0.72);
   const [logScale, setLogScale] = useState(false);
   const xRange = useAnimatedXRange();
-  const yRange = useAnimatedYRange();
   const filtered = useMemo(() => (range >= 9999 ? points : points.slice(-range)), [points, range]);
   const chartData = filtered.map((point, index) => ({
     ...point,
@@ -65,9 +63,8 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
   const visibleData = chartData.slice(visibleRange.start, visibleRange.end + 1);
   const signal = computeSignals(visibleData);
   const ticks = xAxisTicks(visibleRange);
-  const rawYFullRange = fullYRange(chartData.map((point) => point.price));
-  const yFullRange = logScale ? { ...rawYFullRange, min: Math.max(0.000001, rawYFullRange.min) } : rawYFullRange;
-  const visibleYRange = normalizeYRange(yRange.range ?? yFullRange, yFullRange);
+  const rawYRange = fullYRange((visibleData.length ? visibleData : chartData).map((point) => point.price));
+  const visibleYRange = logScale ? { ...rawYRange, min: Math.max(0.000001, rawYRange.min) } : rawYRange;
 
   function pointFromChartEvent(event: ChartClickEvent | undefined) {
     const payloadPoint = event?.activePayload?.[0]?.payload;
@@ -87,7 +84,6 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
   function handleRangeChange(nextRange: number) {
     setRange(nextRange);
     xRange.setImmediate(null);
-    yRange.setImmediate(null);
   }
 
   function rememberHoveredPoint(event: ChartClickEvent | undefined) {
@@ -131,78 +127,67 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
         onRangeChange={handleRangeChange}
       />
 
-      <div className="chart-y-layout">
-        <ChartGestureSurface
-          className="chart-box"
-          fullYRange={yFullRange}
-          xLength={chartData.length}
-          xRange={xDomain}
-          yRange={visibleYRange}
-          onXChange={xRange.setImmediate}
-          onYChange={yRange.setImmediate}
-        >
-          {mounted ? (
-            <ResponsiveContainer height="100%" width="100%">
-              <ComposedChart
-                data={chartData}
-                onClick={(event) => selectFromChartEvent(event as ChartClickEvent | undefined)}
-                onMouseMove={(event) => rememberHoveredPoint(event as ChartClickEvent | undefined)}
-              >
-                <defs>
-                  <linearGradient id={`price-${commodity.slug}`} x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor={commodity.colorHex} stopOpacity={0.28} />
-                    <stop offset="100%" stopColor={commodity.colorHex} stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="#252b3a" vertical={false} />
-                <XAxis
-                  allowDataOverflow
-                  axisLine={false}
-                  dataKey="x"
-                  domain={[xDomain.start, xDomain.end]}
-                  tick={{ fill: "#697185", fontSize: 11 }}
-                  tickFormatter={(value) => chartData[Math.round(Number(value))]?.label ?? ""}
-                  tickLine={false}
-                  ticks={ticks}
-                  type="number"
+      <ChartGestureSurface
+        className="chart-box"
+        xLength={chartData.length}
+        xRange={xDomain}
+        onXChange={xRange.setImmediate}
+      >
+        {mounted ? (
+          <ResponsiveContainer height="100%" width="100%">
+            <ComposedChart
+              data={chartData}
+              onClick={(event) => selectFromChartEvent(event as ChartClickEvent | undefined)}
+              onMouseMove={(event) => rememberHoveredPoint(event as ChartClickEvent | undefined)}
+            >
+              <defs>
+                <linearGradient id={`price-${commodity.slug}`} x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor={commodity.colorHex} stopOpacity={0.28} />
+                  <stop offset="100%" stopColor={commodity.colorHex} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="#252b3a" vertical={false} />
+              <XAxis
+                allowDataOverflow
+                axisLine={false}
+                dataKey="x"
+                domain={[xDomain.start, xDomain.end]}
+                tick={{ fill: "#697185", fontSize: 11 }}
+                tickFormatter={(value) => chartData[Math.round(Number(value))]?.label ?? ""}
+                tickLine={false}
+                ticks={ticks}
+                type="number"
+              />
+              <YAxis
+                allowDataOverflow
+                axisLine={false}
+                domain={[visibleYRange.min, visibleYRange.max]}
+                scale={logScale ? "log" : "auto"}
+                tick={{ fill: "#697185", fontSize: 11 }}
+                tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
+                tickLine={false}
+                width={62}
+              />
+              <Tooltip content={<PriceTooltip color={commodity.colorHex} />} />
+              <ReferenceLine stroke="#394153" strokeDasharray="4 4" y={signal.average} />
+              {chartType === "bar" ? (
+                <Bar dataKey="price" fill={commodity.colorHex} opacity={0.78} radius={[3, 3, 0, 0]} />
+              ) : chartType === "line" ? (
+                <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
+              ) : (
+                <Area dataKey="price" dot={false} fill={`url(#price-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
+              )}
+              {markerType === "none" ? null : (
+                <Scatter
+                  data={chartData}
+                  dataKey="price"
+                  shape={<PriceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
                 />
-                <YAxis
-                  allowDataOverflow
-                  axisLine={false}
-                  domain={[visibleYRange.min, visibleYRange.max]}
-                  scale={logScale ? "log" : "auto"}
-                  tick={{ fill: "#697185", fontSize: 11 }}
-                  tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
-                  tickLine={false}
-                  width={62}
-                />
-                <Tooltip content={<PriceTooltip color={commodity.colorHex} />} />
-                <ReferenceLine stroke="#394153" strokeDasharray="4 4" y={signal.average} />
-                {chartType === "bar" ? (
-                  <Bar dataKey="price" fill={commodity.colorHex} opacity={0.78} radius={[3, 3, 0, 0]} />
-                ) : chartType === "line" ? (
-                  <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
-                ) : (
-                  <Area dataKey="price" dot={false} fill={`url(#price-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
-                )}
-                {markerType === "none" ? null : (
-                  <Scatter
-                    data={chartData}
-                    dataKey="price"
-                    shape={<PriceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
-                  />
-                )}
-              </ComposedChart>
-            </ResponsiveContainer>
-          ) : null}
-        </ChartGestureSurface>
-        <YAxisRangeBar
-          formatter={(value) => `$${(value / 1000).toFixed(1)}k`}
-          fullRange={yFullRange}
-          range={visibleYRange}
-          onChange={(nextRange, animated) => (animated ? yRange.setAnimated(nextRange, visibleYRange) : yRange.setImmediate(nextRange))}
-        />
-      </div>
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : null}
+      </ChartGestureSurface>
       <TimeSeriesRangeBar
         labels={chartData.map((point) => point.label)}
         length={chartData.length}
