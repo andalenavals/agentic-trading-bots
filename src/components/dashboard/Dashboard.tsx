@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { AgentGym } from "@/components/dashboard/AgentGym";
 import { CommodityCards } from "@/components/dashboard/CommodityCards";
 import { EventFeed } from "@/components/dashboard/EventFeed";
-import { OverlayChart } from "@/components/dashboard/OverlayChart";
 import { PriceChart } from "@/components/dashboard/PriceChart";
 import type { CommoditySlug, DashboardData, SentimentPoint } from "@/lib/types";
 
@@ -72,7 +71,6 @@ export function Dashboard({ data }: Props) {
                 onSelectPoint={setSelectedPoint}
                 points={activePoints}
               />
-              <OverlayChart commodities={data.commodities} pricesByCommodity={data.pricesByCommodity} />
             </div>
             <EventFeed commodity={activeCommodityMeta} selectedPoint={selectedPoint} />
           </section>

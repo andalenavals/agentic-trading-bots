@@ -101,6 +101,81 @@ h1 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.commodity-picker {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr) auto;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+}
+
+.commodity-picker label {
+  display: grid;
+  gap: 6px;
+}
+
+.commodity-picker label span {
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.commodity-picker select {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--text);
+  min-width: 0;
+  padding: 9px 10px;
+}
+
+.commodity-summary {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
+.commodity-summary strong {
+  display: block;
+  font-size: 14px;
+}
+
+.commodity-summary p {
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 3px;
+}
+
+.compact-stat-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(74px, 1fr));
+}
+
+.compact-stat {
+  background: #151923;
+  border-radius: 6px;
+  padding: 8px 9px;
+}
+
+.compact-stat span {
+  color: var(--faint);
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.compact-stat strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+}
+
 .dashboard-grid {
   grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.55fr);
 }
@@ -232,11 +307,42 @@ h1 {
 .viz-controls {
   align-items: end;
   background: #151923;
-  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(6, minmax(105px, 1fr));
   padding: 14px 18px;
+}
+
+.plot-settings {
+  background: #151923;
+  border-bottom: 1px solid var(--line);
+}
+
+.plot-settings summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  list-style: none;
+  padding: 12px 18px;
+  text-transform: uppercase;
+}
+
+.plot-settings summary::-webkit-details-marker {
+  display: none;
+}
+
+.plot-settings summary::after {
+  color: var(--gold);
+  content: "+";
+  float: right;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.plot-settings[open] summary::after {
+  content: "-";
 }
 
 .viz-control-group {
@@ -737,6 +843,7 @@ h1 {
   }
 
   .commodity-grid,
+  .commodity-picker,
   .dashboard-grid,
   .gym-layout {
     grid-template-columns: 1fr;
@@ -766,6 +873,24 @@ h1 {
 
   .gym-controls {
     grid-template-columns: 1fr;
+  }
+
+  .commodity-picker {
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .commodity-summary {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .commodity-summary .badge {
+    justify-self: start;
+  }
+
+  .compact-stat-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .viz-controls {
