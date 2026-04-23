@@ -95,6 +95,7 @@ export function Dashboard({ data }: Props) {
           <summary>Decision Chart</summary>
           <div className="news-chart-body">
             <AgentGym
+              activeCommodity={activeCommodity}
               agentGym={data.agentGym}
               commodities={data.commodities}
             />

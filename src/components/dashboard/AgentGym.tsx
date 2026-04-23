@@ -32,6 +32,7 @@ import type {
 } from "@/lib/types";
 
 type Props = {
+  activeCommodity: CommoditySlug;
   agentGym: AgentGymData;
   commodities: Commodity[];
 };
@@ -54,11 +55,10 @@ const RANGES = [
   { label: "ALL", value: 99999 },
 ];
 
-export function AgentGym({ agentGym, commodities }: Props) {
+export function AgentGym({ activeCommodity: selectedCommodity, agentGym, commodities }: Props) {
   const mounted = useClientMounted();
   const [model, setModel] = useState<AgentModelKind>("single_asset_ppo");
   const [split, setSplit] = useState(1);
-  const [commodity, setCommodity] = useState<CommoditySlug>("copper_lme");
   const [chartType, setChartType] = useState<ChartType>("line");
   const [range, setRange] = useState(99999);
   const [markerSize, setMarkerSize] = useState(6);
@@ -76,9 +76,9 @@ export function AgentGym({ agentGym, commodities }: Props) {
     );
     return commodities.filter((item) => slugs.has(item.slug));
   }, [agentGym.points, commodities, model]);
-  const activeCommoditySlug = availableCommodities.some((item) => item.slug === commodity)
-    ? commodity
-    : availableCommodities[0]?.slug ?? commodity;
+  const activeCommoditySlug = availableCommodities.some((item) => item.slug === selectedCommodity)
+    ? selectedCommodity
+    : availableCommodities[0]?.slug ?? selectedCommodity;
 
   const splitOptions = useMemo(() => {
     const splits = new Set(
@@ -147,12 +147,6 @@ export function AgentGym({ agentGym, commodities }: Props) {
     xRange.setImmediate(null);
   }
 
-  function handleCommodityChange(nextCommodity: CommoditySlug) {
-    setCommodity(nextCommodity);
-    setSelectedPointKey(null);
-    xRange.setImmediate(null);
-  }
-
   function handleRangeChange(nextRange: number) {
     setRange(nextRange);
     setSelectedPointKey(null);
@@ -185,15 +179,6 @@ export function AgentGym({ agentGym, commodities }: Props) {
           <select value={activeSplit} onChange={(event) => handleSplitChange(Number(event.target.value))}>
             {splitOptions.map((item) => (
               <option key={item} value={item}>Split {item}</option>
-            ))}
-          </select>
-        </Control>
-        <Control label="Commodity">
-          <select value={activeCommoditySlug} onChange={(event) => handleCommodityChange(event.target.value as CommoditySlug)}>
-            {(availableCommodities.length ? availableCommodities : commodities).map((item) => (
-              <option key={item.slug} value={item.slug}>
-                {item.name}
-              </option>
             ))}
           </select>
         </Control>
