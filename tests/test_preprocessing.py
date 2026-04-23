@@ -137,6 +137,7 @@ class PreprocessingTest(unittest.TestCase):
         self.assertGreater(len(test_rows), 0)
         self.assertTrue(any(float(row["absolute_error"]) > 0 for row in test_rows))
         self.assertNotEqual(test_rows[0]["predicted_price"], rows[25]["price"])
+        self.assertNotEqual(test_rows[0]["predicted_price"], test_rows[1]["predicted_price"])
 
     def test_ridge_arx_does_not_use_current_target_price(self) -> None:
         rows = []
@@ -166,8 +167,9 @@ class PreprocessingTest(unittest.TestCase):
         original_test = [row for row in original if row["phase"] == "test" and row["predicted_price"] != ""]
         mutated_test = [row for row in mutated if row["phase"] == "test" and row["predicted_price"] != ""]
 
-        self.assertGreaterEqual(len(original_test), 1)
+        self.assertGreaterEqual(len(original_test), 2)
         self.assertEqual(original_test[0]["predicted_price"], mutated_test[0]["predicted_price"])
+        self.assertEqual(original_test[1]["predicted_price"], mutated_test[1]["predicted_price"])
 
     def test_pipeline_fails_fast_when_required_columns_are_missing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

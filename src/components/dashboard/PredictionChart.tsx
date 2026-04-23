@@ -238,18 +238,16 @@ export function PredictionChart({
                   ) : (
                     <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeOpacity={0.62} strokeWidth={2} type="monotone" />
                   )}
-                  {activeModel === "ridge_arx" ? null : (
-                    <Line
-                      connectNulls={false}
-                      dataKey="predictedPrice"
-                      dot={false}
-                      isAnimationActive={false}
-                      stroke={PREDICTION_COLOR}
-                      strokeDasharray="6 4"
-                      strokeWidth={3}
-                      type="monotone"
-                    />
-                  )}
+                  <Line
+                    connectNulls={false}
+                    dataKey="predictedPrice"
+                    dot={false}
+                    isAnimationActive={false}
+                    stroke={PREDICTION_COLOR}
+                    strokeDasharray="6 4"
+                    strokeWidth={3}
+                    type="monotone"
+                  />
                   {testStart ? (
                     <ReferenceLine
                       ifOverflow="extendDomain"
@@ -259,13 +257,7 @@ export function PredictionChart({
                       x={testStart.x}
                     />
                   ) : null}
-                  {activeModel === "ridge_arx" ? (
-                    <Scatter
-                      data={displayedPoints.filter((point) => point.predictedPrice !== null)}
-                      dataKey="predictedPrice"
-                      shape={<RidgeForecastMarker />}
-                    />
-                  ) : markerType === "none" ? null : (
+                  {markerType === "none" ? null : (
                     <Scatter
                       data={displayedPoints.filter((point) => point.predictedPrice !== null)}
                       dataKey="predictedPrice"
@@ -300,7 +292,7 @@ function PredictionPointState({ model, point }: { model: PredictionModelKind; po
         <strong style={{ color: PREDICTION_COLOR }}>
           ${point.predictedPrice?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
         </strong>
-        <p className="faint">{model === "ridge_arx" ? "One-step forecast" : "Forecast path"}</p>
+        <p className="faint">Forecast path</p>
       </div>
       <div className="stat-grid">
         <Stat label="Actual" value={`$${point.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
@@ -321,7 +313,7 @@ function PredictionPointState({ model, point }: { model: PredictionModelKind; po
 }
 
 function modelLabel(model: PredictionModelKind) {
-  if (model === "ridge_arx") return "Ridge ARX (1-step)";
+  if (model === "ridge_arx") return "Ridge ARX";
   return "Trend baseline";
 }
 
@@ -354,16 +346,6 @@ function PredictionMarker({
   markerType: MarkerType;
 }) {
   return <MarkerGlyph alphaLevel={alphaLevel} color={PREDICTION_COLOR} cx={cx} cy={cy} markerType={markerType} size={markerSize} />;
-}
-
-function RidgeForecastMarker({ cx, cy }: { cx?: number; cy?: number }) {
-  if (cx === undefined || cy === undefined) return null;
-  return (
-    <g>
-      <circle cx={cx} cy={cy} fill={PREDICTION_COLOR} opacity={0.95} r={4.25} stroke="#0f1220" strokeWidth={1.25} />
-      <circle cx={cx} cy={cy} fill="#0f1220" opacity={0.9} r={1.4} />
-    </g>
-  );
 }
 
 function useClientMounted() {

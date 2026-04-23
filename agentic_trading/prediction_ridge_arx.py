@@ -18,6 +18,8 @@ REQUIRED_CONFIG_KEYS = {
 
 DEFAULT_LAGS = [1, 2, 5, 10]
 DEFAULT_WINDOWS = [5, 20]
+DEFAULT_BAND_WINDOW = 20
+DEFAULT_CENTER_BLEND = 0.85
 csv.field_size_limit(sys.maxsize)
 
 
@@ -72,10 +74,22 @@ def generate_full_predictions(
     lags = lags or list(DEFAULT_LAGS)
     windows = windows or list(DEFAULT_WINDOWS)
     actual_prices = [to_number(row.get("price", "")) for row in rows]
-    actual_returns = price_returns(actual_prices)
+    actual_log_prices = [safe_log(price) for price in actual_prices]
+    actual_log_returns = log_returns(actual_log_prices)
     feature_start = max(max(lags, default=1) + 1, max(windows, default=1) + 1)
     train_sample_end = max(feature_start, train_end)
-    model = fit_ridge_arx_model(rows, actual_prices, actual_returns, feature_start, train_sample_end, ridge_alpha, lags, windows)
+    model = fit_ridge_arx_model(
+        rows,
+        actual_log_prices,
+        actual_log_returns,
+        feature_start,
+        train_sample_end,
+        ridge_alpha,
+        lags,
+        windows,
+    )
+    predicted_log_prices = list(actual_log_prices)
+    predicted_log_returns = list(actual_log_returns)
     generated: list[dict[str, object]] = []
 
     for index, row in enumerate(rows):
@@ -85,9 +99,22 @@ def generate_full_predictions(
         absolute_error = None
 
         if phase == "test" and index >= feature_start:
-            features = build_feature_vector(rows, actual_prices, actual_returns, index, lags, windows)
-            predicted_return = predict_return(model, features)
-            predicted_price = actual_prices[index - 1] * (1 + predicted_return)
+            features = build_feature_vector(rows, predicted_log_prices, predicted_log_returns, index, lags, windows)
+            raw_next_log_price = predict_level(model, features)
+            recent_prices = predicted_log_prices[max(0, index - int(model["band_window"])):index]
+            center = sum(recent_prices) / len(recent_prices) if recent_prices else predicted_log_prices[index - 1]
+            blended_next_log_price = (
+                float(model["center_blend"]) * center
+                + (1.0 - float(model["center_blend"])) * raw_next_log_price
+            )
+            next_log_price = clamp(
+                blended_next_log_price,
+                center - float(model["level_band"]),
+                center + float(model["level_band"]),
+            )
+            predicted_log_prices[index] = next_log_price
+            predicted_log_returns[index] = next_log_price - predicted_log_prices[index - 1]
+            predicted_price = math.exp(next_log_price)
             error = predicted_price - actual_prices[index]
             absolute_error = abs(error)
 
@@ -103,7 +130,7 @@ def generate_full_predictions(
                 "error": "" if error is None else error,
                 "absolute_error": "" if absolute_error is None else absolute_error,
                 "alpha": model["intercept"],
-                "beta": coefficient_for_feature(model, "lag_return_1"),
+                "beta": coefficient_for_feature(model, "lag_log_price_1"),
             }
         )
 
@@ -112,8 +139,8 @@ def generate_full_predictions(
 
 def fit_ridge_arx_model(
     rows: list[dict[str, str]],
-    prices: list[float],
-    returns: list[float],
+    log_prices: list[float],
+    log_returns_series: list[float],
     feature_start: int,
     train_end: int,
     ridge_alpha: float,
@@ -125,29 +152,14 @@ def fit_ridge_arx_model(
         return empty_model(feature_names(lags, windows))
 
     feature_names_list = feature_names(lags, windows)
-    x_rows = [build_feature_vector(rows, prices, returns, index, lags, windows) for index in sample_indices]
-    y_values = [returns[index] for index in sample_indices]
-
-    means = []
-    scales = []
-    for column in range(len(feature_names_list)):
-        values = [row[column] for row in x_rows]
-        mean = sum(values) / len(values)
-        variance = sum((value - mean) ** 2 for value in values) / len(values)
-        scale = math.sqrt(variance) if variance > 1e-12 else 1.0
-        means.append(mean)
-        scales.append(scale)
-
-    standardized = [
-        [(value - mean) / scale for value, mean, scale in zip(row, means, scales, strict=True)]
-        for row in x_rows
-    ]
+    x_rows = [build_feature_vector(rows, log_prices, log_returns_series, index, lags, windows) for index in sample_indices]
+    y_values = [log_prices[index] for index in sample_indices]
+    means, scales = fit_feature_standardization(x_rows)
+    standardized = [standardize_features(row, means, scales) for row in x_rows]
     intercept = sum(y_values) / len(y_values)
     centered_y = [value - intercept for value in y_values]
     coefficients = ridge_fit(standardized, centered_y, ridge_alpha)
-    observed_min = min(y_values)
-    observed_max = max(y_values)
-    observed_span = max(0.01, observed_max - observed_min)
+    level_band = estimate_level_band(log_prices, sample_indices)
 
     return {
         "coefficients": coefficients,
@@ -155,9 +167,42 @@ def fit_ridge_arx_model(
         "intercept": intercept,
         "means": means,
         "scales": scales,
-        "return_floor": max(-0.2, observed_min - observed_span * 0.5),
-        "return_ceiling": min(0.2, observed_max + observed_span * 0.5),
+        "band_window": max(max(windows, default=DEFAULT_BAND_WINDOW), DEFAULT_BAND_WINDOW),
+        "center_blend": DEFAULT_CENTER_BLEND,
+        "level_band": level_band,
     }
+
+
+def fit_feature_standardization(x_rows: list[list[float]]) -> tuple[list[float], list[float]]:
+    means: list[float] = []
+    scales: list[float] = []
+    width = len(x_rows[0]) if x_rows else 0
+    for column in range(width):
+        values = [row[column] for row in x_rows]
+        mean = sum(values) / len(values)
+        variance = sum((value - mean) ** 2 for value in values) / len(values)
+        scale = math.sqrt(variance) if variance > 1e-12 else 1.0
+        means.append(mean)
+        scales.append(scale)
+    return means, scales
+
+
+def estimate_level_band(log_prices: list[float], sample_indices: list[int]) -> float:
+    deviations = []
+    for index in sample_indices:
+        start = max(0, index - DEFAULT_BAND_WINDOW)
+        history = log_prices[start:index]
+        if not history:
+            continue
+        center = sum(history) / len(history)
+        deviations.append(log_prices[index] - center)
+
+    if not deviations:
+        return 0.12
+
+    mean = sum(deviations) / len(deviations)
+    variance = sum((value - mean) ** 2 for value in deviations) / len(deviations)
+    return clamp(2.5 * math.sqrt(variance), 0.04, 0.18)
 
 
 def ridge_fit(x_rows: list[list[float]], y_values: list[float], ridge_alpha: float) -> list[float]:
@@ -205,23 +250,26 @@ def solve_linear_system(matrix: list[list[float]], vector: list[float]) -> list[
     return [row[-1] for row in augmented]
 
 
-def predict_return(model: dict[str, object], features: list[float]) -> float:
+def predict_level(model: dict[str, object], features: list[float]) -> float:
     coefficients = model["coefficients"]
     means = model["means"]
     scales = model["scales"]
     intercept = float(model["intercept"])
-    standardized = [
+    standardized = standardize_features(features, means, scales)
+    return intercept + sum(coefficient * value for coefficient, value in zip(coefficients, standardized, strict=True))
+
+
+def standardize_features(features: list[float], means: list[float], scales: list[float]) -> list[float]:
+    return [
         clamp((value - mean) / scale, -8.0, 8.0)
         for value, mean, scale in zip(features, means, scales, strict=True)
     ]
-    raw_prediction = intercept + sum(coefficient * value for coefficient, value in zip(coefficients, standardized, strict=True))
-    return clamp(raw_prediction, float(model["return_floor"]), float(model["return_ceiling"]))
 
 
 def build_feature_vector(
     rows: list[dict[str, str]],
-    prices: list[float],
-    returns: list[float],
+    log_prices: list[float],
+    log_returns_series: list[float],
     index: int,
     lags: list[int],
     windows: list[int],
@@ -230,33 +278,41 @@ def build_feature_vector(
     features: list[float] = []
 
     for lag in lags:
-        features.append(returns[index - lag])
+        features.append(log_prices[index - lag])
+
+    for lag in lags:
+        features.append(log_returns_series[index - lag])
 
     for window in windows:
-        window_returns = returns[index - window:index]
+        window_returns = log_returns_series[index - window:index]
         mean = sum(window_returns) / len(window_returns)
         variance = sum((value - mean) ** 2 for value in window_returns) / len(window_returns)
         features.extend([mean, math.sqrt(variance)])
 
-    features.extend([
-        to_number(previous.get("sentiment_score", "")),
-        to_number(previous.get("finbert_sentiment_score", "")),
-        to_number(previous.get("positive", "")),
-        to_number(previous.get("neutral", "")),
-        to_number(previous.get("negative", "")),
-        to_number(previous.get("finbert_positive", "")),
-        to_number(previous.get("finbert_neutral", "")),
-        to_number(previous.get("finbert_negative", "")),
-        to_number(previous.get("news_count", "")),
-    ])
+    features.extend(exogenous_features(previous))
 
     return features
 
 
+def exogenous_features(row: dict[str, str]) -> list[float]:
+    return [
+        to_number(row.get("sentiment_score", "")),
+        to_number(row.get("finbert_sentiment_score", "")),
+        to_number(row.get("positive", "")),
+        to_number(row.get("neutral", "")),
+        to_number(row.get("negative", "")),
+        to_number(row.get("finbert_positive", "")),
+        to_number(row.get("finbert_neutral", "")),
+        to_number(row.get("finbert_negative", "")),
+        to_number(row.get("news_count", "")),
+    ]
+
+
 def feature_names(lags: list[int], windows: list[int]) -> list[str]:
-    names = [f"lag_return_{lag}" for lag in lags]
+    names = [f"lag_log_price_{lag}" for lag in lags]
+    names.extend(f"lag_log_return_{lag}" for lag in lags)
     for window in windows:
-        names.extend([f"rolling_mean_{window}", f"rolling_vol_{window}"])
+        names.extend([f"rolling_log_return_mean_{window}", f"rolling_log_return_vol_{window}"])
     names.extend([
         "sentiment_score",
         "finbert_sentiment_score",
@@ -279,12 +335,10 @@ def coefficient_for_feature(model: dict[str, object], feature_name: str) -> floa
     return float(coefficients[names.index(feature_name)])
 
 
-def price_returns(prices: list[float]) -> list[float]:
+def log_returns(log_prices: list[float]) -> list[float]:
     returns = [0.0]
-    for index in range(1, len(prices)):
-        previous = prices[index - 1]
-        current = prices[index]
-        returns.append(0.0 if previous == 0 else (current - previous) / previous)
+    for index in range(1, len(log_prices)):
+        returns.append(log_prices[index] - log_prices[index - 1])
     return returns
 
 
@@ -295,8 +349,9 @@ def empty_model(names: list[str]) -> dict[str, object]:
         "intercept": 0.0,
         "means": [0.0 for _ in names],
         "scales": [1.0 for _ in names],
-        "return_floor": -0.2,
-        "return_ceiling": 0.2,
+        "band_window": DEFAULT_BAND_WINDOW,
+        "center_blend": DEFAULT_CENTER_BLEND,
+        "level_band": 0.12,
     }
 
 
@@ -305,6 +360,10 @@ def to_number(value: str) -> float:
         return float(value)
     except (TypeError, ValueError):
         return 0.0
+
+
+def safe_log(value: float) -> float:
+    return math.log(max(value, 1e-9))
 
 
 def clamp(value: float, lower: float, upper: float) -> float:
