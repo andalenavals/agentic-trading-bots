@@ -265,14 +265,7 @@ export function AgentGym({
             range={visibleRange}
             onChange={(nextRange, animated) => (animated ? xRange.setAnimated(nextRange, visibleRange) : xRange.setImmediate(nextRange))}
           />
-          {selectedPoint ? (
-            <BotPointState point={selectedPoint} />
-          ) : (
-            <div className="empty-state">
-              <h3>No decision selected</h3>
-              <p>Decision state appears here only after clicking a buy, hold, or sell marker in the chart.</p>
-            </div>
-          )}
+          {selectedPoint ? <BotPointState point={selectedPoint} /> : null}
           <div className="gym-note">
             <strong>Included training code</strong>
             <p>

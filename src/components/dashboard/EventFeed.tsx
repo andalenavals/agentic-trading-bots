@@ -11,17 +11,14 @@ type Props = {
 };
 
 export function EventFeed({ commodity, embedded = false, selectedPoint }: Props) {
+  if (!selectedPoint) return null;
+
   const news = selectedPoint?.newsItems ?? [];
 
   return (
     <aside className={`${embedded ? "market-news-section " : "panel "}event-feed`}>
       <div className="events">
-        {!selectedPoint ? (
-          <div className="empty-state">
-            <h3>No point selected</h3>
-            <p>News appears here only after clicking a date in the price chart.</p>
-          </div>
-        ) : news.length === 0 ? (
+        {news.length === 0 ? (
           <div className="empty-state">
             <h3>No linked news</h3>
             <p>The selected date has no raw news rows tagged for {commodity.name}.</p>
