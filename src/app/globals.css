@@ -418,13 +418,23 @@ h1 {
 
 .chart-y-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 46px;
+  grid-template-columns: 46px minmax(0, 1fr);
+}
+
+.chart-y-layout > .chart-box {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.chart-y-layout > .y-range-bar {
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .y-range-bar {
   align-items: center;
   background: #151923;
-  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
   display: grid;
   gap: 8px;
   grid-template-rows: 34px minmax(0, 1fr) 34px;

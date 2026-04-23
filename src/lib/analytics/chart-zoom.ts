@@ -47,7 +47,7 @@ export function zoomXRangeFromCenter(current: XRange, length: number, direction:
   const currentSize = normalized.end - normalized.start + 1;
   const nextSize = clamp(
     Math.round(currentSize * (direction === "in" ? 0.76 : 1.32)),
-    Math.min(8, length),
+    1,
     length,
   );
   const center = (normalized.start + normalized.end) / 2;
