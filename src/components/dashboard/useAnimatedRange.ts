@@ -4,17 +4,17 @@ import type { XRange, YRange } from "@/lib/analytics/chart-zoom";
 const ANIMATION_MS = 220;
 
 export function useAnimatedXRange(initial: XRange | null = null) {
-  return useAnimatedRange<XRange | null>(initial, interpolateXRange);
+  return useAnimatedRange<XRange>(initial, interpolateXRange);
 }
 
 export function useAnimatedYRange(initial: YRange | null = null) {
-  return useAnimatedRange<YRange | null>(initial, interpolateYRange);
+  return useAnimatedRange<YRange>(initial, interpolateYRange);
 }
 
-function useAnimatedRange<T>(initial: T, interpolate: (from: T, to: T, progress: number) => T) {
-  const [range, setRange] = useState(initial);
+function useAnimatedRange<T>(initial: T | null, interpolate: (from: T, to: T, progress: number) => T) {
+  const [range, setRange] = useState<T | null>(initial);
   const frameRef = useRef<number | null>(null);
-  const rangeRef = useRef(range);
+  const rangeRef = useRef<T | null>(range);
 
   useEffect(() => {
     rangeRef.current = range;
@@ -27,17 +27,17 @@ function useAnimatedRange<T>(initial: T, interpolate: (from: T, to: T, progress:
     [],
   );
 
-  function setImmediate(next: T) {
+  function setImmediate(next: T | null) {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     frameRef.current = null;
     rangeRef.current = next;
     setRange(next);
   }
 
-  function setAnimated(next: T) {
+  function setAnimated(next: T, fallbackFrom?: T) {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
 
-    const from = rangeRef.current;
+    const from = rangeRef.current ?? fallbackFrom ?? next;
     const started = performance.now();
 
     function animate(now: number) {
@@ -59,16 +59,14 @@ function useAnimatedRange<T>(initial: T, interpolate: (from: T, to: T, progress:
   return { range, setAnimated, setImmediate };
 }
 
-function interpolateXRange(from: XRange | null, to: XRange | null, progress: number): XRange | null {
-  if (!from || !to) return to;
+function interpolateXRange(from: XRange, to: XRange, progress: number): XRange {
   return {
     end: lerp(from.end, to.end, progress),
     start: lerp(from.start, to.start, progress),
   };
 }
 
-function interpolateYRange(from: YRange | null, to: YRange | null, progress: number): YRange | null {
-  if (!from || !to) return to;
+function interpolateYRange(from: YRange, to: YRange, progress: number): YRange {
   return {
     max: lerp(from.max, to.max, progress),
     min: lerp(from.min, to.min, progress),

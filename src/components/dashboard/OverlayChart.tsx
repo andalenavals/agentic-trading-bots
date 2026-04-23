@@ -144,14 +144,14 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
           formatter={(value) => `${value.toFixed(0)}%`}
           fullRange={yFullRange}
           range={visibleYRange}
-          onChange={(nextRange, animated) => (animated ? yRange.setAnimated(nextRange) : yRange.setImmediate(nextRange))}
+          onChange={(nextRange, animated) => (animated ? yRange.setAnimated(nextRange, visibleYRange) : yRange.setImmediate(nextRange))}
         />
       </div>
       <TimeSeriesRangeBar
         labels={chartData.map((point) => String(point.label))}
         length={chartData.length}
         range={visibleRange}
-        onChange={(nextRange, animated) => (animated ? xRange.setAnimated(nextRange) : xRange.setImmediate(nextRange))}
+        onChange={(nextRange, animated) => (animated ? xRange.setAnimated(nextRange, visibleRange) : xRange.setImmediate(nextRange))}
       />
     </section>
   );

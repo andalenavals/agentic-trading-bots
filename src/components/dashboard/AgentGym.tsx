@@ -310,14 +310,14 @@ export function AgentGym({ agentGym, commodities }: Props) {
               formatter={(value) => `$${(value / 1000).toFixed(1)}k`}
               fullRange={yFullRange}
               range={visibleYRange}
-              onChange={(nextRange, animated) => (animated ? yRange.setAnimated(nextRange) : yRange.setImmediate(nextRange))}
+              onChange={(nextRange, animated) => (animated ? yRange.setAnimated(nextRange, visibleYRange) : yRange.setImmediate(nextRange))}
             />
           </div>
           <TimeSeriesRangeBar
             labels={displayedPoints.map((point) => point.label)}
             length={displayedPoints.length}
             range={visibleRange}
-            onChange={(nextRange, animated) => (animated ? xRange.setAnimated(nextRange) : xRange.setImmediate(nextRange))}
+            onChange={(nextRange, animated) => (animated ? xRange.setAnimated(nextRange, visibleRange) : xRange.setImmediate(nextRange))}
           />
         </div>
 

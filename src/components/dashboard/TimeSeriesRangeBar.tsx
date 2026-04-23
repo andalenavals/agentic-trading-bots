@@ -28,7 +28,8 @@ export function TimeSeriesRangeBar({ labels, length, onChange, range }: Props) {
   }
 
   function nudge(direction: -1 | 1) {
-    const nextStart = Math.min(maxStart, Math.max(0, normalized.start + direction));
+    const step = Math.max(1, Math.round(windowSize * 0.12));
+    const nextStart = Math.min(maxStart, Math.max(0, normalized.start + direction * step));
     onChange(normalizeXRange({ end: nextStart + windowSize - 1, start: nextStart }, length), true);
   }
 
