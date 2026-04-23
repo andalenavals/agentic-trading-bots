@@ -25,6 +25,10 @@ export function YAxisRangeBar({ formatter, fullRange, onChange, range }: Props) 
     onChange(normalizeYRange({ max: clampedMax, min: clampedMax - windowSpan }, fullRange));
   }
 
+  function nudge(direction: -1 | 1) {
+    handleMove(normalized.max + direction * windowSpan * 0.08);
+  }
+
   function maxFromPointer(clientY: number, grabRatio: number) {
     const track = trackRef.current;
     if (!track || disabled) return normalized.max;
@@ -63,9 +67,20 @@ export function YAxisRangeBar({ formatter, fullRange, onChange, range }: Props) 
 
   return (
     <div className="y-range-bar">
-      <button disabled={disabled} onClick={() => onChange(zoomYRangeFromCenter(normalized, fullRange, "in"))} title="Zoom in" type="button">
-        +
-      </button>
+      <div className="range-button-group vertical">
+        <button disabled={disabled || normalized.max >= fullRange.max} onClick={() => nudge(1)} title="Move up" type="button">
+          {"^"}
+        </button>
+        <button disabled={disabled || normalized.min <= fullRange.min} onClick={() => nudge(-1)} title="Move down" type="button">
+          v
+        </button>
+        <button disabled={disabled} onClick={() => onChange(zoomYRangeFromCenter(normalized, fullRange, "out"))} title="Zoom out" type="button">
+          -
+        </button>
+        <button disabled={disabled} onClick={() => onChange(zoomYRangeFromCenter(normalized, fullRange, "in"))} title="Zoom in" type="button">
+          +
+        </button>
+      </div>
       <div className="y-range-control">
         <span>{formatter(normalized.max)}</span>
         <div
@@ -90,9 +105,6 @@ export function YAxisRangeBar({ formatter, fullRange, onChange, range }: Props) 
         </div>
         <span>{formatter(normalized.min)}</span>
       </div>
-      <button disabled={disabled} onClick={() => onChange(zoomYRangeFromCenter(normalized, fullRange, "out"))} title="Zoom out" type="button">
-        -
-      </button>
     </div>
   );
 }

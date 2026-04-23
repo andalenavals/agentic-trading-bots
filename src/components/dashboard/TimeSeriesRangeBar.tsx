@@ -27,6 +27,10 @@ export function TimeSeriesRangeBar({ labels, length, onChange, range }: Props) {
     onChange(normalizeXRange({ end: nextStart + windowSize - 1, start: nextStart }, length));
   }
 
+  function nudge(direction: -1 | 1) {
+    handleMove(normalized.start + direction);
+  }
+
   function startFromPointer(clientX: number, grabRatio: number) {
     const track = trackRef.current;
     if (!track || disabled) return normalized.start;
@@ -64,9 +68,6 @@ export function TimeSeriesRangeBar({ labels, length, onChange, range }: Props) {
 
   return (
     <div className="time-range-bar">
-      <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "out"))} title="Zoom out" type="button">
-        -
-      </button>
       <div className="time-range-control">
         <div
           className="time-range-track"
@@ -92,9 +93,20 @@ export function TimeSeriesRangeBar({ labels, length, onChange, range }: Props) {
           {startLabel} - {endLabel}
         </span>
       </div>
-      <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "in"))} title="Zoom in" type="button">
-        +
-      </button>
+      <div className="range-button-group horizontal">
+        <button disabled={disabled || normalized.start <= 0} onClick={() => nudge(-1)} title="Move left" type="button">
+          {"<"}
+        </button>
+        <button disabled={disabled || normalized.end >= length - 1} onClick={() => nudge(1)} title="Move right" type="button">
+          {">"}
+        </button>
+        <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "out"))} title="Zoom out" type="button">
+          -
+        </button>
+        <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "in"))} title="Zoom in" type="button">
+          +
+        </button>
+      </div>
     </div>
   );
 }
