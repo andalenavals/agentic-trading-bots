@@ -3,7 +3,7 @@ import { access, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { normalizeCommodity } from "@/lib/analytics/commodities";
 import { parseCsv, toNumber } from "@/lib/data/csv";
-import type { PredictionChartData, PredictionPoint } from "@/lib/types";
+import type { PredictionChartData, PredictionEvaluationMode, PredictionPoint } from "@/lib/types";
 
 const PREDICTION_ROOT = path.join(process.cwd(), "data", "prediction_outputs");
 
@@ -16,7 +16,7 @@ export const loadPredictionChartData = cache(async (): Promise<PredictionChartDa
 
       const text = await readFile(fullPath, "utf8");
       const rows = parseCsv(text);
-      const points = rows.flatMap((row) => parsePredictionRow(row, source.model, source.split));
+      const points = rows.flatMap((row) => parsePredictionRow(row, source.model, source.evaluationMode, source.split));
       return { points, source };
     }),
   );
@@ -58,13 +58,26 @@ async function exists(filePath: string) {
 }
 
 function predictionSource(model: "ar1_baseline" | "ridge_arx", file: string): PredictionChartData["sources"] {
-  const match = file.match(/^full_dataset_predictions_([a-z_]+)_split_(\d+)\.csv$/);
-  if (!match) return [];
+  const recursiveMatch = file.match(/^full_dataset_predictions_([a-z_]+)_split_(\d+)_(recursive_path)\.csv$/);
+  if (recursiveMatch) {
+    return [{
+      model,
+      evaluationMode: "recursive_path",
+      split: Number(recursiveMatch[2]),
+      commodity: normalizeCommodity(recursiveMatch[1]) ?? undefined,
+      path: `${model}/${file}`,
+    }];
+  }
+
+  const observedMatch = file.match(/^full_dataset_predictions_([a-z_]+)_split_(\d+)\.csv$/);
+  if (!observedMatch) return [];
+  const evaluationMode: PredictionEvaluationMode = model === "ridge_arx" ? "observed_history" : "recursive_path";
 
   return [{
     model,
-    split: Number(match[2]),
-    commodity: normalizeCommodity(match[1]) ?? undefined,
+    evaluationMode,
+    split: Number(observedMatch[2]),
+    commodity: normalizeCommodity(observedMatch[1]) ?? undefined,
     path: `${model}/${file}`,
   }];
 }
@@ -72,6 +85,7 @@ function predictionSource(model: "ar1_baseline" | "ridge_arx", file: string): Pr
 function parsePredictionRow(
   row: Record<string, string>,
   model: "ar1_baseline" | "ridge_arx",
+  evaluationMode: PredictionEvaluationMode,
   split: number,
 ): PredictionPoint[] {
   const commodity = normalizeCommodity(row.commodity);
@@ -79,6 +93,7 @@ function parsePredictionRow(
 
   return [{
     model,
+    evaluationMode,
     split,
     datasetIndex: toNumber(row.dataset_index),
     phase: row.phase === "test" ? "test" : "train",

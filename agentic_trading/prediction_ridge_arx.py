@@ -19,7 +19,9 @@ REQUIRED_CONFIG_KEYS = {
 DEFAULT_LAGS = [1, 2, 5, 10]
 DEFAULT_WINDOWS = [5, 20]
 DEFAULT_BAND_WINDOW = 20
-DEFAULT_CENTER_BLEND = 0.85
+DEFAULT_CENTER_BLEND = 0.50
+OBSERVED_HISTORY = "observed_history"
+RECURSIVE_PATH = "recursive_path"
 csv.field_size_limit(sys.maxsize)
 
 
@@ -70,6 +72,7 @@ def generate_full_predictions(
     ridge_alpha: float,
     lags: list[int] | None = None,
     windows: list[int] | None = None,
+    evaluation_mode: str = OBSERVED_HISTORY,
 ) -> list[dict[str, object]]:
     lags = lags or list(DEFAULT_LAGS)
     windows = windows or list(DEFAULT_WINDOWS)
@@ -88,6 +91,9 @@ def generate_full_predictions(
         lags,
         windows,
     )
+    if evaluation_mode not in {OBSERVED_HISTORY, RECURSIVE_PATH}:
+        raise ValueError(f"Unsupported evaluation_mode {evaluation_mode!r}.")
+
     predicted_log_prices = list(actual_log_prices)
     predicted_log_returns = list(actual_log_returns)
     generated: list[dict[str, object]] = []
@@ -99,21 +105,27 @@ def generate_full_predictions(
         absolute_error = None
 
         if phase == "test" and index >= feature_start:
-            features = build_feature_vector(rows, predicted_log_prices, predicted_log_returns, index, lags, windows)
-            raw_next_log_price = predict_level(model, features)
-            recent_prices = predicted_log_prices[max(0, index - int(model["band_window"])):index]
-            center = sum(recent_prices) / len(recent_prices) if recent_prices else predicted_log_prices[index - 1]
-            blended_next_log_price = (
-                float(model["center_blend"]) * center
-                + (1.0 - float(model["center_blend"])) * raw_next_log_price
-            )
-            next_log_price = clamp(
-                blended_next_log_price,
-                center - float(model["level_band"]),
-                center + float(model["level_band"]),
-            )
-            predicted_log_prices[index] = next_log_price
-            predicted_log_returns[index] = next_log_price - predicted_log_prices[index - 1]
+            if evaluation_mode == OBSERVED_HISTORY:
+                features = build_feature_vector(rows, actual_log_prices, actual_log_returns, index, lags, windows)
+                next_log_price = predict_level(model, features)
+                predicted_log_prices[index] = next_log_price
+                predicted_log_returns[index] = next_log_price - actual_log_prices[index - 1]
+            else:
+                features = build_feature_vector(rows, predicted_log_prices, predicted_log_returns, index, lags, windows)
+                raw_next_log_price = predict_level(model, features)
+                recent_prices = predicted_log_prices[max(0, index - int(model["band_window"])):index]
+                center = sum(recent_prices) / len(recent_prices) if recent_prices else predicted_log_prices[index - 1]
+                blended_next_log_price = (
+                    float(model["center_blend"]) * center
+                    + (1.0 - float(model["center_blend"])) * raw_next_log_price
+                )
+                next_log_price = clamp(
+                    blended_next_log_price,
+                    center - float(model["level_band"]),
+                    center + float(model["level_band"]),
+                )
+                predicted_log_prices[index] = next_log_price
+                predicted_log_returns[index] = next_log_price - predicted_log_prices[index - 1]
             predicted_price = math.exp(next_log_price)
             error = predicted_price - actual_prices[index]
             absolute_error = abs(error)
@@ -386,10 +398,44 @@ def run(config_path: str) -> None:
 
         commodity = rows[0].get("commodity", input_file.stem)
         for split, train_end in walk_forward_boundaries(len(rows), int(config["n_splits"])):
-            full_predictions = generate_full_predictions(rows, split, train_end, ridge_alpha, lags, windows)
+            observed_predictions = generate_full_predictions(
+                rows,
+                split,
+                train_end,
+                ridge_alpha,
+                lags,
+                windows,
+                evaluation_mode=OBSERVED_HISTORY,
+            )
             write_csv(
                 output_dir / f"full_dataset_predictions_{commodity}_split_{split}.csv",
-                full_predictions,
+                observed_predictions,
+                [
+                    "date",
+                    "commodity",
+                    "dataset_index",
+                    "split",
+                    "phase",
+                    "price",
+                    "predicted_price",
+                    "error",
+                    "absolute_error",
+                    "alpha",
+                    "beta",
+                ],
+            )
+            recursive_predictions = generate_full_predictions(
+                rows,
+                split,
+                train_end,
+                ridge_alpha,
+                lags,
+                windows,
+                evaluation_mode=RECURSIVE_PATH,
+            )
+            write_csv(
+                output_dir / f"full_dataset_predictions_{commodity}_split_{split}_{RECURSIVE_PATH}.csv",
+                recursive_predictions,
                 [
                     "date",
                     "commodity",

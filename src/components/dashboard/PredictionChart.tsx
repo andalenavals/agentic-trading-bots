@@ -19,7 +19,7 @@ import { fullYRange, normalizeXRange, remapXRange, xAxisTicks } from "@/lib/anal
 import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 import type { XRange } from "@/lib/analytics/chart-zoom";
-import type { CommoditySlug, PredictionChartData, PredictionModelKind, PredictionPoint } from "@/lib/types";
+import type { CommoditySlug, PredictionChartData, PredictionEvaluationMode, PredictionModelKind, PredictionPoint } from "@/lib/types";
 
 type Props = {
   activeCommodity: CommoditySlug;
@@ -64,6 +64,7 @@ export function PredictionChart({
 }: Props) {
   const mounted = useClientMounted();
   const [model, setModel] = useState<PredictionModelKind>("ridge_arx");
+  const [evaluationMode, setEvaluationMode] = useState<PredictionEvaluationMode>("observed_history");
   const [split, setSplit] = useState(1);
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
   const availableModels = useMemo<PredictionModelKind[]>(() => {
@@ -73,21 +74,35 @@ export function PredictionChart({
       : (["ridge_arx", "ar1_baseline"] as PredictionModelKind[]);
   }, [activeCommodity, predictionChart.points]);
   const activeModel = availableModels.includes(model) ? model : availableModels[0];
+  const availableModes = useMemo<PredictionEvaluationMode[]>(() => {
+    const modes = new Set(
+      predictionChart.points
+        .filter((point) => point.model === activeModel && point.commodity === activeCommodity)
+        .map((point) => point.evaluationMode),
+    );
+    return modes.size ? Array.from(modes).sort() as PredictionEvaluationMode[] : [activeModel === "ridge_arx" ? "observed_history" : "recursive_path"];
+  }, [activeCommodity, activeModel, predictionChart.points]);
+  const activeEvaluationMode = availableModes.includes(evaluationMode) ? evaluationMode : availableModes[0];
 
   const splitOptions = useMemo(() => {
     const splits = new Set(
       predictionChart.points
-        .filter((point) => point.model === activeModel && point.commodity === activeCommodity)
+        .filter((point) => point.model === activeModel && point.evaluationMode === activeEvaluationMode && point.commodity === activeCommodity)
         .map((point) => point.split),
     );
     return splits.size ? Array.from(splits).sort((a, b) => a - b) : [split];
-  }, [activeCommodity, activeModel, predictionChart.points, split]);
+  }, [activeCommodity, activeEvaluationMode, activeModel, predictionChart.points, split]);
   const activeSplit = splitOptions.includes(split) ? split : splitOptions[0];
 
   const chartPoints = useMemo(
     () =>
       predictionChart.points
-        .filter((point) => point.model === activeModel && point.commodity === activeCommodity && point.split === activeSplit)
+        .filter((point) => (
+          point.model === activeModel
+          && point.evaluationMode === activeEvaluationMode
+          && point.commodity === activeCommodity
+          && point.split === activeSplit
+        ))
         .sort((a, b) => a.date.localeCompare(b.date))
         .map((point, index) => ({
           ...point,
@@ -99,7 +114,7 @@ export function PredictionChart({
           }),
           x: index,
         })),
-    [activeCommodity, activeModel, activeSplit, predictionChart.points, range],
+    [activeCommodity, activeEvaluationMode, activeModel, activeSplit, predictionChart.points, range],
   );
 
   const displayedPoints = useMemo(
@@ -167,6 +182,21 @@ export function PredictionChart({
             ))}
           </select>
         </Control>
+        {availableModes.length > 1 ? (
+          <Control label="Evaluation">
+            <select
+              value={activeEvaluationMode}
+              onChange={(event) => {
+                setEvaluationMode(event.target.value as PredictionEvaluationMode);
+                setSelectedPointKey(null);
+              }}
+            >
+              {availableModes.map((item) => (
+                <option key={item} value={item}>{evaluationModeLabel(item)}</option>
+              ))}
+            </select>
+          </Control>
+        ) : null}
         <Control label="Split">
           <select value={activeSplit} onChange={(event) => setSplit(Number(event.target.value))}>
             {splitOptions.map((item) => (
@@ -292,7 +322,7 @@ function PredictionPointState({ model, point }: { model: PredictionModelKind; po
         <strong style={{ color: PREDICTION_COLOR }}>
           ${point.predictedPrice?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
         </strong>
-        <p className="faint">Forecast path</p>
+        <p className="faint">{evaluationModeLabel(point.evaluationMode)}</p>
       </div>
       <div className="stat-grid">
         <Stat label="Actual" value={`$${point.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
@@ -315,6 +345,11 @@ function PredictionPointState({ model, point }: { model: PredictionModelKind; po
 function modelLabel(model: PredictionModelKind) {
   if (model === "ridge_arx") return "Ridge ARX";
   return "Trend baseline";
+}
+
+function evaluationModeLabel(mode: PredictionEvaluationMode) {
+  if (mode === "observed_history") return "Observed history";
+  return "Recursive path";
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

@@ -102,9 +102,11 @@ export type AgentGymData = {
 };
 
 export type PredictionModelKind = "ar1_baseline" | "ridge_arx";
+export type PredictionEvaluationMode = "observed_history" | "recursive_path";
 
 export type PredictionPoint = {
   model: PredictionModelKind;
+  evaluationMode: PredictionEvaluationMode;
   split: number;
   datasetIndex: number;
   phase: "train" | "test";
@@ -122,6 +124,7 @@ export type PredictionChartData = {
   points: PredictionPoint[];
   sources: Array<{
     model: PredictionModelKind;
+    evaluationMode: PredictionEvaluationMode;
     split: number;
     commodity?: CommoditySlug;
     path: string;
