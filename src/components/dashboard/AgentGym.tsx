@@ -113,13 +113,12 @@ export function AgentGym({ agentGym, commodities }: Props) {
     [chartPoints, range],
   );
   const visibleRange = normalizeXRange(xRange.range ?? fullXRange(displayedPoints.length), displayedPoints.length);
-  const visiblePoints = displayedPoints.slice(visibleRange.start, visibleRange.end + 1);
   const ticks = xAxisTicks(visibleRange);
   const rawYFullRange = fullYRange(displayedPoints.map((point) => point.price));
   const yFullRange = logScale ? { ...rawYFullRange, min: Math.max(0.000001, rawYFullRange.min) } : rawYFullRange;
   const visibleYRange = normalizeYRange(yRange.range ?? yFullRange, yFullRange);
   const activeCommodity = COMMODITY_LOOKUP[activeCommoditySlug];
-  const testStart = visiblePoints.find((point) => point.phase === "test");
+  const testStart = displayedPoints.find((point) => point.phase === "test");
   const selectedPoint = chartPoints.find((point) => point.key === selectedPointKey) ?? null;
 
   function pointFromChartEvent(event: ChartClickEvent | undefined) {
@@ -127,10 +126,10 @@ export function AgentGym({ agentGym, commodities }: Props) {
     if (payloadPoint) return payloadPoint;
 
     const tooltipIndex = Number(event?.activeTooltipIndex);
-    if (Number.isInteger(tooltipIndex) && visiblePoints[tooltipIndex]) return visiblePoints[tooltipIndex];
+    if (Number.isInteger(tooltipIndex) && displayedPoints[tooltipIndex]) return displayedPoints[tooltipIndex];
 
     const activeX = Number(event?.activeLabel);
-    const pointByX = visiblePoints.find((point) => point.x === activeX);
+    const pointByX = displayedPoints.find((point) => point.x === activeX);
     if (pointByX) return pointByX;
 
     return null;
@@ -237,7 +236,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
           />
           <div className="chart-y-layout">
             <div className="chart-box" style={{ height: 390 }}>
-              {visiblePoints.length === 0 ? (
+              {displayedPoints.length === 0 ? (
                 <div className="empty-state">
                   <h3>No bot decisions generated yet</h3>
                   <p>
@@ -248,7 +247,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
               ) : mounted ? (
                 <ResponsiveContainer height="100%" width="100%">
                   <ComposedChart
-                    data={visiblePoints}
+                    data={displayedPoints}
                     onClick={(event) => {
                       const point = pointFromChartEvent(event as ChartClickEvent | undefined);
                       if (point) setSelectedPointKey(point.key);
@@ -256,6 +255,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
                   >
                     <CartesianGrid stroke="#252b3a" vertical={false} />
                     <XAxis
+                      allowDataOverflow
                       axisLine={false}
                       dataKey="x"
                       domain={[visibleRange.start, visibleRange.end]}
@@ -296,7 +296,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
                       ? null
                       : (["hold", "buy", "sell"] as AgentActionName[]).map((actionName) => (
                           <Scatter
-                            data={visiblePoints.filter((point) => point.actionName === actionName)}
+                            data={displayedPoints.filter((point) => point.actionName === actionName)}
                             dataKey="price"
                             key={actionName}
                             shape={<DecisionDot alphaLevel={alphaLevel} markerSize={markerSize} markerType={markerType} />}

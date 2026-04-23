@@ -34,7 +34,6 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
   const yRange = useAnimatedYRange();
   const chartData = useMemo(() => buildOverlayData(commodities, pricesByCommodity, range), [commodities, pricesByCommodity, range]);
   const visibleRange = normalizeXRange(xRange.range ?? fullXRange(chartData.length), chartData.length);
-  const visibleData = chartData.slice(visibleRange.start, visibleRange.end + 1);
   const ticks = xAxisTicks(visibleRange);
   const yFullRange = fullYRange(
     chartData.flatMap((point) =>
@@ -79,9 +78,10 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
         <div className="chart-box" style={{ height: 330 }}>
           {mounted ? (
             <ResponsiveContainer height="100%" width="100%">
-              <ComposedChart data={visibleData}>
+              <ComposedChart data={chartData}>
                 <CartesianGrid stroke="#252b3a" vertical={false} />
                 <XAxis
+                  allowDataOverflow
                   axisLine={false}
                   dataKey="x"
                   domain={[visibleRange.start, visibleRange.end]}

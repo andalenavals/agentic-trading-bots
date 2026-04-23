@@ -74,12 +74,12 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
     }
 
     const tooltipIndex = Number(event?.activeTooltipIndex);
-    if (Number.isInteger(tooltipIndex) && visibleData[tooltipIndex]) {
-      return visibleData[tooltipIndex];
+    if (Number.isInteger(tooltipIndex) && chartData[tooltipIndex]) {
+      return chartData[tooltipIndex];
     }
 
     const activeX = Number(event?.activeLabel);
-    return visibleData.find((point) => point.x === activeX) ?? null;
+    return chartData.find((point) => point.x === activeX) ?? null;
   }
 
   function handleRangeChange(nextRange: number) {
@@ -134,7 +134,7 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
           {mounted ? (
             <ResponsiveContainer height="100%" width="100%">
               <ComposedChart
-                data={visibleData}
+                data={chartData}
                 onClick={(event) => selectFromChartEvent(event as ChartClickEvent | undefined)}
                 onMouseMove={(event) => rememberHoveredPoint(event as ChartClickEvent | undefined)}
               >
@@ -146,6 +146,7 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
                 </defs>
                 <CartesianGrid stroke="#252b3a" vertical={false} />
                 <XAxis
+                  allowDataOverflow
                   axisLine={false}
                   dataKey="x"
                   domain={[visibleRange.start, visibleRange.end]}
@@ -176,7 +177,7 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
                 )}
                 {markerType === "none" ? null : (
                   <Scatter
-                    data={visibleData}
+                    data={chartData}
                     dataKey="price"
                     shape={<PriceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
                   />
