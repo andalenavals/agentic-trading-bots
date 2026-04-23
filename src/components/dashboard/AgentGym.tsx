@@ -152,6 +152,19 @@ export function AgentGym({ activeCommodity: selectedCommodity, agentGym, commodi
     xRange.setImmediate(null);
   }
 
+  function selectFromSurfaceClick(event: React.MouseEvent<HTMLDivElement>) {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (bounds.width <= 0 || !displayedPoints.length) return;
+
+    const plotLeft = 62;
+    const plotRight = 8;
+    const plotWidth = Math.max(1, bounds.width - plotLeft - plotRight);
+    const relativeX = clamp((event.clientX - bounds.left - plotLeft) / plotWidth, 0, 1);
+    const index = Math.round(xDomain.start + relativeX * (xDomain.end - xDomain.start));
+    const clampedIndex = Math.min(displayedPoints.length - 1, Math.max(0, index));
+    setSelectedPointKey(displayedPoints[clampedIndex]?.key ?? null);
+  }
+
   return (
     <section className="agent-gym">
       <div className="panel-head">
@@ -217,6 +230,7 @@ export function AgentGym({ activeCommodity: selectedCommodity, agentGym, commodi
           <ChartGestureSurface
             className="chart-box"
             style={{ height: 390 }}
+            onClick={selectFromSurfaceClick}
             xLength={displayedPoints.length}
             xRange={xDomain}
             onXChange={xRange.setImmediate}
@@ -416,6 +430,10 @@ function buildChartPoints(points: AgentDecisionPoint[], activeSplit: number, spl
     uncertainty: point.normalizedEntropy || 1 - point.confidence,
     x: index,
   }));
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function DecisionDot(props: { alphaLevel?: number; cx?: number; cy?: number; markerSize?: number; markerType?: MarkerType; payload?: AgentChartPoint }) {
