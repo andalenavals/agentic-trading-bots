@@ -23,6 +23,11 @@ export type SentimentPoint = PricePoint & {
   neutral: number;
   positive: number;
   sentimentScore: number;
+  finbertNegative: number;
+  finbertNeutral: number;
+  finbertPositive: number;
+  finbertSentimentScore: number;
+  finbertLabel: string;
 };
 
 export type NewsEvent = {

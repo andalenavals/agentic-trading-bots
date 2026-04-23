@@ -32,7 +32,7 @@ type Props = {
   range: number;
 };
 
-type SentimentMode = "sentiment" | "inverse";
+type SentimentMode = "sentiment" | "finbert";
 
 type ChartClickEvent = {
   activeLabel?: number | string;
@@ -78,7 +78,7 @@ export function SentimentChart({
           month: "short",
           year: range >= 365 ? "2-digit" : undefined,
         }),
-        value: mode === "inverse" ? -point.sentimentScore : point.sentimentScore,
+        value: mode === "finbert" ? point.finbertSentimentScore : point.sentimentScore,
         x: index,
       })),
     [filtered, mode, range],
@@ -144,7 +144,7 @@ export function SentimentChart({
             }}
           >
             <option value="sentiment">Simple sentiment</option>
-            <option value="inverse">Inverse sentiment</option>
+            <option value="finbert">FinBERT</option>
           </select>
         </label>
       </div>
@@ -221,18 +221,24 @@ export function SentimentChart({
 
 function SentimentPointState({ mode, point }: { mode: SentimentMode; point: SentimentChartPoint }) {
   const toneClass = point.value > 0.08 ? "positive-text" : point.value < -0.08 ? "negative-text" : "muted";
+  const positive = mode === "finbert" ? point.finbertPositive : point.positive;
+  const neutral = mode === "finbert" ? point.finbertNeutral : point.neutral;
+  const negative = mode === "finbert" ? point.finbertNegative : point.negative;
+  const scoreLabel = mode === "finbert" ? "FinBERT sentiment score" : "Simple sentiment score";
+  const labelText = mode === "finbert" ? (point.finbertLabel || "n/a").toUpperCase() : "Simple score";
 
   return (
     <div className="sentiment-state">
       <div className="bot-state-hero">
         <span className="source">{new Date(point.date).toLocaleDateString()}</span>
         <strong className={toneClass}>{point.value.toFixed(3)}</strong>
-        <p className="faint">{mode === "inverse" ? "Inverse sentiment score" : "Simple sentiment score"}</p>
+        <p className="faint">{scoreLabel}</p>
       </div>
       <div className="stat-grid">
-        <Stat label="Positive" value={`${(point.positive * 100).toFixed(1)}%`} />
-        <Stat label="Neutral" value={`${(point.neutral * 100).toFixed(1)}%`} />
-        <Stat label="Negative" value={`${(point.negative * 100).toFixed(1)}%`} />
+        <Stat label="Label" value={labelText} />
+        <Stat label="Positive" value={`${(positive * 100).toFixed(1)}%`} />
+        <Stat label="Neutral" value={`${(neutral * 100).toFixed(1)}%`} />
+        <Stat label="Negative" value={`${(negative * 100).toFixed(1)}%`} />
         <Stat label="News rows" value={String(point.newsCount)} />
       </div>
     </div>

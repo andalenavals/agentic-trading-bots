@@ -41,6 +41,11 @@ export const loadDashboardData = cache(async (): Promise<DashboardData> => {
       neutral: toNumber(row.neutral),
       positive: toNumber(row.positive),
       sentimentScore: toNumber(row.sentiment_score),
+      finbertNegative: toNumber(row.finbert_negative),
+      finbertNeutral: toNumber(row.finbert_neutral),
+      finbertPositive: toNumber(row.finbert_positive),
+      finbertSentimentScore: toNumber(row.finbert_sentiment_score),
+      finbertLabel: row.finbert_label ?? "",
     });
   }
 
