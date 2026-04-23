@@ -88,10 +88,6 @@ export function PriceChart({ commodity, embedded = false, onSelectPoint, points,
     xRange.setImmediate(null);
   }
 
-  function toggleMarkers() {
-    setMarkerType((current) => (current === "none" ? "circle" : "none"));
-  }
-
   function rememberHoveredPoint(event: ChartClickEvent | undefined) {
     hoveredPoint.current = pointFromChartEvent(event);
   }
@@ -119,9 +115,6 @@ export function PriceChart({ commodity, embedded = false, onSelectPoint, points,
       {selector ? (
         <div className="panel-head chart-selector-head">
           {selector}
-          <button className={`marker-toggle ${markerType !== "none" ? "active" : ""}`} onClick={toggleMarkers} type="button">
-            {markerType === "none" ? "Show markers" : "Hide markers"}
-          </button>
         </div>
       ) : null}
 

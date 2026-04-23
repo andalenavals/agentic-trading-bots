@@ -85,7 +85,7 @@ h1 {
 }
 
 .chart-selector-head {
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .commodity-picker label {
@@ -120,6 +120,40 @@ h1 {
 .market-panel {
   margin-top: 18px;
   overflow: hidden;
+}
+
+.news-chart-panel summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  list-style: none;
+  padding: 12px 18px;
+  text-transform: uppercase;
+}
+
+.news-chart-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.news-chart-panel summary::after {
+  color: var(--gold);
+  content: "+";
+  float: right;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.news-chart-panel[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.news-chart-panel[open] summary::after {
+  content: "-";
+}
+
+.news-chart-body {
+  display: block;
 }
 
 .market-chart-section {
@@ -476,22 +510,6 @@ h1 {
 .chart-box {
   height: 390px;
   padding: 18px;
-}
-
-.marker-toggle {
-  background: var(--panel-strong);
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  padding: 9px 11px;
-  white-space: nowrap;
-}
-
-.marker-toggle.active {
-  background: var(--gold);
-  color: #10131a;
 }
 
 .gesture-surface {
