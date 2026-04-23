@@ -233,6 +233,87 @@ class PreprocessingTest(unittest.TestCase):
         self.assertEqual(original_test[0]["predicted_price"], mutated_test[0]["predicted_price"])
         self.assertNotEqual(original_test[1]["predicted_price"], mutated_test[1]["predicted_price"])
 
+    def test_ridge_arx_price_only_ignores_sentiment_columns(self) -> None:
+        rows = []
+        for index in range(40):
+            rows.append(
+                {
+                    "date": f"2026-05-{index + 1:02d}",
+                    "commodity": "copper_lme",
+                    "price": str(150 + index * 1.4 + (index % 4) * 0.3),
+                    "news_count": str((index % 5) + 1),
+                    "sentiment_score": str(0.15 if index % 2 == 0 else -0.12),
+                    "finbert_sentiment_score": str(0.25 if index % 3 == 0 else -0.2),
+                    "positive": "0.6",
+                    "neutral": "0.25",
+                    "negative": "0.15",
+                    "finbert_positive": "0.65",
+                    "finbert_neutral": "0.2",
+                    "finbert_negative": "0.15",
+                }
+            )
+
+        mutated_rows = [row.copy() for row in rows]
+        for row in mutated_rows:
+            row["news_count"] = "99"
+            row["sentiment_score"] = "-0.95"
+            row["finbert_sentiment_score"] = "0.92"
+            row["positive"] = "0.05"
+            row["neutral"] = "0.05"
+            row["negative"] = "0.90"
+            row["finbert_positive"] = "0.90"
+            row["finbert_neutral"] = "0.05"
+            row["finbert_negative"] = "0.05"
+
+        price_only_original = generate_ridge_predictions(
+            rows,
+            split=1,
+            train_end=25,
+            ridge_alpha=1.0,
+            evaluation_mode="observed_history",
+            include_sentiment_features=False,
+        )
+        price_only_mutated = generate_ridge_predictions(
+            mutated_rows,
+            split=1,
+            train_end=25,
+            ridge_alpha=1.0,
+            evaluation_mode="observed_history",
+            include_sentiment_features=False,
+        )
+        sentiment_original = generate_ridge_predictions(
+            rows,
+            split=1,
+            train_end=25,
+            ridge_alpha=1.0,
+            evaluation_mode="observed_history",
+            include_sentiment_features=True,
+        )
+        sentiment_mutated = generate_ridge_predictions(
+            mutated_rows,
+            split=1,
+            train_end=25,
+            ridge_alpha=1.0,
+            evaluation_mode="observed_history",
+            include_sentiment_features=True,
+        )
+
+        price_only_pairs = [
+            (original["predicted_price"], mutated["predicted_price"])
+            for original, mutated in zip(price_only_original, price_only_mutated, strict=True)
+            if original["phase"] == "test" and original["predicted_price"] != ""
+        ]
+        sentiment_pairs = [
+            (original["predicted_price"], mutated["predicted_price"])
+            for original, mutated in zip(sentiment_original, sentiment_mutated, strict=True)
+            if original["phase"] == "test" and original["predicted_price"] != ""
+        ]
+
+        self.assertTrue(price_only_pairs)
+        self.assertTrue(sentiment_pairs)
+        self.assertTrue(all(original == mutated for original, mutated in price_only_pairs))
+        self.assertTrue(any(original != mutated for original, mutated in sentiment_pairs))
+
     def test_pipeline_fails_fast_when_required_columns_are_missing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

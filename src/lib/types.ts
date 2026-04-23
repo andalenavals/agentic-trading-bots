@@ -101,7 +101,7 @@ export type AgentGymData = {
   }>;
 };
 
-export type PredictionModelKind = "ar1_baseline" | "ridge_arx";
+export type PredictionModelKind = "ar1_baseline" | "ridge_arx_price_only" | "ridge_arx_sentiment";
 export type PredictionEvaluationMode = "observed_history" | "recursive_path";
 
 export type PredictionPoint = {

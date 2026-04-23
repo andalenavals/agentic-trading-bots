@@ -48,6 +48,7 @@ type PredictionChartPoint = PredictionPoint & {
 };
 
 const PREDICTION_COLOR = "#f6c85f";
+const MODEL_ORDER: PredictionModelKind[] = ["ridge_arx_sentiment", "ridge_arx_price_only", "ar1_baseline"];
 
 export function PredictionChart({
   activeCommodity,
@@ -64,15 +65,15 @@ export function PredictionChart({
 }: Props) {
   const mounted = useClientMounted();
   const markersOnly = markerType !== "none";
-  const [model, setModel] = useState<PredictionModelKind>("ridge_arx");
+  const [model, setModel] = useState<PredictionModelKind>("ridge_arx_sentiment");
   const [evaluationMode, setEvaluationMode] = useState<PredictionEvaluationMode>("observed_history");
   const [split, setSplit] = useState(1);
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
   const availableModels = useMemo<PredictionModelKind[]>(() => {
     const models = new Set(predictionChart.points.filter((point) => point.commodity === activeCommodity).map((point) => point.model));
     return models.size
-      ? (Array.from(models).sort() as PredictionModelKind[])
-      : (["ridge_arx", "ar1_baseline"] as PredictionModelKind[]);
+      ? MODEL_ORDER.filter((item) => models.has(item))
+      : MODEL_ORDER;
   }, [activeCommodity, predictionChart.points]);
   const activeModel = availableModels.includes(model) ? model : availableModels[0];
   const availableModes = useMemo<PredictionEvaluationMode[]>(() => {
@@ -81,7 +82,7 @@ export function PredictionChart({
         .filter((point) => point.model === activeModel && point.commodity === activeCommodity)
         .map((point) => point.evaluationMode),
     );
-    return modes.size ? Array.from(modes).sort() as PredictionEvaluationMode[] : [activeModel === "ridge_arx" ? "observed_history" : "recursive_path"];
+    return modes.size ? Array.from(modes).sort() as PredictionEvaluationMode[] : [activeModel === "ar1_baseline" ? "recursive_path" : "observed_history"];
   }, [activeCommodity, activeModel, predictionChart.points]);
   const activeEvaluationMode = availableModes.includes(evaluationMode) ? evaluationMode : availableModes[0];
 
@@ -325,6 +326,7 @@ function Control({ label, children }: { label: string; children: React.ReactNode
 }
 
 function PredictionPointState({ model, point }: { model: PredictionModelKind; point: PredictionChartPoint }) {
+  const isArxModel = model === "ridge_arx_price_only" || model === "ridge_arx_sentiment";
   return (
     <div style={{ display: "grid", gap: 14, padding: 18 }}>
       <div className="bot-state-hero">
@@ -340,11 +342,11 @@ function PredictionPointState({ model, point }: { model: PredictionModelKind; po
         <Stat label="Error" value={formatSigned(point.error)} />
         <Stat label="Abs error" value={`$${point.absoluteError?.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
         <Stat
-          label={model === "ridge_arx" ? "Intercept" : "Anchor"}
-          value={model === "ridge_arx" ? point.alpha.toFixed(6) : `$${point.alpha.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+          label={isArxModel ? "Intercept" : "Anchor"}
+          value={isArxModel ? point.alpha.toFixed(6) : `$${point.alpha.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
         />
         <Stat
-          label={model === "ridge_arx" ? "Lag1 coeff" : "Slope"}
+          label={isArxModel ? "Lag1 coeff" : "Slope"}
           value={point.beta.toFixed(6)}
         />
       </div>
@@ -353,7 +355,8 @@ function PredictionPointState({ model, point }: { model: PredictionModelKind; po
 }
 
 function modelLabel(model: PredictionModelKind) {
-  if (model === "ridge_arx") return "Ridge ARX";
+  if (model === "ridge_arx_sentiment") return "Ridge ARX (Price + sentiment)";
+  if (model === "ridge_arx_price_only") return "Ridge ARX (Price only)";
   return "Trend baseline";
 }
 

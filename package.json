@@ -16,6 +16,8 @@
     "train:multi": "sh scripts/train-multi.sh",
     "predict:baseline": "sh scripts/predict-baseline.sh",
     "predict:ridge": "sh scripts/predict-ridge-arx.sh",
+    "predict:ridge:sentiment": "PREDICTION_CONFIG=configs/predictions/ridge_arx_sentiment.json sh scripts/predict-ridge-arx.sh",
+    "predict:ridge:price-only": "PREDICTION_CONFIG=configs/predictions/ridge_arx_price_only.json sh scripts/predict-ridge-arx.sh",
     "test:py": "python3 -m unittest discover -s tests -p 'test_*.py'",
     "test": "npm run typecheck && npm run lint && npm run test:py"
   },

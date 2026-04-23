@@ -31,7 +31,7 @@ async function discoverPredictionSources(): Promise<PredictionChartData["sources
   const modelDirs = await safeReadDir(PREDICTION_ROOT);
   const discovered = await Promise.all(
     modelDirs.map(async (modelDir) => {
-      if (modelDir !== "ar1_baseline" && modelDir !== "ridge_arx") return [];
+      if (modelDir !== "ar1_baseline" && modelDir !== "ridge_arx_price_only" && modelDir !== "ridge_arx_sentiment") return [];
       const files = await safeReadDir(path.join(PREDICTION_ROOT, modelDir));
       return files.flatMap((file) => predictionSource(modelDir, file));
     }),
@@ -57,7 +57,10 @@ async function exists(filePath: string) {
   }
 }
 
-function predictionSource(model: "ar1_baseline" | "ridge_arx", file: string): PredictionChartData["sources"] {
+function predictionSource(
+  model: "ar1_baseline" | "ridge_arx_price_only" | "ridge_arx_sentiment",
+  file: string,
+): PredictionChartData["sources"] {
   const recursiveMatch = file.match(/^full_dataset_predictions_([a-z_]+)_split_(\d+)_(recursive_path)\.csv$/);
   if (recursiveMatch) {
     return [{
@@ -71,7 +74,7 @@ function predictionSource(model: "ar1_baseline" | "ridge_arx", file: string): Pr
 
   const observedMatch = file.match(/^full_dataset_predictions_([a-z_]+)_split_(\d+)\.csv$/);
   if (!observedMatch) return [];
-  const evaluationMode: PredictionEvaluationMode = model === "ridge_arx" ? "observed_history" : "recursive_path";
+  const evaluationMode: PredictionEvaluationMode = model === "ar1_baseline" ? "recursive_path" : "observed_history";
 
   return [{
     model,
@@ -84,7 +87,7 @@ function predictionSource(model: "ar1_baseline" | "ridge_arx", file: string): Pr
 
 function parsePredictionRow(
   row: Record<string, string>,
-  model: "ar1_baseline" | "ridge_arx",
+  model: "ar1_baseline" | "ridge_arx_price_only" | "ridge_arx_sentiment",
   evaluationMode: PredictionEvaluationMode,
   split: number,
 ): PredictionPoint[] {

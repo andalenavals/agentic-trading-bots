@@ -1,9 +1,9 @@
 {
   "input_csv": "data/training/commodity_outputs/*.csv",
-  "output_dir": "data/prediction_outputs/ridge_arx_sentiment",
+  "output_dir": "data/prediction_outputs/ridge_arx_price_only",
   "n_splits": 3,
   "ridge_alpha": 4.0,
   "lags": [1, 2, 5, 10],
   "windows": [5, 20],
-  "include_sentiment_features": true
+  "include_sentiment_features": false
 }

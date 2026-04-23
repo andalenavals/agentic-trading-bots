@@ -20,6 +20,7 @@ DEFAULT_LAGS = [1, 2, 5, 10]
 DEFAULT_WINDOWS = [5, 20]
 DEFAULT_BAND_WINDOW = 20
 DEFAULT_CENTER_BLEND = 0.50
+DEFAULT_CONFIG_NAME = "ridge_arx_sentiment"
 OBSERVED_HISTORY = "observed_history"
 RECURSIVE_PATH = "recursive_path"
 csv.field_size_limit(sys.maxsize)
@@ -73,6 +74,7 @@ def generate_full_predictions(
     lags: list[int] | None = None,
     windows: list[int] | None = None,
     evaluation_mode: str = OBSERVED_HISTORY,
+    include_sentiment_features: bool = True,
 ) -> list[dict[str, object]]:
     lags = lags or list(DEFAULT_LAGS)
     windows = windows or list(DEFAULT_WINDOWS)
@@ -90,6 +92,7 @@ def generate_full_predictions(
         ridge_alpha,
         lags,
         windows,
+        include_sentiment_features,
     )
     if evaluation_mode not in {OBSERVED_HISTORY, RECURSIVE_PATH}:
         raise ValueError(f"Unsupported evaluation_mode {evaluation_mode!r}.")
@@ -106,12 +109,28 @@ def generate_full_predictions(
 
         if phase == "test" and index >= feature_start:
             if evaluation_mode == OBSERVED_HISTORY:
-                features = build_feature_vector(rows, actual_log_prices, actual_log_returns, index, lags, windows)
+                features = build_feature_vector(
+                    rows,
+                    actual_log_prices,
+                    actual_log_returns,
+                    index,
+                    lags,
+                    windows,
+                    include_sentiment_features,
+                )
                 next_log_price = predict_level(model, features)
                 predicted_log_prices[index] = next_log_price
                 predicted_log_returns[index] = next_log_price - actual_log_prices[index - 1]
             else:
-                features = build_feature_vector(rows, predicted_log_prices, predicted_log_returns, index, lags, windows)
+                features = build_feature_vector(
+                    rows,
+                    predicted_log_prices,
+                    predicted_log_returns,
+                    index,
+                    lags,
+                    windows,
+                    include_sentiment_features,
+                )
                 raw_next_log_price = predict_level(model, features)
                 recent_prices = predicted_log_prices[max(0, index - int(model["band_window"])):index]
                 center = sum(recent_prices) / len(recent_prices) if recent_prices else predicted_log_prices[index - 1]
@@ -158,13 +177,17 @@ def fit_ridge_arx_model(
     ridge_alpha: float,
     lags: list[int],
     windows: list[int],
+    include_sentiment_features: bool,
 ) -> dict[str, object]:
     sample_indices = [index for index in range(feature_start, train_end) if index < len(rows)]
     if not sample_indices:
-        return empty_model(feature_names(lags, windows))
+        return empty_model(feature_names(lags, windows, include_sentiment_features))
 
-    feature_names_list = feature_names(lags, windows)
-    x_rows = [build_feature_vector(rows, log_prices, log_returns_series, index, lags, windows) for index in sample_indices]
+    feature_names_list = feature_names(lags, windows, include_sentiment_features)
+    x_rows = [
+        build_feature_vector(rows, log_prices, log_returns_series, index, lags, windows, include_sentiment_features)
+        for index in sample_indices
+    ]
     y_values = [log_prices[index] for index in sample_indices]
     means, scales = fit_feature_standardization(x_rows)
     standardized = [standardize_features(row, means, scales) for row in x_rows]
@@ -285,6 +308,7 @@ def build_feature_vector(
     index: int,
     lags: list[int],
     windows: list[int],
+    include_sentiment_features: bool,
 ) -> list[float]:
     previous = rows[index - 1]
     features: list[float] = []
@@ -301,7 +325,8 @@ def build_feature_vector(
         variance = sum((value - mean) ** 2 for value in window_returns) / len(window_returns)
         features.extend([mean, math.sqrt(variance)])
 
-    features.extend(exogenous_features(previous))
+    if include_sentiment_features:
+        features.extend(exogenous_features(previous))
 
     return features
 
@@ -320,22 +345,23 @@ def exogenous_features(row: dict[str, str]) -> list[float]:
     ]
 
 
-def feature_names(lags: list[int], windows: list[int]) -> list[str]:
+def feature_names(lags: list[int], windows: list[int], include_sentiment_features: bool) -> list[str]:
     names = [f"lag_log_price_{lag}" for lag in lags]
     names.extend(f"lag_log_return_{lag}" for lag in lags)
     for window in windows:
         names.extend([f"rolling_log_return_mean_{window}", f"rolling_log_return_vol_{window}"])
-    names.extend([
-        "sentiment_score",
-        "finbert_sentiment_score",
-        "positive",
-        "neutral",
-        "negative",
-        "finbert_positive",
-        "finbert_neutral",
-        "finbert_negative",
-        "news_count",
-    ])
+    if include_sentiment_features:
+        names.extend([
+            "sentiment_score",
+            "finbert_sentiment_score",
+            "positive",
+            "neutral",
+            "negative",
+            "finbert_positive",
+            "finbert_neutral",
+            "finbert_negative",
+            "news_count",
+        ])
     return names
 
 
@@ -390,6 +416,7 @@ def run(config_path: str) -> None:
     ridge_alpha = float(config["ridge_alpha"])
     lags = [int(value) for value in config.get("lags", DEFAULT_LAGS)]
     windows = [int(value) for value in config.get("windows", DEFAULT_WINDOWS)]
+    include_sentiment_features = bool(config.get("include_sentiment_features", True))
 
     for input_file in resolve_input_files(config["input_csv"]):
         rows = read_csv(input_file)
@@ -406,6 +433,7 @@ def run(config_path: str) -> None:
                 lags,
                 windows,
                 evaluation_mode=OBSERVED_HISTORY,
+                include_sentiment_features=include_sentiment_features,
             )
             write_csv(
                 output_dir / f"full_dataset_predictions_{commodity}_split_{split}.csv",
@@ -432,6 +460,7 @@ def run(config_path: str) -> None:
                 lags,
                 windows,
                 evaluation_mode=RECURSIVE_PATH,
+                include_sentiment_features=include_sentiment_features,
             )
             write_csv(
                 output_dir / f"full_dataset_predictions_{commodity}_split_{split}_{RECURSIVE_PATH}.csv",
@@ -454,7 +483,7 @@ def run(config_path: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="configs/predictions/ridge_arx.json")
+    parser.add_argument("--config", default=f"configs/predictions/{DEFAULT_CONFIG_NAME}.json")
     args = parser.parse_args()
     run(args.config)
 
