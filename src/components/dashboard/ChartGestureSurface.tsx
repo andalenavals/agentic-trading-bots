@@ -6,6 +6,7 @@ import type { XRange } from "@/lib/analytics/chart-zoom";
 type Props = {
   children: ReactNode;
   className?: string;
+  onClick?: (event: MouseEvent<HTMLDivElement>) => void;
   onXChange: (range: XRange) => void;
   style?: CSSProperties;
   xLength: number;
@@ -27,7 +28,7 @@ type GestureState = {
 
 const CLICK_SUPPRESS_MS = 120;
 
-export function ChartGestureSurface({ children, className, onXChange, style, xLength, xRange }: Props) {
+export function ChartGestureSurface({ children, className, onClick, onXChange, style, xLength, xRange }: Props) {
   const gestureRef = useRef<GestureState | null>(null);
   const suppressClickUntilRef = useRef(0);
   const [dragging, setDragging] = useState(false);
@@ -98,7 +99,10 @@ export function ChartGestureSurface({ children, className, onXChange, style, xLe
     if (Date.now() < suppressClickUntilRef.current) {
       event.preventDefault();
       event.stopPropagation();
+      return;
     }
+
+    onClick?.(event);
   }
 
   return (

@@ -13,7 +13,7 @@ export function EventFeed({ commodity, selectedPoint }: Props) {
   const news = selectedPoint?.newsItems ?? [];
 
   return (
-    <aside className="panel">
+    <aside className="panel event-feed">
       <div className="panel-head">
         <div>
           <h2 style={{ fontSize: 17 }}>Clicked news context</h2>

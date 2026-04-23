@@ -99,6 +99,10 @@ h1 {
   grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.55fr);
 }
 
+.market-stack {
+  grid-template-columns: 1fr;
+}
+
 .panel,
 .card {
   background: rgba(25, 29, 40, 0.94);
@@ -477,7 +481,7 @@ h1 {
 }
 
 .events {
-  max-height: 715px;
+  max-height: 420px;
   overflow: auto;
 }
 

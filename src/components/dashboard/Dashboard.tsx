@@ -50,14 +50,12 @@ export function Dashboard({ data }: Props) {
             onSelect={selectCommodity}
           />
 
-          <section className="grid dashboard-grid" style={{ marginTop: 18 }}>
-            <div className="grid">
-              <PriceChart
-                commodity={activeCommodityMeta}
-                onSelectPoint={setSelectedPoint}
-                points={activePoints}
-              />
-            </div>
+          <section className="grid market-stack" style={{ marginTop: 18 }}>
+            <PriceChart
+              commodity={activeCommodityMeta}
+              onSelectPoint={setSelectedPoint}
+              points={activePoints}
+            />
             <EventFeed commodity={activeCommodityMeta} selectedPoint={selectedPoint} />
           </section>
         </>

@@ -21,6 +21,7 @@ import { VisualizationControls } from "@/components/dashboard/VisualizationContr
 import { useAnimatedXRange } from "@/components/dashboard/useAnimatedRange";
 import { fullXRange, fullYRange, normalizeXDomain, normalizeXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { computeSignals } from "@/lib/analytics/signals";
+import type { MouseEvent } from "react";
 import type { Commodity, SentimentPoint } from "@/lib/types";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 
@@ -95,6 +96,19 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
     if (clickedPoint) onSelectPoint(clickedPoint);
   }
 
+  function selectFromSurfaceClick(event: MouseEvent<HTMLDivElement>) {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (bounds.width <= 0 || !chartData.length) return;
+
+    const plotLeft = 62;
+    const plotRight = 8;
+    const plotWidth = Math.max(1, bounds.width - plotLeft - plotRight);
+    const relativeX = clamp((event.clientX - bounds.left - plotLeft) / plotWidth, 0, 1);
+    const index = Math.round(xDomain.start + relativeX * (xDomain.end - xDomain.start));
+    const clampedIndex = Math.min(chartData.length - 1, Math.max(0, index));
+    onSelectPoint(chartData[clampedIndex]);
+  }
+
   return (
     <section className="panel">
       <div className="panel-head">
@@ -131,6 +145,7 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
         className="chart-box"
         xLength={chartData.length}
         xRange={xDomain}
+        onClick={selectFromSurfaceClick}
         onXChange={xRange.setImmediate}
       >
         {mounted ? (
@@ -196,6 +211,10 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
       />
     </section>
   );
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function PriceMarker({
