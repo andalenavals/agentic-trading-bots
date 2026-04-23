@@ -132,6 +132,10 @@ h1 {
   overflow: hidden;
 }
 
+.decision-chart-panel {
+  margin-top: 18px;
+}
+
 .news-chart-panel summary {
   color: var(--muted);
   cursor: pointer;

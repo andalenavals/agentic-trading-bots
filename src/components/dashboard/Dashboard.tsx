@@ -20,7 +20,6 @@ const MARKET_RANGES = [
 ];
 
 export function Dashboard({ data }: Props) {
-  const [layer, setLayer] = useState<"market" | "gym">("market");
   const [activeCommodity, setActiveCommodity] = useState<CommoditySlug>("copper_lme");
   const [selectedPoint, setSelectedPoint] = useState<SentimentPoint | null>(null);
   const [chartType, setChartType] = useState<ChartType>("area");
@@ -47,62 +46,61 @@ export function Dashboard({ data }: Props) {
       </header>
 
       <div className="layer-switch">
-        <button className={layer === "market" ? "active" : ""} onClick={() => setLayer("market")} type="button">
+        <button className="active" type="button">
           News
-        </button>
-        <button className={layer === "gym" ? "active" : ""} onClick={() => setLayer("gym")} type="button">
-          Bots
         </button>
         <a href="docs/">Docs</a>
       </div>
 
-      {layer === "market" ? (
-        <section className="market-news-layout">
-          <CommodityCards
-            activeCommodity={activeCommodity}
-            commodities={data.commodities}
-            onSelect={selectCommodity}
-          />
-          <VisualizationControls
-            alphaLevel={alphaLevel}
-            chartType={chartType}
-            markerSize={markerSize}
-            markerType={markerType}
-            logScale={logScale}
-            range={range}
-            ranges={MARKET_RANGES}
-            onAlphaLevelChange={setAlphaLevel}
-            onChartTypeChange={setChartType}
-            onLogScaleChange={setLogScale}
-            onMarkerSizeChange={setMarkerSize}
-            onMarkerTypeChange={setMarkerType}
-            onRangeChange={setRange}
-          />
-          <details className="panel market-panel news-chart-panel">
-            <summary>News Chart</summary>
-            <div className="news-chart-body">
-              <PriceChart
-                alphaLevel={alphaLevel}
-                chartType={chartType}
-                commodity={activeCommodityMeta}
-                embedded
-                logScale={logScale}
-                markerSize={markerSize}
-                markerType={markerType}
-                onSelectPoint={setSelectedPoint}
-                points={activePoints}
-                range={range}
-              />
-              <EventFeed commodity={activeCommodityMeta} embedded selectedPoint={selectedPoint} />
-            </div>
-          </details>
-        </section>
-      ) : (
-        <AgentGym
-          agentGym={data.agentGym}
+      <section className="market-news-layout">
+        <CommodityCards
+          activeCommodity={activeCommodity}
           commodities={data.commodities}
+          onSelect={selectCommodity}
         />
-      )}
+        <VisualizationControls
+          alphaLevel={alphaLevel}
+          chartType={chartType}
+          markerSize={markerSize}
+          markerType={markerType}
+          logScale={logScale}
+          range={range}
+          ranges={MARKET_RANGES}
+          onAlphaLevelChange={setAlphaLevel}
+          onChartTypeChange={setChartType}
+          onLogScaleChange={setLogScale}
+          onMarkerSizeChange={setMarkerSize}
+          onMarkerTypeChange={setMarkerType}
+          onRangeChange={setRange}
+        />
+        <details className="panel market-panel news-chart-panel">
+          <summary>News Chart</summary>
+          <div className="news-chart-body">
+            <PriceChart
+              alphaLevel={alphaLevel}
+              chartType={chartType}
+              commodity={activeCommodityMeta}
+              embedded
+              logScale={logScale}
+              markerSize={markerSize}
+              markerType={markerType}
+              onSelectPoint={setSelectedPoint}
+              points={activePoints}
+              range={range}
+            />
+            <EventFeed commodity={activeCommodityMeta} embedded selectedPoint={selectedPoint} />
+          </div>
+        </details>
+        <details className="panel market-panel news-chart-panel decision-chart-panel">
+          <summary>Decision Chart</summary>
+          <div className="news-chart-body">
+            <AgentGym
+              agentGym={data.agentGym}
+              commodities={data.commodities}
+            />
+          </div>
+        </details>
+      </section>
     </main>
   );
 }
