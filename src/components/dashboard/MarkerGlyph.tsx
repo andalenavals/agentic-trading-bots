@@ -12,6 +12,7 @@ type Props = {
 
 export function MarkerGlyph({ alphaLevel, color, cx, cy, markerType, size, strokeWidth = 1 }: Props) {
   if (cx === undefined || cy === undefined) return <g />;
+  if (markerType === "none") return <g />;
   const opacity = Math.max(0.15, Math.min(1, alphaLevel));
 
   if (markerType === "square") {

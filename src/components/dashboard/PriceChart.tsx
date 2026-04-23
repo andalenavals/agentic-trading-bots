@@ -174,11 +174,13 @@ export function PriceChart({ commodity, onSelectPoint, points }: Props) {
               ) : (
                 <Area dataKey="price" dot={false} fill={`url(#price-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
               )}
-              <Scatter
-                data={visibleData}
-                dataKey="price"
-                shape={<PriceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
-              />
+              {markerType === "none" ? null : (
+                <Scatter
+                  data={visibleData}
+                  dataKey="price"
+                  shape={<PriceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
+                />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         ) : null}

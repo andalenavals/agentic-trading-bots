@@ -1,5 +1,5 @@
 export type ChartType = "line" | "area" | "bar";
-export type MarkerType = "circle" | "square" | "diamond";
+export type MarkerType = "none" | "circle" | "square" | "diamond";
 
 type RangeOption = {
   label: string;
@@ -24,7 +24,7 @@ type Props = {
 };
 
 const CHART_TYPES: ChartType[] = ["line", "area", "bar"];
-const MARKER_TYPES: MarkerType[] = ["circle", "square", "diamond"];
+const MARKER_TYPES: MarkerType[] = ["none", "circle", "square", "diamond"];
 
 export function VisualizationControls({
   alphaLevel,

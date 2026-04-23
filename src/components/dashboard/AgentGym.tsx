@@ -287,14 +287,16 @@ export function AgentGym({ agentGym, commodities }: Props) {
                       x={testStart.x}
                     />
                   ) : null}
-                  {(["hold", "buy", "sell"] as AgentActionName[]).map((actionName) => (
-                    <Scatter
-                      data={visiblePoints.filter((point) => point.actionName === actionName)}
-                      dataKey="price"
-                      key={actionName}
-                      shape={<DecisionDot alphaLevel={alphaLevel} markerSize={markerSize} markerType={markerType} />}
-                    />
-                  ))}
+                  {markerType === "none"
+                    ? null
+                    : (["hold", "buy", "sell"] as AgentActionName[]).map((actionName) => (
+                        <Scatter
+                          data={visiblePoints.filter((point) => point.actionName === actionName)}
+                          dataKey="price"
+                          key={actionName}
+                          shape={<DecisionDot alphaLevel={alphaLevel} markerSize={markerSize} markerType={markerType} />}
+                        />
+                      ))}
                 </ComposedChart>
               </ResponsiveContainer>
             ) : null}

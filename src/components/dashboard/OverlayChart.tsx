@@ -122,13 +122,15 @@ export function OverlayChart({ commodities, pricesByCommodity }: Props) {
                   />
                 )
               ))}
-              {commodities.map((commodity) => (
-                <Scatter
-                  dataKey={commodity.slug}
-                  key={`${commodity.slug}-markers`}
-                  shape={<PerformanceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
-                />
-              ))}
+              {markerType === "none"
+                ? null
+                : commodities.map((commodity) => (
+                    <Scatter
+                      dataKey={commodity.slug}
+                      key={`${commodity.slug}-markers`}
+                      shape={<PerformanceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
+                    />
+                  ))}
             </ComposedChart>
           </ResponsiveContainer>
         ) : null}
