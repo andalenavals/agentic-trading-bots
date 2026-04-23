@@ -42,20 +42,7 @@ button {
 }
 
 .topbar {
-  align-items: end;
-  display: flex;
-  gap: 24px;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.eyebrow {
-  color: var(--gold);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  margin: 0 0 8px;
-  text-transform: uppercase;
+  margin-bottom: 18px;
 }
 
 h1,
@@ -70,28 +57,6 @@ h1 {
   line-height: 1.05;
 }
 
-.subtitle {
-  color: var(--muted);
-  line-height: 1.5;
-  margin-top: 10px;
-  max-width: 760px;
-}
-
-.meta-strip {
-  align-items: center;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  display: flex;
-  gap: 14px;
-  padding: 12px 14px;
-  white-space: nowrap;
-}
-
-.meta-strip strong {
-  color: var(--gold);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-}
-
 .grid {
   display: grid;
   gap: 18px;
@@ -102,12 +67,11 @@ h1 {
 }
 
 .commodity-picker {
-  align-items: center;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr) auto;
+  display: inline-grid;
+  grid-template-columns: minmax(180px, 280px);
   margin-bottom: 18px;
-  padding: 14px 16px;
+  padding: 14px;
+  width: min(100%, 320px);
 }
 
 .commodity-picker label {
@@ -129,51 +93,6 @@ h1 {
   color: var(--text);
   min-width: 0;
   padding: 9px 10px;
-}
-
-.commodity-summary {
-  align-items: center;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  min-width: 0;
-}
-
-.commodity-summary strong {
-  display: block;
-  font-size: 14px;
-}
-
-.commodity-summary p {
-  font-size: 12px;
-  line-height: 1.35;
-  margin-top: 3px;
-}
-
-.compact-stat-row {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(3, minmax(74px, 1fr));
-}
-
-.compact-stat {
-  background: #151923;
-  border-radius: 6px;
-  padding: 8px 9px;
-}
-
-.compact-stat span {
-  color: var(--faint);
-  display: block;
-  font-size: 9px;
-  font-weight: 800;
-  margin-bottom: 4px;
-  text-transform: uppercase;
-}
-
-.compact-stat strong {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
 }
 
 .dashboard-grid {
@@ -801,18 +720,6 @@ h1 {
     align-items: stretch;
     gap: 12px;
     padding: 12px;
-  }
-
-  .commodity-summary {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .commodity-summary .badge {
-    justify-self: start;
-  }
-
-  .compact-stat-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .viz-controls {

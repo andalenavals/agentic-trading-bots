@@ -1,11 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { AgentGym } from "@/components/dashboard/AgentGym";
 import { CommodityCards } from "@/components/dashboard/CommodityCards";
-import { EventFeed } from "@/components/dashboard/EventFeed";
-import { PriceChart } from "@/components/dashboard/PriceChart";
-import type { CommoditySlug, DashboardData, SentimentPoint } from "@/lib/types";
+import type { CommoditySlug, DashboardData } from "@/lib/types";
 
 type Props = {
   data: DashboardData;
@@ -14,35 +12,15 @@ type Props = {
 export function Dashboard({ data }: Props) {
   const [layer, setLayer] = useState<"market" | "gym">("market");
   const [activeCommodity, setActiveCommodity] = useState<CommoditySlug>("copper_lme");
-  const [selectedPoint, setSelectedPoint] = useState<SentimentPoint | null>(null);
-  const activePoints = data.pricesByCommodity[activeCommodity];
-  const activeCommodityMeta = useMemo(
-    () => data.commodities.find((commodity) => commodity.slug === activeCommodity)!,
-    [activeCommodity, data.commodities],
-  );
 
   function selectCommodity(slug: CommoditySlug) {
     setActiveCommodity(slug);
-    setSelectedPoint(null);
   }
 
   return (
     <main className="shell">
       <header className="topbar">
-        <div>
-          <p className="eyebrow">Commodity Signal Intelligence</p>
-          <h1>Agentic trading bots</h1>
-          <p className="subtitle">
-            Local-first dashboard combining LME price history, curated market news, generated sentiment features,
-            and reinforcement-learning outputs from trained commodity trading bots.
-          </p>
-        </div>
-        <div className="meta-strip">
-          <span className="muted">Data rows</span>
-          <strong>{Object.values(data.pricesByCommodity).reduce((sum, points) => sum + points.length, 0)}</strong>
-          <span className="muted">Events</span>
-          <strong>{data.news.length}</strong>
-        </div>
+        <h1>Commodity Signal Intelligence</h1>
       </header>
 
       <div className="layer-switch">
@@ -60,20 +38,8 @@ export function Dashboard({ data }: Props) {
           <CommodityCards
             activeCommodity={activeCommodity}
             commodities={data.commodities}
-            pricesByCommodity={data.pricesByCommodity}
             onSelect={selectCommodity}
           />
-
-          <section className="grid dashboard-grid" style={{ marginTop: 18 }}>
-            <div className="grid">
-              <PriceChart
-                commodity={activeCommodityMeta}
-                onSelectPoint={setSelectedPoint}
-                points={activePoints}
-              />
-            </div>
-            <EventFeed commodity={activeCommodityMeta} selectedPoint={selectedPoint} />
-          </section>
         </>
       ) : (
         <AgentGym
