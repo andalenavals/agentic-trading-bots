@@ -439,6 +439,43 @@ h1 {
   text-transform: uppercase;
 }
 
+.decision-probabilities {
+  display: grid;
+  gap: 10px;
+}
+
+.probability-row {
+  display: grid;
+  gap: 6px;
+}
+
+.probability-row div {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  font-size: 12px;
+  justify-content: space-between;
+}
+
+.probability-row span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.probability-track {
+  background: #151923;
+  border: 1px solid #222838;
+  border-radius: 999px;
+  display: block;
+  height: 9px;
+  overflow: hidden;
+}
+
+.probability-track span {
+  display: block;
+  height: 100%;
+}
+
 .empty-state {
   align-content: center;
   color: var(--muted);

@@ -28,7 +28,9 @@ type Props = {
 };
 
 type ChartClickEvent = {
+  activeLabel?: number | string;
   activePayload?: Array<{ payload?: AgentChartPoint }>;
+  activeTooltipIndex?: number | string;
 };
 
 const ACTION_COLOR: Record<AgentActionName, string> = {
@@ -37,11 +39,18 @@ const ACTION_COLOR: Record<AgentActionName, string> = {
   sell: "#ef5350",
 };
 
+const RANGES = [
+  { label: "90D", value: 90 },
+  { label: "1Y", value: 365 },
+  { label: "ALL", value: 99999 },
+];
+
 export function AgentGym({ agentGym, commodities }: Props) {
   const mounted = useClientMounted();
   const [model, setModel] = useState<AgentModelKind>("single_asset_ppo");
   const [split, setSplit] = useState(1);
   const [commodity, setCommodity] = useState<CommoditySlug>("copper_lme");
+  const [range, setRange] = useState(99999);
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
 
   const availableCommodities = useMemo(() => {
@@ -83,9 +92,23 @@ export function AgentGym({ agentGym, commodities }: Props) {
     () => buildChartPoints(matching, activeSplit, splitCount),
     [activeSplit, matching, splitCount],
   );
+  const displayedPoints = useMemo(
+    () => (range >= 99999 ? chartPoints : chartPoints.slice(-range).map((point, index) => ({ ...point, x: index }))),
+    [chartPoints, range],
+  );
   const activeCommodity = COMMODITY_LOOKUP[activeCommoditySlug];
-  const testStart = chartPoints.find((point) => point.phase === "test");
+  const testStart = displayedPoints.find((point) => point.phase === "test");
   const selectedPoint = chartPoints.find((point) => point.key === selectedPointKey) ?? null;
+
+  function pointFromChartEvent(event: ChartClickEvent | undefined) {
+    const payloadPoint = event?.activePayload?.[0]?.payload;
+    if (payloadPoint) return payloadPoint;
+
+    const index = Number(event?.activeTooltipIndex ?? event?.activeLabel);
+    if (Number.isInteger(index) && displayedPoints[index]) return displayedPoints[index];
+
+    return null;
+  }
 
   function handleModelChange(nextModel: AgentModelKind) {
     setModel(nextModel);
@@ -156,10 +179,19 @@ export function AgentGym({ agentGym, commodities }: Props) {
                 </p>
               </div>
             </div>
-            <Legend />
+            <div className="toolbar">
+              <div className="segmented">
+                {RANGES.map((item) => (
+                  <button className={range === item.value ? "active" : ""} key={item.label} onClick={() => setRange(item.value)} type="button">
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <Legend />
+            </div>
           </div>
           <div className="chart-box" style={{ height: 390 }}>
-            {chartPoints.length === 0 ? (
+            {displayedPoints.length === 0 ? (
               <div className="empty-state">
                 <h3>No bot decisions generated yet</h3>
                 <p>
@@ -170,9 +202,9 @@ export function AgentGym({ agentGym, commodities }: Props) {
             ) : mounted ? (
               <ResponsiveContainer height="100%" width="100%">
                 <ComposedChart
-                  data={chartPoints}
+                  data={displayedPoints}
                   onClick={(event) => {
-                    const point = ((event as ChartClickEvent | undefined)?.activePayload?.[0]?.payload ?? null);
+                    const point = pointFromChartEvent(event as ChartClickEvent | undefined);
                     if (point) setSelectedPointKey(point.key);
                   }}
                 >
@@ -182,7 +214,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
                     dataKey="x"
                     domain={["dataMin", "dataMax"]}
                     tick={{ fill: "#697185", fontSize: 11 }}
-                    tickFormatter={(value) => chartPoints[Math.round(Number(value))]?.label ?? ""}
+                    tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
                     tickLine={false}
                     type="number"
                   />
@@ -200,7 +232,7 @@ export function AgentGym({ agentGym, commodities }: Props) {
                   ) : null}
                   {(["hold", "buy", "sell"] as AgentActionName[]).map((actionName) => (
                     <Scatter
-                      data={chartPoints.filter((point) => point.actionName === actionName)}
+                      data={displayedPoints.filter((point) => point.actionName === actionName)}
                       dataKey="price"
                       key={actionName}
                       shape={<DecisionDot />}
@@ -281,16 +313,32 @@ function BotPointState({ point }: { point: AgentChartPoint }) {
         <strong style={{ color: ACTION_COLOR[point.actionName] }}>{point.actionName}</strong>
         <p className="faint">{(point.confidence * 100).toFixed(1)}% confidence</p>
       </div>
+      <div className="decision-probabilities">
+        <ProbabilityBar color={ACTION_COLOR.hold} label="Hold" value={point.probHold} />
+        <ProbabilityBar color={ACTION_COLOR.buy} label="Buy" value={point.probBuy} />
+        <ProbabilityBar color={ACTION_COLOR.sell} label="Sell" value={point.probSell} />
+      </div>
       <div className="stat-grid">
         <Stat label="Price" value={`$${point.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
-        <Stat label="Hold prob" value={`${(point.probHold * 100).toFixed(1)}%`} />
-        <Stat label="Buy prob" value={`${(point.probBuy * 100).toFixed(1)}%`} />
-        <Stat label="Sell prob" value={`${(point.probSell * 100).toFixed(1)}%`} />
         <Stat label="Uncertainty" value={`${(point.uncertainty * 100).toFixed(1)}%`} />
         <Stat label="Net worth" value={`$${point.netWorth.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
         <Stat label="Reward" value={point.reward.toFixed(4)} />
         <Stat label="Position" value={point.position === null ? "n/a" : point.position.toLocaleString()} />
       </div>
+    </div>
+  );
+}
+
+function ProbabilityBar({ color, label, value }: { color: string; label: string; value: number }) {
+  return (
+    <div className="probability-row">
+      <div>
+        <strong>{label}</strong>
+        <span>{(value * 100).toFixed(1)}%</span>
+      </div>
+      <span className="probability-track">
+        <span style={{ backgroundColor: color, width: `${Math.max(1, value * 100)}%` }} />
+      </span>
     </div>
   );
 }
