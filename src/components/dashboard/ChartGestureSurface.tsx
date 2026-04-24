@@ -145,14 +145,17 @@ export function ChartGestureSurface({ children, className, onClick, onXChange, s
     <div
       className={`${className ?? ""} gesture-surface${dragging ? " dragging" : ""}`.trim()}
       style={style}
-      onClickCapture={suppressDraggedClick}
-      onPointerCancel={endGesture}
-      onPointerDown={beginGesture}
-      onPointerMove={updateGesture}
-      onPointerUp={endGesture}
     >
       {children}
-      <div aria-hidden="true" className="gesture-hitbox" />
+      <div
+        aria-hidden="true"
+        className="gesture-hitbox"
+        onClickCapture={suppressDraggedClick}
+        onPointerCancel={endGesture}
+        onPointerDown={beginGesture}
+        onPointerMove={updateGesture}
+        onPointerUp={endGesture}
+      />
     </div>
   );
 }

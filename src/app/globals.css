@@ -533,6 +533,11 @@ h1 {
   position: relative;
 }
 
+.chart-box > :not(.gesture-hitbox),
+.chart-box > :not(.gesture-hitbox) * {
+  pointer-events: none;
+}
+
 .chart-box::after {
   border: 1px solid rgba(123, 132, 151, 0.34);
   border-radius: 7px;
@@ -558,7 +563,9 @@ h1 {
 
 .gesture-hitbox {
   inset: 0;
+  pointer-events: auto;
   position: absolute;
+  touch-action: none;
   z-index: 2;
 }
 
