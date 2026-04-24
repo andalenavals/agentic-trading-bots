@@ -558,6 +558,10 @@ h1 {
   margin: 0;
 }
 
+.forecast-tab-shell .chart-box::after {
+  border-bottom-right-radius: 0;
+}
+
 .chart-box > :not(.gesture-hitbox),
 .chart-box > :not(.gesture-hitbox) * {
   pointer-events: none;
