@@ -46,7 +46,7 @@ type ChartClickEvent = {
 };
 
 const PRICE_AXIS_WIDTH = 58;
-const PLOT_RIGHT_PADDING = 6;
+const PLOT_RIGHT_PADDING = 2;
 
 export function PriceChart({
   alphaLevel,
@@ -135,6 +135,7 @@ export function PriceChart({
           <ResponsiveContainer height="100%" width="100%">
             <ComposedChart
               data={chartData}
+              margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
               onClick={(event) => selectFromChartEvent(event as ChartClickEvent | undefined)}
               onMouseMove={(event) => rememberHoveredPoint(event as ChartClickEvent | undefined)}
             >

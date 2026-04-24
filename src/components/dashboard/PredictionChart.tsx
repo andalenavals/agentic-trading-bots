@@ -51,7 +51,7 @@ type PredictionChartPoint = PredictionPoint & {
 const PREDICTION_COLOR = "#f6c85f";
 const MODEL_ORDER: PredictionModelKind[] = ["ridge_arx_sentiment", "ridge_arx_price_only", "ar1_baseline"];
 const PRICE_AXIS_WIDTH = 58;
-const PLOT_RIGHT_PADDING = 6;
+const PLOT_RIGHT_PADDING = 2;
 
 export function PredictionChart({
   activeCommodity,
@@ -234,6 +234,7 @@ export function PredictionChart({
               <ResponsiveContainer height="100%" width="100%">
                 <ComposedChart
                   data={displayedPoints}
+                  margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
                   onClick={(event) => selectPoint(pointFromChartEvent(event as ChartClickEvent | undefined))}
                 >
                   <CartesianGrid stroke="#252b3a" vertical={false} />

@@ -57,7 +57,7 @@ const ACTION_COLOR: Record<AgentActionName, string> = {
 };
 
 const PRICE_AXIS_WIDTH = 58;
-const PLOT_RIGHT_PADDING = 6;
+const PLOT_RIGHT_PADDING = 2;
 
 export function AgentGym({
   alphaLevel,
@@ -209,6 +209,7 @@ export function AgentGym({
               <ResponsiveContainer height="100%" width="100%">
                 <ComposedChart
                   data={displayedPoints}
+                  margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
                   onClick={(event) => {
                     const point = pointFromChartEvent(event as ChartClickEvent | undefined);
                     if (point) setSelectedPointKey(point.key);
