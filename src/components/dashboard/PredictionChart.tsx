@@ -261,7 +261,7 @@ export function PredictionChart({
                 {testStart ? (
                   <ReferenceLine
                     ifOverflow="extendDomain"
-                    label={{ fill: "#b6bdcf", fontSize: 11, position: "insideTopRight", value: "test" }}
+                    label={{ fill: "#b6bdcf", fontSize: 11, offset: 0, position: "insideTopRight", value: "test" }}
                     stroke="#f6c85f"
                     strokeDasharray="5 5"
                     x={testStart.x}
