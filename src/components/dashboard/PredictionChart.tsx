@@ -82,7 +82,7 @@ export function PredictionChart({
   const [evaluationMode, setEvaluationMode] = useState<PredictionEvaluationMode>("observed_history");
   const [split, setSplit] = useState(1);
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
-  const [activeInfoPanel, setActiveInfoPanel] = useState<"setup" | "notes" | null>(null);
+  const [showSetupPanel, setShowSetupPanel] = useState(false);
   const availableModels = useMemo<PredictionModelKind[]>(() => {
     const models = new Set(predictionChart.points.filter((point) => point.commodity === activeCommodity).map((point) => point.model));
     return models.size
@@ -290,22 +290,15 @@ export function PredictionChart({
       <div className="prediction-subpanel-tabs">
         <div className="segmented">
           <button
-            className={activeInfoPanel === "setup" ? "active" : undefined}
-            onClick={() => setActiveInfoPanel((current) => current === "setup" ? null : "setup")}
+            className={showSetupPanel ? "active" : undefined}
+            onClick={() => setShowSetupPanel((current) => !current)}
             type="button"
           >
             Forecast setup
           </button>
-          <button
-            className={activeInfoPanel === "notes" ? "active" : undefined}
-            onClick={() => setActiveInfoPanel((current) => current === "notes" ? null : "notes")}
-            type="button"
-          >
-            Model notes
-          </button>
         </div>
       </div>
-      {activeInfoPanel === "setup" ? (
+      {showSetupPanel ? (
         <div className="prediction-subpanel prediction-subpanel-controls">
           <div className="gym-controls">
             <Control label="Model">
@@ -344,29 +337,30 @@ export function PredictionChart({
               </select>
             </Control>
           </div>
-        </div>
-      ) : null}
-      {activeInfoPanel === "notes" ? (
-        <div className="prediction-subpanel model-info-panel">
-          <div className="model-info-body">
-            <div className="model-info-summary">
-              <span>Model notes</span>
-              <strong>{modelLabel(activeModel)}</strong>
+          <details className="model-info-panel">
+            <summary>
+              <div className="model-info-summary">
+                <span>Model notes</span>
+                <strong>{modelLabel(activeModel)}</strong>
+              </div>
+              <span className="source">{evaluationModeLabel(activeEvaluationMode)}</span>
+            </summary>
+            <div className="model-info-body">
+              <p>{activeModelInfo.theory}</p>
+              <div className="model-info-mode">
+                <span>Evaluation</span>
+                <p>{predictionEvaluationInfo(activeEvaluationMode)}</p>
+              </div>
+              <div className="model-meta-grid">
+                {activeModelInfo.hyperparameters.map((item) => (
+                  <div key={`${activeModel}-${item.label}`} className="model-meta-item">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
             </div>
-            <p>{activeModelInfo.theory}</p>
-            <div className="model-info-mode">
-              <span>Evaluation</span>
-              <p>{predictionEvaluationInfo(activeEvaluationMode)}</p>
-            </div>
-            <div className="model-meta-grid">
-              {activeModelInfo.hyperparameters.map((item) => (
-                <div key={`${activeModel}-${item.label}`} className="model-meta-item">
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ))}
-            </div>
-          </div>
+          </details>
         </div>
       ) : null}
     </section>
