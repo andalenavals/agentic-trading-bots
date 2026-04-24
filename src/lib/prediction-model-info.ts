@@ -30,6 +30,7 @@ type PredictionConfig = {
   epochs?: number;
   weight_decay?: number;
   batch_size?: number;
+  center_blend?: number;
   seed?: number;
 };
 
@@ -149,6 +150,7 @@ function lstmHyperparameters(config: PredictionConfig): PredictionHyperparameter
     hyperparameter("Learning rate", formatScalar(config.learning_rate)),
     hyperparameter("Batch size", formatScalar(config.batch_size)),
     hyperparameter("Weight decay", formatScalar(config.weight_decay)),
+    hyperparameter("Recursive blend", formatScalar(config.center_blend)),
     hyperparameter("Lags", formatList(config.lags)),
     hyperparameter("Windows", formatList(config.windows)),
     hyperparameter("Sentiment inputs", formatToggle(config.include_sentiment_features)),

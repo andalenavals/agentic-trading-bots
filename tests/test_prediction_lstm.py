@@ -19,6 +19,7 @@ class LSTMPredictionTest(unittest.TestCase):
             "epochs": 60,
             "learning_rate": 0.02,
             "batch_size": 8,
+            "center_blend": 0.85,
             "seed": 7,
         }
 
@@ -56,6 +57,7 @@ class LSTMPredictionTest(unittest.TestCase):
             "epochs": 60,
             "learning_rate": 0.02,
             "batch_size": 8,
+            "center_blend": 0.85,
             "seed": 7,
         }
 
@@ -94,6 +96,7 @@ class LSTMPredictionTest(unittest.TestCase):
             "epochs": 80,
             "learning_rate": 0.02,
             "batch_size": 8,
+            "center_blend": 0.85,
             "seed": 7,
         }
         mutated_rows = [row.copy() for row in rows]
@@ -156,6 +159,38 @@ class LSTMPredictionTest(unittest.TestCase):
         self.assertTrue(sentiment_pairs)
         self.assertTrue(all(left == right for left, right in price_only_pairs))
         self.assertTrue(any(left != right for left, right in sentiment_pairs))
+
+    def test_lstm_recursive_path_stays_bounded(self) -> None:
+        rows = build_sentiment_sensitive_rows()
+        model_params = {
+            "sequence_length": 8,
+            "hidden_size": 12,
+            "epochs": 80,
+            "learning_rate": 0.02,
+            "batch_size": 8,
+            "center_blend": 0.85,
+            "seed": 7,
+        }
+
+        recursive = generate_full_predictions(
+            rows,
+            split=1,
+            train_end=32,
+            include_sentiment_features=True,
+            evaluation_mode="recursive_path",
+            model_params=model_params,
+        )
+
+        predicted_prices = [
+            float(row["predicted_price"])
+            for row in recursive
+            if row["phase"] == "test" and row["predicted_price"] != ""
+        ]
+        actual_prices = [float(row["price"]) for row in rows[32:]]
+
+        self.assertTrue(predicted_prices)
+        self.assertLess(max(predicted_prices), max(actual_prices) * 1.5)
+        self.assertGreater(min(predicted_prices), min(actual_prices) * 0.5)
 
 
 def build_rows() -> list[dict[str, str]]:

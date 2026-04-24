@@ -46,6 +46,8 @@ DEFAULT_LEARNING_RATE = 0.01
 DEFAULT_WEIGHT_DECAY = 0.0001
 DEFAULT_BATCH_SIZE = 16
 DEFAULT_SEED = 7
+DEFAULT_BAND_WINDOW = 20
+DEFAULT_CENTER_BLEND = 0.0
 
 
 def generate_full_predictions(
@@ -119,12 +121,28 @@ def generate_full_predictions(
                 )
                 previous_log_price = predicted_log_prices[index - 1]
 
-            predicted_log_return = clamp(
+            raw_predicted_log_return = clamp(
                 predict_return(model, features),
                 -float(model["return_band"]),
                 float(model["return_band"]),
             )
-            next_log_price = previous_log_price + predicted_log_return
+            raw_next_log_price = previous_log_price + raw_predicted_log_return
+            next_log_price = raw_next_log_price
+
+            if evaluation_mode == RECURSIVE_PATH and float(model["center_blend"]) > 0.0:
+                recent_prices = predicted_log_prices[max(0, index - int(model["band_window"])):index]
+                center = sum(recent_prices) / len(recent_prices) if recent_prices else previous_log_price
+                blended_next_log_price = (
+                    float(model["center_blend"]) * center
+                    + (1.0 - float(model["center_blend"])) * raw_next_log_price
+                )
+                next_log_price = clamp(
+                    blended_next_log_price,
+                    center - float(model["level_band"]),
+                    center + float(model["level_band"]),
+                )
+
+            predicted_log_return = next_log_price - previous_log_price
             predicted_log_prices[index] = next_log_price
             predicted_log_returns[index] = predicted_log_return
 
@@ -197,6 +215,9 @@ def fit_lstm_model(
         "target_mean": target_mean,
         "target_scale": target_scale,
         "return_band": estimate_target_band(targets),
+        "band_window": max(max(windows, default=DEFAULT_BAND_WINDOW), DEFAULT_BAND_WINDOW),
+        "center_blend": float(model_params["center_blend"]),
+        "level_band": estimate_level_band(log_prices, sample_indices),
         "sequence_length": int(model_params["sequence_length"]),
         "epochs": int(model_params["epochs"]),
         "hidden_size": int(model_params["hidden_size"]),
@@ -253,6 +274,24 @@ def fit_target_standardization(targets: list[float]) -> tuple[float, float]:
     variance = sum((value - mean) ** 2 for value in targets) / len(targets)
     scale = math.sqrt(variance) if variance > 1e-12 else 1.0
     return mean, scale
+
+
+def estimate_level_band(log_prices: list[float], sample_indices: list[int]) -> float:
+    deviations = []
+    for index in sample_indices:
+        start = max(0, index - DEFAULT_BAND_WINDOW)
+        history = log_prices[start:index]
+        if not history:
+            continue
+        center = sum(history) / len(history)
+        deviations.append(log_prices[index] - center)
+
+    if not deviations:
+        return 0.12
+
+    mean = sum(deviations) / len(deviations)
+    variance = sum((value - mean) ** 2 for value in deviations) / len(deviations)
+    return clamp(2.5 * math.sqrt(variance), 0.04, 0.18)
 
 
 def standardize_sequence(
@@ -347,6 +386,7 @@ def build_model_params(config: dict[str, Any] | None) -> dict[str, Any]:
         "learning_rate": float(config.get("learning_rate", DEFAULT_LEARNING_RATE)),
         "weight_decay": float(config.get("weight_decay", DEFAULT_WEIGHT_DECAY)),
         "batch_size": int(config.get("batch_size", DEFAULT_BATCH_SIZE)),
+        "center_blend": float(config.get("center_blend", DEFAULT_CENTER_BLEND)),
         "seed": int(config.get("seed", DEFAULT_SEED)),
     }
 
@@ -359,6 +399,9 @@ def empty_model(model_params: dict[str, Any]) -> dict[str, object]:
         "target_mean": 0.0,
         "target_scale": 1.0,
         "return_band": 0.12,
+        "band_window": DEFAULT_BAND_WINDOW,
+        "center_blend": float(model_params["center_blend"]),
+        "level_band": 0.12,
         "sequence_length": int(model_params["sequence_length"]),
         "epochs": int(model_params["epochs"]),
         "hidden_size": int(model_params["hidden_size"]),
