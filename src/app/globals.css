@@ -553,10 +553,11 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
+  --chart-inner-frame-offset: 8px;
 }
 
 .chart-window-shell .chart-box {
-  margin: 8px 8px 0;
+  margin: var(--chart-inner-frame-offset) var(--chart-inner-frame-offset) 0;
 }
 
 .chart-box > :not(.gesture-hitbox),
@@ -736,7 +737,7 @@ h1 {
   display: flex;
   justify-content: flex-start;
   margin-top: -1px;
-  padding: 0;
+  padding: 0 var(--chart-inner-frame-offset);
   position: relative;
   z-index: 1;
 }
@@ -774,7 +775,7 @@ h1 {
 
 .chart-drawer-panel {
   border-top: 1px solid var(--line);
-  margin: 0;
+  margin: 0 var(--chart-inner-frame-offset);
 }
 
 .chart-drawer-panel-controls .gym-controls {
