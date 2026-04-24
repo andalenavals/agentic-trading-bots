@@ -246,6 +246,9 @@ function sharedTabularFeatures(config: PredictionConfig): PredictionHyperparamet
     hyperparameter("Lagged log returns", formatFeatureNames("lag_log_return", config.lags)),
     hyperparameter("Rolling return mean", formatFeatureNames("rolling_log_return_mean", config.windows)),
     hyperparameter("Rolling return vol", formatFeatureNames("rolling_log_return_vol", config.windows)),
+    hyperparameter("Time trend", "time_index"),
+    hyperparameter("Acceleration", "log_return_acceleration"),
+    hyperparameter("Day-of-week encoding", "day_of_week_sin, day_of_week_cos"),
   ];
 
   if (config.include_sentiment_features) {

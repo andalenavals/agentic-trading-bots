@@ -14,7 +14,7 @@ Python pipeline
 * ``pipeline_common.py``: shared config, CSV, and split helpers
 * ``preprocessing.py``: raw prices/news to derived dashboard and training data
 * ``finbert_sentiment.py``: FinBERT scoring and cache helpers
-* ``prediction_features.py``: shared lagged-price, rolling, and sentiment feature builder
+* ``prediction_features.py``: shared lagged-price, rolling, time, calendar, and sentiment feature builder
 * ``prediction_baseline.py``, ``prediction_arimax.py``, ``prediction_gaussian_process.py``, ``prediction_ridge_arx.py``, ``prediction_lightgbm.py``, ``prediction_lightgbm_direct.py``, and ``prediction_lstm.py``: forecast generators
 * ``training/``: PPO training modules
 

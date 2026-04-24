@@ -43,7 +43,7 @@ agentic-trading-bots/
 │   ├── pipeline_common.py       # Shared config/CSV/split helpers
 │   ├── preprocessing.py         # Raw-to-derived data pipeline
 │   ├── finbert_sentiment.py     # FinBERT event scoring + cache helpers
-│   ├── prediction_features.py   # Shared lag/sentiment feature builder
+│   ├── prediction_features.py   # Shared tabular forecast feature builder
 │   ├── prediction_baseline.py   # Baseline forecast generator
 │   ├── prediction_arimax.py     # ARIMAX forecast generator
 │   ├── prediction_gaussian_process.py # Gaussian-process forecast generator

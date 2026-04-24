@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from datetime import date
 from pathlib import Path
 
 from agentic_trading.pipeline_common import require_columns, to_number
@@ -63,6 +64,10 @@ def build_feature_vector(
         variance = sum((value - mean) ** 2 for value in window_returns) / len(window_returns)
         features.extend([mean, math.sqrt(variance)])
 
+    features.append(time_index(rows, index))
+    features.append(log_return_acceleration(log_returns_series, index))
+    features.extend(encode_day_of_week(rows[index].get("date", "")))
+
     if include_sentiment_features:
         features.extend(exogenous_features(previous))
 
@@ -74,6 +79,12 @@ def feature_names(lags: list[int], windows: list[int], include_sentiment_feature
     names.extend(f"lag_log_return_{lag}" for lag in lags)
     for window in windows:
         names.extend([f"rolling_log_return_mean_{window}", f"rolling_log_return_vol_{window}"])
+    names.extend([
+        "time_index",
+        "log_return_acceleration",
+        "day_of_week_sin",
+        "day_of_week_cos",
+    ])
     if include_sentiment_features:
         names.extend([
             "sentiment_score",
@@ -101,6 +112,27 @@ def exogenous_features(row: dict[str, str]) -> list[float]:
         to_number(row.get("finbert_negative", "")),
         to_number(row.get("news_count", "")),
     ]
+
+
+def time_index(rows: list[dict[str, str]], index: int) -> float:
+    denominator = max(1, len(rows) - 1)
+    return index / denominator
+
+
+def log_return_acceleration(log_returns_series: list[float], index: int) -> float:
+    if index < 2:
+        return 0.0
+    return log_returns_series[index - 1] - log_returns_series[index - 2]
+
+
+def encode_day_of_week(value: str) -> list[float]:
+    try:
+        weekday = date.fromisoformat(value[:10]).weekday()
+    except ValueError:
+        return [0.0, 0.0]
+
+    angle = 2.0 * math.pi * weekday / 7.0
+    return [math.sin(angle), math.cos(angle)]
 
 
 def safe_log(value: float) -> float:
