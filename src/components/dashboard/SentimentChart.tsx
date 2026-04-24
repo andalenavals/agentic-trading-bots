@@ -130,98 +130,100 @@ export function SentimentChart({
 
   return (
     <section className="sentiment-panel">
-      <ChartGestureSurface
-        className="chart-box"
-        xLength={chartData.length}
-        xRange={xDomain}
-        onClick={selectFromSurfaceClick}
-        onXChange={onXRangeChange}
-      >
-        {mounted ? (
-          <ResponsiveContainer height="100%" width="100%">
-            <ComposedChart
-              data={chartData}
-              margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
-              onClick={(event) => selectFromChartEvent(event as ChartClickEvent | undefined)}
-              onMouseMove={(event) => rememberHoveredPoint(event as ChartClickEvent | undefined)}
-            >
-              <defs>
-                <linearGradient id={`sentiment-${commodity.slug}`} x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor={commodity.colorHex} stopOpacity={0.28} />
-                  <stop offset="100%" stopColor={commodity.colorHex} stopOpacity={0.04} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="#252b3a" vertical={false} />
-              <XAxis
-                allowDataOverflow
-                axisLine={false}
-                dataKey="x"
-                domain={[xDomain.start, xDomain.end]}
-                tick={{ fill: "#697185", fontSize: 11 }}
-                tickFormatter={(value) => chartData[Math.round(Number(value))]?.label ?? ""}
-                tickLine={false}
-                ticks={ticks}
-                type="number"
-              />
-              <YAxis
-                allowDataOverflow
-                axisLine={false}
-                domain={[Math.min(-1, rawYRange.min), Math.max(1, rawYRange.max)]}
-                tick={{ fill: "#697185", fontSize: 11 }}
-                tickFormatter={(value) => Number(value).toFixed(2)}
-                tickLine={false}
-                width={VALUE_AXIS_WIDTH}
-              />
-              <ReferenceLine stroke="#394153" strokeDasharray="4 4" y={0} />
-              {chartType === "bar" ? (
-                <Bar dataKey="value" fill={commodity.colorHex} isAnimationActive={false} opacity={0.78} radius={[3, 3, 0, 0]} />
-              ) : chartType === "line" ? (
-                <Line dataKey="value" dot={false} isAnimationActive={false} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
-              ) : (
-                <Area dataKey="value" dot={false} fill={`url(#sentiment-${commodity.slug})`} isAnimationActive={false} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
-              )}
-              {markerType === "none" ? null : (
-                <Scatter
-                  data={chartData}
-                  dataKey="value"
-                  isAnimationActive={false}
-                  shape={<SentimentMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
-                />
-              )}
-            </ComposedChart>
-          </ResponsiveContainer>
-        ) : null}
-      </ChartGestureSurface>
-      {selectedPoint ? <SentimentPointState mode={mode} point={selectedPoint} /> : null}
-      {showSetupPanel ? (
-        <div className="chart-drawer-panel chart-drawer-panel-controls">
-          <div className="sentiment-controls">
-            <label>
-              <span>Sentiment view</span>
-              <select
-                value={mode}
-                onChange={(event) => {
-                  setMode(event.target.value as SentimentMode);
-                  setSelectedPointKey(null);
-                }}
-              >
-                <option value="sentiment">Simple sentiment</option>
-                <option value="finbert">FinBERT</option>
-              </select>
-            </label>
-          </div>
-        </div>
-      ) : null}
-      <div className="chart-drawer-tabs">
-        <button
-          aria-expanded={showSetupPanel}
-          className={`chart-drawer-handle${showSetupPanel ? " open" : ""}`}
-          onClick={() => setShowSetupPanel((current) => !current)}
-          type="button"
+      <div className="chart-window-shell">
+        <ChartGestureSurface
+          className="chart-box"
+          xLength={chartData.length}
+          xRange={xDomain}
+          onClick={selectFromSurfaceClick}
+          onXChange={onXRangeChange}
         >
-          <span>Sentiment setup</span>
-          <strong aria-hidden="true">{showSetupPanel ? "\u2191" : "\u2193"}</strong>
-        </button>
+          {mounted ? (
+            <ResponsiveContainer height="100%" width="100%">
+              <ComposedChart
+                data={chartData}
+                margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
+                onClick={(event) => selectFromChartEvent(event as ChartClickEvent | undefined)}
+                onMouseMove={(event) => rememberHoveredPoint(event as ChartClickEvent | undefined)}
+              >
+                <defs>
+                  <linearGradient id={`sentiment-${commodity.slug}`} x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor={commodity.colorHex} stopOpacity={0.28} />
+                    <stop offset="100%" stopColor={commodity.colorHex} stopOpacity={0.04} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="#252b3a" vertical={false} />
+                <XAxis
+                  allowDataOverflow
+                  axisLine={false}
+                  dataKey="x"
+                  domain={[xDomain.start, xDomain.end]}
+                  tick={{ fill: "#697185", fontSize: 11 }}
+                  tickFormatter={(value) => chartData[Math.round(Number(value))]?.label ?? ""}
+                  tickLine={false}
+                  ticks={ticks}
+                  type="number"
+                />
+                <YAxis
+                  allowDataOverflow
+                  axisLine={false}
+                  domain={[Math.min(-1, rawYRange.min), Math.max(1, rawYRange.max)]}
+                  tick={{ fill: "#697185", fontSize: 11 }}
+                  tickFormatter={(value) => Number(value).toFixed(2)}
+                  tickLine={false}
+                  width={VALUE_AXIS_WIDTH}
+                />
+                <ReferenceLine stroke="#394153" strokeDasharray="4 4" y={0} />
+                {chartType === "bar" ? (
+                  <Bar dataKey="value" fill={commodity.colorHex} isAnimationActive={false} opacity={0.78} radius={[3, 3, 0, 0]} />
+                ) : chartType === "line" ? (
+                  <Line dataKey="value" dot={false} isAnimationActive={false} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
+                ) : (
+                  <Area dataKey="value" dot={false} fill={`url(#sentiment-${commodity.slug})`} isAnimationActive={false} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
+                )}
+                {markerType === "none" ? null : (
+                  <Scatter
+                    data={chartData}
+                    dataKey="value"
+                    isAnimationActive={false}
+                    shape={<SentimentMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
+                  />
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : null}
+        </ChartGestureSurface>
+        {selectedPoint ? <SentimentPointState mode={mode} point={selectedPoint} /> : null}
+        {showSetupPanel ? (
+          <div className="chart-drawer-panel chart-drawer-panel-controls">
+            <div className="sentiment-controls">
+              <label>
+                <span>Sentiment view</span>
+                <select
+                  value={mode}
+                  onChange={(event) => {
+                    setMode(event.target.value as SentimentMode);
+                    setSelectedPointKey(null);
+                  }}
+                >
+                  <option value="sentiment">Simple sentiment</option>
+                  <option value="finbert">FinBERT</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        ) : null}
+        <div className="chart-drawer-tabs">
+          <button
+            aria-expanded={showSetupPanel}
+            className={`chart-drawer-handle${showSetupPanel ? " open" : ""}`}
+            onClick={() => setShowSetupPanel((current) => !current)}
+            type="button"
+          >
+            <span>Sentiment setup</span>
+            <strong aria-hidden="true">{showSetupPanel ? "\u25B4" : "\u25BE"}</strong>
+          </button>
+        </div>
       </div>
     </section>
   );

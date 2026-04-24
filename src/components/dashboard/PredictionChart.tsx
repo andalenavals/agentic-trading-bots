@@ -185,183 +185,185 @@ export function PredictionChart({
 
   return (
     <section className="agent-gym">
-      <ChartGestureSurface
-        className="chart-box gym-chart"
-        style={{ height: 390 }}
-        onClick={selectFromSurfaceClick}
-        xLength={displayedPoints.length}
-        xRange={xDomain}
-        onXChange={(nextRange) => onSharedXRangeChange(nextRange, displayedPoints.length)}
-      >
-        {displayedPoints.length === 0 ? (
-          <div className="empty-state">
-            <h3>No predictions generated yet</h3>
-            <p>
-              Run <code>npm run predict:lightgbm:direct</code>, <code>npm run predict:lightgbm</code>, <code>npm run predict:ridge</code>, or <code>npm run predict:baseline</code> to generate forecast files under{" "}
-              <code>data/prediction_outputs</code>.
-            </p>
-          </div>
-        ) : mounted ? (
-          <ResponsiveContainer height="100%" width="100%">
-            <ComposedChart
-              data={displayedPoints}
-              margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
-              onClick={(event) => selectPoint(pointFromChartEvent(event as ChartClickEvent | undefined))}
-            >
-              <CartesianGrid stroke="#252b3a" vertical={false} />
-              <XAxis
-                allowDataOverflow
-                axisLine={false}
-                dataKey="x"
-                domain={[xDomain.start, xDomain.end]}
-                tick={{ fill: "#697185", fontSize: 11 }}
-                tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
-                tickLine={false}
-                ticks={ticks}
-                type="number"
-              />
-              <YAxis
-                allowDataOverflow
-                axisLine={false}
-                domain={[visibleYRange.min, visibleYRange.max]}
-                scale={logScale ? "log" : "auto"}
-                tick={{ fill: "#697185", fontSize: 11 }}
-                tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
-                tickLine={false}
-                width={PRICE_AXIS_WIDTH}
-              />
-              {chartType === "bar" ? (
-                <Bar dataKey="price" fill={commodity.colorHex} isAnimationActive={false} opacity={0.42} radius={[3, 3, 0, 0]} />
-              ) : chartType === "area" ? (
-                <Area
-                  dataKey="price"
+      <div className="chart-window-shell">
+        <ChartGestureSurface
+          className="chart-box gym-chart"
+          style={{ height: 390 }}
+          onClick={selectFromSurfaceClick}
+          xLength={displayedPoints.length}
+          xRange={xDomain}
+          onXChange={(nextRange) => onSharedXRangeChange(nextRange, displayedPoints.length)}
+        >
+          {displayedPoints.length === 0 ? (
+            <div className="empty-state">
+              <h3>No predictions generated yet</h3>
+              <p>
+                Run <code>npm run predict:lightgbm:direct</code>, <code>npm run predict:lightgbm</code>, <code>npm run predict:ridge</code>, or <code>npm run predict:baseline</code> to generate forecast files under{" "}
+                <code>data/prediction_outputs</code>.
+              </p>
+            </div>
+          ) : mounted ? (
+            <ResponsiveContainer height="100%" width="100%">
+              <ComposedChart
+                data={displayedPoints}
+                margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
+                onClick={(event) => selectPoint(pointFromChartEvent(event as ChartClickEvent | undefined))}
+              >
+                <CartesianGrid stroke="#252b3a" vertical={false} />
+                <XAxis
+                  allowDataOverflow
+                  axisLine={false}
+                  dataKey="x"
+                  domain={[xDomain.start, xDomain.end]}
+                  tick={{ fill: "#697185", fontSize: 11 }}
+                  tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
+                  tickLine={false}
+                  ticks={ticks}
+                  type="number"
+                />
+                <YAxis
+                  allowDataOverflow
+                  axisLine={false}
+                  domain={[visibleYRange.min, visibleYRange.max]}
+                  scale={logScale ? "log" : "auto"}
+                  tick={{ fill: "#697185", fontSize: 11 }}
+                  tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
+                  tickLine={false}
+                  width={PRICE_AXIS_WIDTH}
+                />
+                {chartType === "bar" ? (
+                  <Bar dataKey="price" fill={commodity.colorHex} isAnimationActive={false} opacity={0.42} radius={[3, 3, 0, 0]} />
+                ) : chartType === "area" ? (
+                  <Area
+                    dataKey="price"
+                    dot={false}
+                    fill={`${commodity.colorHex}22`}
+                    fillOpacity={0.45}
+                    isAnimationActive={false}
+                    stroke={commodity.colorHex}
+                    strokeOpacity={0.62}
+                    strokeWidth={lineWidth}
+                    type="monotone"
+                  />
+                ) : (
+                  <Line dataKey="price" dot={false} isAnimationActive={false} stroke={commodity.colorHex} strokeOpacity={0.62} strokeWidth={lineWidth} type="monotone" />
+                )}
+                <Line
+                  connectNulls={false}
+                  dataKey="predictedPrice"
                   dot={false}
-                  fill={`${commodity.colorHex}22`}
-                  fillOpacity={0.45}
                   isAnimationActive={false}
-                  stroke={commodity.colorHex}
-                  strokeOpacity={0.62}
+                  stroke={PREDICTION_COLOR}
+                  strokeDasharray="6 4"
                   strokeWidth={lineWidth}
                   type="monotone"
                 />
-              ) : (
-                <Line dataKey="price" dot={false} isAnimationActive={false} stroke={commodity.colorHex} strokeOpacity={0.62} strokeWidth={lineWidth} type="monotone" />
-              )}
-              <Line
-                connectNulls={false}
-                dataKey="predictedPrice"
-                dot={false}
-                isAnimationActive={false}
-                stroke={PREDICTION_COLOR}
-                strokeDasharray="6 4"
-                strokeWidth={lineWidth}
-                type="monotone"
-              />
-              {testStart ? (
-                <ReferenceLine
-                  ifOverflow="extendDomain"
-                  label={{ fill: "#b6bdcf", fontSize: 11, position: "insideTopRight", value: "test" }}
-                  stroke="#f6c85f"
-                  strokeDasharray="5 5"
-                  x={testStart.x}
-                />
-              ) : null}
-              {showMarkers ? (
-                <>
-                  <Scatter
-                    data={displayedPoints}
-                    dataKey="price"
-                    isAnimationActive={false}
-                    shape={<SeriesMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
+                {testStart ? (
+                  <ReferenceLine
+                    ifOverflow="extendDomain"
+                    label={{ fill: "#b6bdcf", fontSize: 11, position: "insideTopRight", value: "test" }}
+                    stroke="#f6c85f"
+                    strokeDasharray="5 5"
+                    x={testStart.x}
                   />
-                  <Scatter
-                    data={displayedPoints.filter((point) => point.predictedPrice !== null)}
-                    dataKey="predictedPrice"
-                    isAnimationActive={false}
-                    shape={<SeriesMarker alphaLevel={alphaLevel} color={PREDICTION_COLOR} markerSize={markerSize} markerType={markerType} />}
-                  />
-                </>
-              ) : null}
-            </ComposedChart>
-          </ResponsiveContainer>
-        ) : null}
-      </ChartGestureSurface>
-      {selectedPoint && selectedPoint.predictedPrice !== null ? <PredictionPointState model={activeModel} point={selectedPoint} /> : null}
-      {showSetupPanel ? (
-        <div className="chart-drawer-panel chart-drawer-panel-controls">
-          <div className="gym-controls">
-            <Control label="Model">
-              <select
-                value={activeModel}
-                onChange={(event) => {
-                  setModel(event.target.value as PredictionModelKind);
-                  setSelectedPointKey(null);
-                }}
-              >
-                {availableModels.map((item) => (
-                  <option key={item} value={item}>{modelLabel(item)}</option>
-                ))}
-              </select>
-            </Control>
-            {availableModes.length > 1 ? (
-              <Control label="Evaluation">
+                ) : null}
+                {showMarkers ? (
+                  <>
+                    <Scatter
+                      data={displayedPoints}
+                      dataKey="price"
+                      isAnimationActive={false}
+                      shape={<SeriesMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
+                    />
+                    <Scatter
+                      data={displayedPoints.filter((point) => point.predictedPrice !== null)}
+                      dataKey="predictedPrice"
+                      isAnimationActive={false}
+                      shape={<SeriesMarker alphaLevel={alphaLevel} color={PREDICTION_COLOR} markerSize={markerSize} markerType={markerType} />}
+                    />
+                  </>
+                ) : null}
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : null}
+        </ChartGestureSurface>
+        {selectedPoint && selectedPoint.predictedPrice !== null ? <PredictionPointState model={activeModel} point={selectedPoint} /> : null}
+        {showSetupPanel ? (
+          <div className="chart-drawer-panel chart-drawer-panel-controls">
+            <div className="gym-controls">
+              <Control label="Model">
                 <select
-                  value={activeEvaluationMode}
+                  value={activeModel}
                   onChange={(event) => {
-                    setEvaluationMode(event.target.value as PredictionEvaluationMode);
+                    setModel(event.target.value as PredictionModelKind);
                     setSelectedPointKey(null);
                   }}
                 >
-                  {availableModes.map((item) => (
-                    <option key={item} value={item}>{evaluationModeLabel(item)}</option>
+                  {availableModels.map((item) => (
+                    <option key={item} value={item}>{modelLabel(item)}</option>
                   ))}
                 </select>
               </Control>
-            ) : null}
-            <Control label="Split">
-              <select value={activeSplit} onChange={(event) => setSplit(Number(event.target.value))}>
-                {splitOptions.map((item) => (
-                  <option key={item} value={item}>Split {item}</option>
-                ))}
-              </select>
-            </Control>
-          </div>
-          <details className="model-info-panel">
-            <summary>
-              <div className="model-info-summary">
-                <span>Model notes</span>
-                <strong>{modelLabel(activeModel)}</strong>
-              </div>
-              <span className="source">{evaluationModeLabel(activeEvaluationMode)}</span>
-            </summary>
-            <div className="model-info-body">
-              <p>{activeModelInfo.theory}</p>
-              <div className="model-info-mode">
-                <span>Evaluation</span>
-                <p>{predictionEvaluationInfo(activeEvaluationMode)}</p>
-              </div>
-              <div className="model-meta-grid">
-                {activeModelInfo.hyperparameters.map((item) => (
-                  <div key={`${activeModel}-${item.label}`} className="model-meta-item">
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                ))}
-              </div>
+              {availableModes.length > 1 ? (
+                <Control label="Evaluation">
+                  <select
+                    value={activeEvaluationMode}
+                    onChange={(event) => {
+                      setEvaluationMode(event.target.value as PredictionEvaluationMode);
+                      setSelectedPointKey(null);
+                    }}
+                  >
+                    {availableModes.map((item) => (
+                      <option key={item} value={item}>{evaluationModeLabel(item)}</option>
+                    ))}
+                  </select>
+                </Control>
+              ) : null}
+              <Control label="Split">
+                <select value={activeSplit} onChange={(event) => setSplit(Number(event.target.value))}>
+                  {splitOptions.map((item) => (
+                    <option key={item} value={item}>Split {item}</option>
+                  ))}
+                </select>
+              </Control>
             </div>
-          </details>
+            <details className="model-info-panel">
+              <summary>
+                <div className="model-info-summary">
+                  <span>Model notes</span>
+                  <strong>{modelLabel(activeModel)}</strong>
+                </div>
+                <span className="source">{evaluationModeLabel(activeEvaluationMode)}</span>
+              </summary>
+              <div className="model-info-body">
+                <p>{activeModelInfo.theory}</p>
+                <div className="model-info-mode">
+                  <span>Evaluation</span>
+                  <p>{predictionEvaluationInfo(activeEvaluationMode)}</p>
+                </div>
+                <div className="model-meta-grid">
+                  {activeModelInfo.hyperparameters.map((item) => (
+                    <div key={`${activeModel}-${item.label}`} className="model-meta-item">
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </details>
+          </div>
+        ) : null}
+        <div className="chart-drawer-tabs">
+          <button
+            aria-expanded={showSetupPanel}
+            className={`chart-drawer-handle${showSetupPanel ? " open" : ""}`}
+            onClick={() => setShowSetupPanel((current) => !current)}
+            type="button"
+          >
+            <span>Forecast setup</span>
+            <strong aria-hidden="true">{showSetupPanel ? "\u25B4" : "\u25BE"}</strong>
+          </button>
         </div>
-      ) : null}
-      <div className="chart-drawer-tabs">
-        <button
-          aria-expanded={showSetupPanel}
-          className={`chart-drawer-handle${showSetupPanel ? " open" : ""}`}
-          onClick={() => setShowSetupPanel((current) => !current)}
-          type="button"
-        >
-          <span>Forecast setup</span>
-          <strong aria-hidden="true">{showSetupPanel ? "\u2191" : "\u2193"}</strong>
-        </button>
       </div>
     </section>
   );

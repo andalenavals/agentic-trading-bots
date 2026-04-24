@@ -172,115 +172,117 @@ export function AgentGym({
 
   return (
     <section className="agent-gym">
-      <ChartGestureSurface
-        className="chart-box gym-chart"
-        style={{ height: 390 }}
-        onClick={selectFromSurfaceClick}
-        xLength={displayedPoints.length}
-        xRange={xDomain}
-        onXChange={(nextRange) => onSharedXRangeChange(nextRange, displayedPoints.length)}
-      >
-        {displayedPoints.length === 0 ? (
-          <div className="empty-state">
-            <h3>No bot decisions generated yet</h3>
-            <p>
-              Run <code>npm run train:single</code> or <code>npm run train:multi</code> to generate files under <code>data/agent_outputs</code>.
-              The app only requires raw data in Git; bot outputs are generated artifacts.
-            </p>
-          </div>
-        ) : mounted ? (
-          <ResponsiveContainer height="100%" width="100%">
-            <ComposedChart
-              data={displayedPoints}
-              margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
-              onClick={(event) => {
-                const point = pointFromChartEvent(event as ChartClickEvent | undefined);
-                if (point) setSelectedPointKey(point.key);
-              }}
-            >
-              <CartesianGrid stroke="#252b3a" vertical={false} />
-              <XAxis
-                allowDataOverflow
-                axisLine={false}
-                dataKey="x"
-                domain={[xDomain.start, xDomain.end]}
-                tick={{ fill: "#697185", fontSize: 11 }}
-                tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
-                tickLine={false}
-                ticks={ticks}
-                type="number"
-              />
-              <YAxis
-                allowDataOverflow
-                axisLine={false}
-                domain={[visibleYRange.min, visibleYRange.max]}
-                scale={logScale ? "log" : "auto"}
-                tick={{ fill: "#697185", fontSize: 11 }}
-                tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
-                tickLine={false}
-                width={PRICE_AXIS_WIDTH}
-              />
-              {chartType === "bar" ? (
-                <Bar dataKey="price" fill={activeCommodity.colorHex} isAnimationActive={false} opacity={0.62} radius={[3, 3, 0, 0]} />
-              ) : chartType === "area" ? (
-                <Area dataKey="price" dot={false} fill={`${activeCommodity.colorHex}22`} isAnimationActive={false} stroke={activeCommodity.colorHex} strokeWidth={lineWidth} type="monotone" />
-              ) : (
-                <Line dataKey="price" dot={false} isAnimationActive={false} stroke={activeCommodity.colorHex} strokeWidth={lineWidth} type="monotone" />
-              )}
-              {testStart ? (
-                <ReferenceLine
-                  ifOverflow="extendDomain"
-                  label={{ fill: "#b6bdcf", fontSize: 11, position: "insideTopRight", value: "test" }}
-                  stroke="#f6c85f"
-                  strokeDasharray="5 5"
-                  x={testStart.x}
-                />
-              ) : null}
-              {markerType === "none"
-                ? null
-                : (["hold", "buy", "sell"] as AgentActionName[]).map((actionName) => (
-                    <Scatter
-                      data={displayedPoints.filter((point) => point.actionName === actionName)}
-                      dataKey="price"
-                      isAnimationActive={false}
-                      key={actionName}
-                      shape={<DecisionDot alphaLevel={alphaLevel} markerSize={markerSize} markerType={markerType} />}
-                    />
-                  ))}
-            </ComposedChart>
-          </ResponsiveContainer>
-        ) : null}
-      </ChartGestureSurface>
-      {selectedPoint ? <BotPointState point={selectedPoint} /> : null}
-      {showSetupPanel ? (
-        <div className="chart-drawer-panel chart-drawer-panel-controls">
-          <div className="gym-controls">
-            <Control label="Model">
-              <select value={model} onChange={(event) => handleModelChange(event.target.value as AgentModelKind)}>
-                <option value="single_asset_ppo">Single asset PPO</option>
-                <option value="multiple_asset_ppo">Multi asset PPO</option>
-              </select>
-            </Control>
-            <Control label="Split">
-              <select value={activeSplit} onChange={(event) => handleSplitChange(Number(event.target.value))}>
-                {splitOptions.map((item) => (
-                  <option key={item} value={item}>Split {item}</option>
-                ))}
-              </select>
-            </Control>
-          </div>
-        </div>
-      ) : null}
-      <div className="chart-drawer-tabs">
-        <button
-          aria-expanded={showSetupPanel}
-          className={`chart-drawer-handle${showSetupPanel ? " open" : ""}`}
-          onClick={() => setShowSetupPanel((current) => !current)}
-          type="button"
+      <div className="chart-window-shell">
+        <ChartGestureSurface
+          className="chart-box gym-chart"
+          style={{ height: 390 }}
+          onClick={selectFromSurfaceClick}
+          xLength={displayedPoints.length}
+          xRange={xDomain}
+          onXChange={(nextRange) => onSharedXRangeChange(nextRange, displayedPoints.length)}
         >
-          <span>Decision setup</span>
-          <strong aria-hidden="true">{showSetupPanel ? "\u2191" : "\u2193"}</strong>
-        </button>
+          {displayedPoints.length === 0 ? (
+            <div className="empty-state">
+              <h3>No bot decisions generated yet</h3>
+              <p>
+                Run <code>npm run train:single</code> or <code>npm run train:multi</code> to generate files under <code>data/agent_outputs</code>.
+                The app only requires raw data in Git; bot outputs are generated artifacts.
+              </p>
+            </div>
+          ) : mounted ? (
+            <ResponsiveContainer height="100%" width="100%">
+              <ComposedChart
+                data={displayedPoints}
+                margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
+                onClick={(event) => {
+                  const point = pointFromChartEvent(event as ChartClickEvent | undefined);
+                  if (point) setSelectedPointKey(point.key);
+                }}
+              >
+                <CartesianGrid stroke="#252b3a" vertical={false} />
+                <XAxis
+                  allowDataOverflow
+                  axisLine={false}
+                  dataKey="x"
+                  domain={[xDomain.start, xDomain.end]}
+                  tick={{ fill: "#697185", fontSize: 11 }}
+                  tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
+                  tickLine={false}
+                  ticks={ticks}
+                  type="number"
+                />
+                <YAxis
+                  allowDataOverflow
+                  axisLine={false}
+                  domain={[visibleYRange.min, visibleYRange.max]}
+                  scale={logScale ? "log" : "auto"}
+                  tick={{ fill: "#697185", fontSize: 11 }}
+                  tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
+                  tickLine={false}
+                  width={PRICE_AXIS_WIDTH}
+                />
+                {chartType === "bar" ? (
+                  <Bar dataKey="price" fill={activeCommodity.colorHex} isAnimationActive={false} opacity={0.62} radius={[3, 3, 0, 0]} />
+                ) : chartType === "area" ? (
+                  <Area dataKey="price" dot={false} fill={`${activeCommodity.colorHex}22`} isAnimationActive={false} stroke={activeCommodity.colorHex} strokeWidth={lineWidth} type="monotone" />
+                ) : (
+                  <Line dataKey="price" dot={false} isAnimationActive={false} stroke={activeCommodity.colorHex} strokeWidth={lineWidth} type="monotone" />
+                )}
+                {testStart ? (
+                  <ReferenceLine
+                    ifOverflow="extendDomain"
+                    label={{ fill: "#b6bdcf", fontSize: 11, position: "insideTopRight", value: "test" }}
+                    stroke="#f6c85f"
+                    strokeDasharray="5 5"
+                    x={testStart.x}
+                  />
+                ) : null}
+                {markerType === "none"
+                  ? null
+                  : (["hold", "buy", "sell"] as AgentActionName[]).map((actionName) => (
+                      <Scatter
+                        data={displayedPoints.filter((point) => point.actionName === actionName)}
+                        dataKey="price"
+                        isAnimationActive={false}
+                        key={actionName}
+                        shape={<DecisionDot alphaLevel={alphaLevel} markerSize={markerSize} markerType={markerType} />}
+                      />
+                    ))}
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : null}
+        </ChartGestureSurface>
+        {selectedPoint ? <BotPointState point={selectedPoint} /> : null}
+        {showSetupPanel ? (
+          <div className="chart-drawer-panel chart-drawer-panel-controls">
+            <div className="gym-controls">
+              <Control label="Model">
+                <select value={model} onChange={(event) => handleModelChange(event.target.value as AgentModelKind)}>
+                  <option value="single_asset_ppo">Single asset PPO</option>
+                  <option value="multiple_asset_ppo">Multi asset PPO</option>
+                </select>
+              </Control>
+              <Control label="Split">
+                <select value={activeSplit} onChange={(event) => handleSplitChange(Number(event.target.value))}>
+                  {splitOptions.map((item) => (
+                    <option key={item} value={item}>Split {item}</option>
+                  ))}
+                </select>
+              </Control>
+            </div>
+          </div>
+        ) : null}
+        <div className="chart-drawer-tabs">
+          <button
+            aria-expanded={showSetupPanel}
+            className={`chart-drawer-handle${showSetupPanel ? " open" : ""}`}
+            onClick={() => setShowSetupPanel((current) => !current)}
+            type="button"
+          >
+            <span>Decision setup</span>
+            <strong aria-hidden="true">{showSetupPanel ? "\u25B4" : "\u25BE"}</strong>
+          </button>
+        </div>
       </div>
     </section>
   );

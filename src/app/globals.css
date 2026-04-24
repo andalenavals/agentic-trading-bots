@@ -154,9 +154,9 @@ h1 {
 
 .news-chart-panel summary::after {
   color: var(--gold);
-  content: "+";
+  content: "\25BE";
   float: right;
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1;
 }
 
@@ -165,7 +165,7 @@ h1 {
 }
 
 .news-chart-panel[open] summary::after {
-  content: "-";
+  content: "\25B4";
 }
 
 .news-chart-body {
@@ -331,14 +331,14 @@ h1 {
 
 .plot-settings summary::after {
   color: var(--gold);
-  content: "+";
+  content: "\25BE";
   float: right;
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1;
 }
 
 .plot-settings[open] summary::after {
-  content: "-";
+  content: "\25B4";
 }
 
 .plot-settings-extra {
@@ -548,6 +548,17 @@ h1 {
   position: relative;
 }
 
+.chart-window-shell {
+  background: #151923;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.chart-window-shell .chart-box {
+  margin: 8px 8px 0;
+}
+
 .chart-box > :not(.gesture-hitbox),
 .chart-box > :not(.gesture-hitbox) * {
   pointer-events: none;
@@ -732,9 +743,10 @@ h1 {
 
 .chart-drawer-handle {
   align-items: center;
-  background: var(--panel-strong);
-  border: 1px solid var(--line);
-  border-radius: 0 0 7px 7px;
+  background: #171c26;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
   color: var(--muted);
   display: flex;
   gap: 10px;
@@ -744,7 +756,7 @@ h1 {
 }
 
 .chart-drawer-handle.open {
-  border-top-color: transparent;
+  border-top-color: var(--line);
 }
 
 .chart-drawer-handle span {
@@ -761,8 +773,6 @@ h1 {
 }
 
 .chart-drawer-panel {
-  border-left: 1px solid var(--line);
-  border-right: 1px solid var(--line);
   border-top: 1px solid var(--line);
   margin: 0;
 }
@@ -796,8 +806,8 @@ h1 {
 
 .model-info-panel summary::after {
   color: var(--gold);
-  content: "+";
-  font-size: 16px;
+  content: "\25BE";
+  font-size: 13px;
   line-height: 1;
 }
 
@@ -806,7 +816,7 @@ h1 {
 }
 
 .model-info-panel[open] summary::after {
-  content: "-";
+  content: "\25B4";
 }
 
 .model-info-summary {
