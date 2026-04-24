@@ -379,6 +379,17 @@ export function PredictionChart({
               <div className="model-info-body">
                 <p>{activeModelInfo.theory}</p>
                 <div className="model-info-mode">
+                  <span>Used features</span>
+                </div>
+                <div className="model-meta-grid">
+                  {activeModelInfo.features.map((item) => (
+                    <div key={`${activeModel}-feature-${item.label}`} className="model-meta-item">
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
+                <div className="model-info-mode">
                   <span>Evaluation</span>
                   <p>{predictionEvaluationInfo(activeEvaluationMode)}</p>
                 </div>

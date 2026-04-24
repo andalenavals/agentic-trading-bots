@@ -55,6 +55,7 @@ export type PredictionHyperparameter = {
 
 export type PredictionModelInfo = {
   theory: string;
+  features: PredictionHyperparameter[];
   hyperparameters: PredictionHyperparameter[];
 };
 
@@ -81,6 +82,7 @@ export function predictionModelInfo(model: PredictionModelKind): PredictionModel
     return {
       theory:
         "Train-only trend baseline. It anchors on the last train price and extends the train slope through the test window.",
+      features: baselineFeatures(),
       hyperparameters: [
         hyperparameter("Forecast anchor", "last train price"),
         hyperparameter("Trend fit", "linear slope"),
@@ -94,6 +96,7 @@ export function predictionModelInfo(model: PredictionModelKind): PredictionModel
         model === "ridge_arx_sentiment"
           ? "Linear ARX model with L2 regularization on lagged price features plus sentiment and news inputs."
           : "Linear autoregressive model with L2 regularization on lagged price and rolling-return features.",
+      features: sharedTabularFeatures(config),
       hyperparameters: [
         hyperparameter("Ridge alpha", formatScalar(config.ridge_alpha)),
         hyperparameter("Lags", formatList(config.lags)),
@@ -109,6 +112,7 @@ export function predictionModelInfo(model: PredictionModelKind): PredictionModel
         model === "arimax_sentiment"
           ? "ARIMAX on one-step log returns with autoregressive and moving-average dynamics plus exogenous lag, rolling, sentiment, and news context."
           : "ARIMAX on one-step log returns with autoregressive and moving-average dynamics plus exogenous lag and rolling-return context.",
+      features: sharedTabularFeatures(config),
       hyperparameters: arimaxHyperparameters(config),
     };
   }
@@ -119,6 +123,7 @@ export function predictionModelInfo(model: PredictionModelKind): PredictionModel
         model === "gaussian_process_sentiment"
           ? "Gaussian-process regression for one-step return forecasts using lagged price states plus sentiment and news context, fit on a capped recent training window."
           : "Gaussian-process regression for one-step return forecasts using lagged price and rolling-return context, fit on a capped recent training window.",
+      features: sharedTabularFeatures(config),
       hyperparameters: gaussianProcessHyperparameters(config),
     };
   }
@@ -129,6 +134,7 @@ export function predictionModelInfo(model: PredictionModelKind): PredictionModel
         model === "lstm_sentiment"
           ? "Sequence LSTM for one-step return forecasts using lagged price states plus sentiment and news context across the recent window."
           : "Sequence LSTM for one-step return forecasts using lagged price and rolling-return context across the recent window.",
+      features: lstmFeatures(config),
       hyperparameters: lstmHyperparameters(config),
     };
   }
@@ -139,6 +145,7 @@ export function predictionModelInfo(model: PredictionModelKind): PredictionModel
         model === "lightgbm_direct_sentiment"
           ? "Direct multi-horizon LightGBM. It learns future offsets from the split boundary using price, news, and sentiment context."
           : "Direct multi-horizon LightGBM. It learns future offsets from the split boundary using price and rolling history only.",
+      features: directLightgbmFeatures(config),
       hyperparameters: lightgbmHyperparameters(config),
     };
   }
@@ -148,6 +155,7 @@ export function predictionModelInfo(model: PredictionModelKind): PredictionModel
       model === "lightgbm_sentiment"
         ? "Gradient-boosted trees for one-step return forecasts with lagged prices, volatility, and sentiment inputs."
         : "Gradient-boosted trees for one-step return forecasts with lagged prices and rolling volatility features.",
+    features: sharedTabularFeatures(config),
     hyperparameters: lightgbmHyperparameters(config),
   };
 }
@@ -224,8 +232,71 @@ function lstmHyperparameters(config: PredictionConfig): PredictionHyperparameter
   ];
 }
 
+function baselineFeatures(): PredictionHyperparameter[] {
+  return [
+    hyperparameter("Training input", "historical price series"),
+    hyperparameter("Anchor term", "last_train_price"),
+    hyperparameter("Trend statistic", "linear slope fit on training prices"),
+  ];
+}
+
+function sharedTabularFeatures(config: PredictionConfig): PredictionHyperparameter[] {
+  const items = [
+    hyperparameter("Lagged log prices", formatFeatureNames("lag_log_price", config.lags)),
+    hyperparameter("Lagged log returns", formatFeatureNames("lag_log_return", config.lags)),
+    hyperparameter("Rolling return mean", formatFeatureNames("rolling_log_return_mean", config.windows)),
+    hyperparameter("Rolling return vol", formatFeatureNames("rolling_log_return_vol", config.windows)),
+  ];
+
+  if (config.include_sentiment_features) {
+    items.push(
+      hyperparameter(
+        "Sentiment and news",
+        [
+          "sentiment_score",
+          "finbert_sentiment_score",
+          "positive",
+          "neutral",
+          "negative",
+          "finbert_positive",
+          "finbert_neutral",
+          "finbert_negative",
+          "news_count",
+        ].join(", "),
+      ),
+    );
+  }
+
+  return items;
+}
+
+function directLightgbmFeatures(config: PredictionConfig): PredictionHyperparameter[] {
+  return [
+    ...sharedTabularFeatures(config),
+    hyperparameter(
+      "Direct-horizon context",
+      "forecast_horizon, forecast_horizon_ratio, forecast_horizon_log1p",
+    ),
+  ];
+}
+
+function lstmFeatures(config: PredictionConfig): PredictionHyperparameter[] {
+  return [
+    hyperparameter(
+      "Temporal window",
+      `last ${formatScalar(config.sequence_length)} timesteps of the feature set below`,
+    ),
+    ...sharedTabularFeatures(config),
+  ];
+}
+
 function hyperparameter(label: string, value: string): PredictionHyperparameter {
   return { label, value };
+}
+
+function formatFeatureNames(prefix: string, values: number[] | undefined) {
+  if (!values?.length) return "n/a";
+  return values.map((value) => `${prefix}_${value}`).join(", ");
 }
 
 function formatList(values: number[] | undefined) {
