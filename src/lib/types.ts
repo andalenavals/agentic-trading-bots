@@ -105,9 +105,11 @@ export type PredictionModelKind =
   | "ar1_baseline"
   | "ridge_arx_price_only"
   | "ridge_arx_sentiment"
+  | "lightgbm_direct_price_only"
+  | "lightgbm_direct_sentiment"
   | "lightgbm_price_only"
   | "lightgbm_sentiment";
-export type PredictionEvaluationMode = "observed_history" | "recursive_path";
+export type PredictionEvaluationMode = "direct_multi_horizon" | "observed_history" | "recursive_path";
 
 export type PredictionPoint = {
   model: PredictionModelKind;

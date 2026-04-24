@@ -50,6 +50,8 @@ type PredictionChartPoint = PredictionPoint & {
 
 const PREDICTION_COLOR = "#f6c85f";
 const MODEL_ORDER: PredictionModelKind[] = [
+  "lightgbm_direct_sentiment",
+  "lightgbm_direct_price_only",
   "lightgbm_sentiment",
   "lightgbm_price_only",
   "ridge_arx_sentiment",
@@ -229,7 +231,7 @@ export function PredictionChart({
           <div className="empty-state">
             <h3>No predictions generated yet</h3>
             <p>
-              Run <code>npm run predict:ridge</code> or <code>npm run predict:baseline</code> to generate forecast files under{" "}
+              Run <code>npm run predict:lightgbm:direct</code>, <code>npm run predict:lightgbm</code>, <code>npm run predict:ridge</code>, or <code>npm run predict:baseline</code> to generate forecast files under{" "}
               <code>data/prediction_outputs</code>.
             </p>
           </div>
@@ -356,6 +358,8 @@ function PredictionPointState({ model, point }: { model: PredictionModelKind; po
 }
 
 function modelLabel(model: PredictionModelKind) {
+  if (model === "lightgbm_direct_sentiment") return "LightGBM Direct (Price + sentiment)";
+  if (model === "lightgbm_direct_price_only") return "LightGBM Direct (Price only)";
   if (model === "lightgbm_sentiment") return "LightGBM (Price + sentiment)";
   if (model === "lightgbm_price_only") return "LightGBM (Price only)";
   if (model === "ridge_arx_sentiment") return "Ridge ARX (Price + sentiment)";
@@ -364,6 +368,7 @@ function modelLabel(model: PredictionModelKind) {
 }
 
 function evaluationModeLabel(mode: PredictionEvaluationMode) {
+  if (mode === "direct_multi_horizon") return "Direct multi-horizon";
   if (mode === "observed_history") return "Observed history";
   return "Recursive path";
 }
@@ -391,7 +396,12 @@ function modelMetadata(model: PredictionModelKind, point: PredictionChartPoint) 
     ];
   }
 
-  if (model === "lightgbm_price_only" || model === "lightgbm_sentiment") {
+  if (
+    model === "lightgbm_price_only"
+    || model === "lightgbm_sentiment"
+    || model === "lightgbm_direct_price_only"
+    || model === "lightgbm_direct_sentiment"
+  ) {
     return [
       { label: "Trees", value: String(Math.round(point.alpha)) },
       { label: "Leaves", value: String(Math.round(point.beta)) },

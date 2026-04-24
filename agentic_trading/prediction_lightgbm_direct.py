@@ -5,18 +5,9 @@ import math
 from pathlib import Path
 from typing import Any
 
-from agentic_trading.prediction_lightgbm_common import (
-    DEFAULT_RETURN_BAND,
-    build_model_params,
-    estimate_target_band,
-    predict_with_booster,
-    train_lightgbm_booster,
-)
 from agentic_trading.prediction_features import (
     DEFAULT_LAGS,
     DEFAULT_WINDOWS,
-    OBSERVED_HISTORY,
-    RECURSIVE_PATH,
     build_feature_vector,
     clamp,
     ensure_prediction_columns,
@@ -24,6 +15,13 @@ from agentic_trading.prediction_features import (
     feature_start_index,
     log_returns,
     safe_log,
+)
+from agentic_trading.prediction_lightgbm_common import (
+    DEFAULT_RETURN_BAND,
+    build_model_params,
+    estimate_target_band,
+    predict_with_booster,
+    train_lightgbm_booster,
 )
 from agentic_trading.pipeline_common import (
     load_json_config,
@@ -42,7 +40,9 @@ REQUIRED_CONFIG_KEYS = {
     "n_splits",
 }
 
-DEFAULT_CONFIG_NAME = "lightgbm_sentiment"
+DEFAULT_CONFIG_NAME = "lightgbm_direct_sentiment"
+DIRECT_MULTI_HORIZON = "direct_multi_horizon"
+DEFAULT_DIRECT_RETURN_BAND = 1.2
 
 
 def generate_full_predictions(
@@ -53,7 +53,6 @@ def generate_full_predictions(
     lags: list[int] | None = None,
     windows: list[int] | None = None,
     include_sentiment_features: bool = True,
-    evaluation_mode: str = OBSERVED_HISTORY,
     model_params: dict[str, Any] | None = None,
 ) -> list[dict[str, object]]:
     lags = lags or list(DEFAULT_LAGS)
@@ -63,24 +62,36 @@ def generate_full_predictions(
     actual_log_prices = [safe_log(price) for price in actual_prices]
     actual_log_returns = log_returns(actual_log_prices)
     feature_start = feature_start_index(lags, windows)
-    train_sample_end = max(feature_start, train_end)
-    model = fit_lightgbm_model(
+    test_length = max(0, len(rows) - train_end)
+    direct_model = fit_direct_model(
         rows,
         actual_log_prices,
         actual_log_returns,
         feature_start,
-        train_sample_end,
+        train_end,
+        test_length,
         lags,
         windows,
         include_sentiment_features,
         params,
     )
+    max_trained_horizon = int(direct_model["max_trained_horizon"])
+    feature_horizon_scale = max(1, max_trained_horizon)
 
-    if evaluation_mode not in {OBSERVED_HISTORY, RECURSIVE_PATH}:
-        raise ValueError(f"Unsupported evaluation_mode {evaluation_mode!r}.")
-
-    predicted_log_prices = list(actual_log_prices)
-    predicted_log_returns = list(actual_log_returns)
+    origin_features = (
+        build_feature_vector(
+            rows,
+            actual_log_prices,
+            actual_log_returns,
+            train_end,
+            lags,
+            windows,
+            include_sentiment_features,
+        )
+        if train_end >= feature_start and train_end < len(rows)
+        else None
+    )
+    origin_log_price = actual_log_prices[train_end - 1] if train_end > 0 else 0.0
     generated: list[dict[str, object]] = []
 
     for index, row in enumerate(rows):
@@ -88,36 +99,20 @@ def generate_full_predictions(
         predicted_price = None
         error = None
         absolute_error = None
+        horizon = index - train_end + 1
 
-        if phase == "test" and index >= feature_start:
-            if evaluation_mode == OBSERVED_HISTORY:
-                features = build_feature_vector(
-                    rows,
-                    actual_log_prices,
-                    actual_log_returns,
-                    index,
-                    lags,
-                    windows,
-                    include_sentiment_features,
-                )
-                previous_log_price = actual_log_prices[index - 1]
-            else:
-                features = build_feature_vector(
-                    rows,
-                    predicted_log_prices,
-                    predicted_log_returns,
-                    index,
-                    lags,
-                    windows,
-                    include_sentiment_features,
-                )
-                previous_log_price = predicted_log_prices[index - 1]
-
-            predicted_log_return = clamp(predict_return(model, features), -float(model["return_band"]), float(model["return_band"]))
-            next_log_price = previous_log_price + predicted_log_return
-            predicted_log_prices[index] = next_log_price
-            predicted_log_returns[index] = predicted_log_return
-
+        if phase == "test" and origin_features is not None and direct_model.get("booster") is not None:
+            effective_horizon = min(max(1, horizon), feature_horizon_scale)
+            raw_return = predict_with_booster(
+                direct_model.get("booster"),
+                augment_features(origin_features, effective_horizon, feature_horizon_scale),
+            )
+            cumulative_log_return = clamp(
+                raw_return,
+                -float(direct_model["return_band"]),
+                float(direct_model["return_band"]),
+            )
+            next_log_price = origin_log_price + cumulative_log_return
             predicted_price = math.exp(next_log_price)
             error = predicted_price - actual_prices[index]
             absolute_error = abs(error)
@@ -133,59 +128,94 @@ def generate_full_predictions(
                 "predicted_price": "" if predicted_price is None else predicted_price,
                 "error": "" if error is None else error,
                 "absolute_error": "" if absolute_error is None else absolute_error,
-                "alpha": model["num_trees"],
-                "beta": model["num_leaves"],
+                "alpha": direct_model["num_trees"],
+                "beta": direct_model["num_leaves"],
             }
         )
 
     return generated
 
 
-def fit_lightgbm_model(
+def fit_direct_model(
     rows: list[dict[str, str]],
     log_prices: list[float],
     log_returns_series: list[float],
     feature_start: int,
     train_end: int,
+    test_length: int,
     lags: list[int],
     windows: list[int],
     include_sentiment_features: bool,
     model_params: dict[str, Any],
 ) -> dict[str, object]:
-    sample_indices = [index for index in range(feature_start, train_end) if index < len(rows)]
-    feature_names_list = feature_names(lags, windows, include_sentiment_features)
-    if not sample_indices:
-        return empty_model(feature_names_list, model_params)
+    max_horizon = max(0, min(test_length, train_end - feature_start))
+    base_feature_names = feature_names(lags, windows, include_sentiment_features)
+    feature_names_list = base_feature_names + ["forecast_horizon", "forecast_horizon_ratio", "forecast_horizon_log1p"]
+    if max_horizon <= 0:
+        return empty_model(model_params)
 
-    x_rows = [
-        build_feature_vector(rows, log_prices, log_returns_series, index, lags, windows, include_sentiment_features)
-        for index in sample_indices
-    ]
-    y_values = [log_returns_series[index] for index in sample_indices]
-    return_band = estimate_target_band([log_returns_series[index] for index in sample_indices], upper=DEFAULT_RETURN_BAND)
+    horizon_grid = build_horizon_grid(max_horizon)
+    x_rows: list[list[float]] = []
+    y_values: list[float] = []
+
+    for index in range(feature_start, train_end):
+        base_features = build_feature_vector(rows, log_prices, log_returns_series, index, lags, windows, include_sentiment_features)
+        for horizon in horizon_grid:
+            target_index = index + horizon - 1
+            if target_index >= train_end:
+                continue
+            x_rows.append(augment_features(base_features, horizon, max_horizon))
+            y_values.append(log_prices[target_index] - log_prices[index - 1])
+
+    if len(x_rows) < 2:
+        return empty_model(model_params)
+
     booster = train_lightgbm_booster(x_rows, y_values, feature_names_list, model_params)
-
     return {
         "booster": booster,
-        "feature_names": feature_names_list,
         "num_trees": 0 if booster is None else booster.current_iteration(),
         "num_leaves": int(model_params["num_leaves"]),
-        "return_band": return_band,
+        "return_band": estimate_target_band(y_values, upper=max(DEFAULT_RETURN_BAND, DEFAULT_DIRECT_RETURN_BAND)),
+        "max_trained_horizon": max_horizon,
     }
 
 
-def empty_model(names: list[str], params: dict[str, Any]) -> dict[str, object]:
+def build_horizon_grid(max_horizon: int) -> list[int]:
+    horizons: set[int] = set()
+    add_range(horizons, 1, min(max_horizon, 15), 1)
+    add_range(horizons, 20, min(max_horizon, 60), 5)
+    add_range(horizons, 75, min(max_horizon, 180), 15)
+    add_range(horizons, 210, min(max_horizon, 365), 30)
+    add_range(horizons, 485, max_horizon, 120)
+    horizons.add(max_horizon)
+    return sorted(value for value in horizons if value > 0)
+
+
+def add_range(target: set[int], start: int, stop: int, step: int) -> None:
+    if start > stop:
+        return
+    for value in range(start, stop + 1, step):
+        target.add(value)
+
+
+def augment_features(base_features: list[float], horizon: int, max_horizon: int) -> list[float]:
+    horizon_scale = max(1, max_horizon)
+    return [
+        *base_features,
+        float(horizon),
+        horizon / horizon_scale,
+        math.log1p(horizon),
+    ]
+
+
+def empty_model(model_params: dict[str, Any]) -> dict[str, object]:
     return {
         "booster": None,
-        "feature_names": names,
         "num_trees": 0,
-        "num_leaves": int(params["num_leaves"]),
-        "return_band": DEFAULT_RETURN_BAND,
+        "num_leaves": int(model_params["num_leaves"]),
+        "return_band": DEFAULT_DIRECT_RETURN_BAND,
+        "max_trained_horizon": 0,
     }
-
-
-def predict_return(model: dict[str, object], features: list[float]) -> float:
-    return predict_with_booster(model.get("booster"), features)
 
 
 def run(config_path: str) -> None:
@@ -206,46 +236,18 @@ def run(config_path: str) -> None:
 
         commodity = rows[0].get("commodity", input_file.stem)
         for split, train_end in walk_forward_boundaries(len(rows), int(config["n_splits"])):
-            observed_predictions = generate_full_predictions(
+            predictions = generate_full_predictions(
                 rows,
                 split,
                 train_end,
                 lags=lags,
                 windows=windows,
                 include_sentiment_features=include_sentiment_features,
-                evaluation_mode=OBSERVED_HISTORY,
                 model_params=model_params,
             )
             write_csv_rows(
                 output_dir / f"full_dataset_predictions_{commodity}_split_{split}.csv",
-                observed_predictions,
-                [
-                    "date",
-                    "commodity",
-                    "dataset_index",
-                    "split",
-                    "phase",
-                    "price",
-                    "predicted_price",
-                    "error",
-                    "absolute_error",
-                    "alpha",
-                    "beta",
-                ],
-            )
-            recursive_predictions = generate_full_predictions(
-                rows,
-                split,
-                train_end,
-                lags=lags,
-                windows=windows,
-                include_sentiment_features=include_sentiment_features,
-                evaluation_mode=RECURSIVE_PATH,
-                model_params=model_params,
-            )
-            write_csv_rows(
-                output_dir / f"full_dataset_predictions_{commodity}_split_{split}_{RECURSIVE_PATH}.csv",
-                recursive_predictions,
+                predictions,
                 [
                     "date",
                     "commodity",

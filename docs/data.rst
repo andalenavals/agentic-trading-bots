@@ -92,3 +92,4 @@ Optional regeneration of model outputs:
    npm run predict:baseline
    npm run predict:ridge
    npm run predict:lightgbm
+   npm run predict:lightgbm:direct

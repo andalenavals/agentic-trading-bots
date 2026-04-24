@@ -15,7 +15,7 @@ Python pipeline
 * ``preprocessing.py``: raw prices/news to derived dashboard and training data
 * ``finbert_sentiment.py``: FinBERT scoring and cache helpers
 * ``prediction_features.py``: shared lagged-price, rolling, and sentiment feature builder
-* ``prediction_baseline.py``, ``prediction_ridge_arx.py``, and ``prediction_lightgbm.py``: forecast generators
+* ``prediction_baseline.py``, ``prediction_ridge_arx.py``, ``prediction_lightgbm.py``, and ``prediction_lightgbm_direct.py``: forecast generators
 * ``training/``: PPO training modules
 
 This is the main refactor boundary for reproducibility. Forecasting and training modules should not own UI logic, plotting logic, or browser-only assumptions.

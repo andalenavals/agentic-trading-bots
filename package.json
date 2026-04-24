@@ -21,6 +21,9 @@
     "predict:lightgbm": "sh scripts/predict-lightgbm.sh",
     "predict:lightgbm:sentiment": "PREDICTION_CONFIG=configs/predictions/lightgbm_sentiment.json sh scripts/predict-lightgbm.sh",
     "predict:lightgbm:price-only": "PREDICTION_CONFIG=configs/predictions/lightgbm_price_only.json sh scripts/predict-lightgbm.sh",
+    "predict:lightgbm:direct": "sh scripts/predict-lightgbm-direct.sh",
+    "predict:lightgbm:direct:sentiment": "PREDICTION_CONFIG=configs/predictions/lightgbm_direct_sentiment.json sh scripts/predict-lightgbm-direct.sh",
+    "predict:lightgbm:direct:price-only": "PREDICTION_CONFIG=configs/predictions/lightgbm_direct_price_only.json sh scripts/predict-lightgbm-direct.sh",
     "test:py": "sh scripts/test-py.sh",
     "test": "npm run typecheck && npm run lint && npm run test:py"
   },

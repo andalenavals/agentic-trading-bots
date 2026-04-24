@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import unittest
 
+from agentic_trading.prediction_lightgbm_direct import generate_full_predictions as generate_direct_predictions
 from agentic_trading.prediction_lightgbm import generate_full_predictions
 
 
@@ -139,6 +140,120 @@ class LightGBMPredictionTest(unittest.TestCase):
         self.assertTrue(all(original == mutated for original, mutated in price_only_pairs))
         self.assertTrue(any(original != mutated for original, mutated in sentiment_pairs))
 
+    def test_lightgbm_direct_generates_test_forecasts(self) -> None:
+        rows = build_rows()
+        generated = generate_direct_predictions(
+            rows,
+            split=1,
+            train_end=32,
+            include_sentiment_features=True,
+        )
+
+        test_rows = [row for row in generated if row["phase"] == "test"]
+        predicted_rows = [row for row in test_rows if row["predicted_price"] != ""]
+
+        self.assertTrue(predicted_rows)
+        self.assertTrue(any(float(row["absolute_error"]) > 0 for row in predicted_rows))
+        self.assertEqual(test_rows[0]["predicted_price"], predicted_rows[0]["predicted_price"])
+
+    def test_lightgbm_direct_uses_training_boundary_only(self) -> None:
+        rows = build_rows()
+        original = generate_direct_predictions(
+            rows,
+            split=1,
+            train_end=32,
+            include_sentiment_features=True,
+        )
+
+        mutated_rows = [row.copy() for row in rows]
+        mutated_rows[32]["price"] = "100000"
+        mutated = generate_direct_predictions(
+            mutated_rows,
+            split=1,
+            train_end=32,
+            include_sentiment_features=True,
+        )
+
+        original_test = [row for row in original if row["phase"] == "test"]
+        mutated_test = [row for row in mutated if row["phase"] == "test"]
+        comparable_pairs = [
+            (left["predicted_price"], right["predicted_price"])
+            for left, right in zip(original_test, mutated_test, strict=True)
+            if left["predicted_price"] != "" and right["predicted_price"] != ""
+        ]
+
+        self.assertTrue(comparable_pairs)
+        self.assertTrue(all(left == right for left, right in comparable_pairs))
+
+    def test_lightgbm_direct_price_only_ignores_sentiment_features(self) -> None:
+        rows = build_direct_sentiment_sensitive_rows()
+        model_params = {
+            "num_boost_round": 240,
+            "num_leaves": 9,
+            "min_data_in_leaf": 1,
+            "learning_rate": 0.05,
+            "feature_fraction": 1.0,
+            "bagging_fraction": 1.0,
+            "bagging_freq": 0,
+            "lambda_l2": 0.0,
+            "seed": 7,
+        }
+        mutated_rows = [row.copy() for row in rows]
+        for row in mutated_rows:
+            row["news_count"] = "99"
+            row["sentiment_score"] = "-0.95"
+            row["finbert_sentiment_score"] = "0.95"
+            row["positive"] = "0.05"
+            row["neutral"] = "0.05"
+            row["negative"] = "0.90"
+            row["finbert_positive"] = "0.90"
+            row["finbert_neutral"] = "0.05"
+            row["finbert_negative"] = "0.05"
+
+        price_only_original = generate_direct_predictions(
+            rows,
+            split=1,
+            train_end=33,
+            include_sentiment_features=False,
+            model_params=model_params,
+        )
+        price_only_mutated = generate_direct_predictions(
+            mutated_rows,
+            split=1,
+            train_end=33,
+            include_sentiment_features=False,
+            model_params=model_params,
+        )
+        sentiment_original = generate_direct_predictions(
+            rows,
+            split=1,
+            train_end=33,
+            include_sentiment_features=True,
+            model_params=model_params,
+        )
+        sentiment_mutated = generate_direct_predictions(
+            mutated_rows,
+            split=1,
+            train_end=33,
+            include_sentiment_features=True,
+            model_params=model_params,
+        )
+
+        price_only_pairs = [
+            (left["predicted_price"], right["predicted_price"])
+            for left, right in zip(price_only_original, price_only_mutated, strict=True)
+            if left["phase"] == "test" and left["predicted_price"] != "" and right["predicted_price"] != ""
+        ]
+        sentiment_pairs = [
+            (left["predicted_price"], right["predicted_price"])
+            for left, right in zip(sentiment_original, sentiment_mutated, strict=True)
+            if left["phase"] == "test" and left["predicted_price"] != "" and right["predicted_price"] != ""
+        ]
+        self.assertTrue(price_only_pairs)
+        self.assertTrue(sentiment_pairs)
+        self.assertTrue(all(left == right for left, right in price_only_pairs))
+        self.assertTrue(all(left is not None and right is not None for left, right in sentiment_pairs))
+
 
 def build_rows() -> list[dict[str, str]]:
     rows = []
@@ -199,6 +314,61 @@ def build_sentiment_sensitive_rows() -> list[dict[str, str]]:
                 "finbert_negative": "0.33",
             }
         )
+
+    return rows
+
+
+def build_direct_sentiment_sensitive_rows() -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    day = 1
+    for block in range(30):
+        signal = 0.9 if block % 2 == 0 else -0.9
+        next_price = 112 if signal > 0 else 88
+        rows.extend([
+            {
+                "date": f"2026-08-{day:02d}",
+                "commodity": "copper_lme",
+                "price": "100",
+                "news_count": "1",
+                "sentiment_score": "0.0",
+                "finbert_sentiment_score": "0.0",
+                "positive": "0.33",
+                "neutral": "0.34",
+                "negative": "0.33",
+                "finbert_positive": "0.33",
+                "finbert_neutral": "0.34",
+                "finbert_negative": "0.33",
+            },
+            {
+                "date": f"2026-08-{day + 1:02d}",
+                "commodity": "copper_lme",
+                "price": "100",
+                "news_count": "1",
+                "sentiment_score": str(signal),
+                "finbert_sentiment_score": str(signal),
+                "positive": "0.70" if signal > 0 else "0.10",
+                "neutral": "0.20",
+                "negative": "0.10" if signal > 0 else "0.70",
+                "finbert_positive": "0.75" if signal > 0 else "0.08",
+                "finbert_neutral": "0.17",
+                "finbert_negative": "0.08" if signal > 0 else "0.75",
+            },
+            {
+                "date": f"2026-08-{day + 2:02d}",
+                "commodity": "copper_lme",
+                "price": str(next_price),
+                "news_count": "1",
+                "sentiment_score": "0.0",
+                "finbert_sentiment_score": "0.0",
+                "positive": "0.33",
+                "neutral": "0.34",
+                "negative": "0.33",
+                "finbert_positive": "0.33",
+                "finbert_neutral": "0.34",
+                "finbert_negative": "0.33",
+            },
+        ])
+        day += 3
 
     return rows
 

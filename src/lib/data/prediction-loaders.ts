@@ -7,6 +7,8 @@ import type { PredictionChartData, PredictionEvaluationMode, PredictionPoint } f
 
 const PREDICTION_MODELS = [
   "ar1_baseline",
+  "lightgbm_direct_price_only",
+  "lightgbm_direct_sentiment",
   "ridge_arx_price_only",
   "ridge_arx_sentiment",
   "lightgbm_price_only",
@@ -80,7 +82,12 @@ function predictionSource(
 
   const observedMatch = file.match(/^full_dataset_predictions_([a-z_]+)_split_(\d+)\.csv$/);
   if (!observedMatch) return [];
-  const evaluationMode: PredictionEvaluationMode = model === "ar1_baseline" ? "recursive_path" : "observed_history";
+  const evaluationMode: PredictionEvaluationMode =
+    model === "ar1_baseline"
+      ? "recursive_path"
+      : isDirectMultiHorizonModel(model)
+        ? "direct_multi_horizon"
+        : "observed_history";
 
   return [{
     model,
@@ -119,4 +126,8 @@ function parsePredictionRow(
 
 function isPredictionModel(value: string): value is typeof PREDICTION_MODELS[number] {
   return (PREDICTION_MODELS as readonly string[]).includes(value);
+}
+
+function isDirectMultiHorizonModel(value: typeof PREDICTION_MODELS[number]) {
+  return value === "lightgbm_direct_price_only" || value === "lightgbm_direct_sentiment";
 }
