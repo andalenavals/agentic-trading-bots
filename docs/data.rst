@@ -72,7 +72,7 @@ Saved PPO outputs used by the ``Decision Chart``.
 ``data/prediction_outputs/**/*.csv``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Saved baseline and Ridge ARX outputs used by the ``Predictions Chart``.
+Saved baseline, Ridge ARX, and LightGBM outputs used by the ``Predictions Chart``.
 
 Refresh workflow
 ----------------
@@ -91,3 +91,4 @@ Optional regeneration of model outputs:
    npm run train:multi
    npm run predict:baseline
    npm run predict:ridge
+   npm run predict:lightgbm

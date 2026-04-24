@@ -4,10 +4,22 @@ import argparse
 import math
 from pathlib import Path
 
+from agentic_trading.prediction_features import (
+    DEFAULT_LAGS,
+    DEFAULT_WINDOWS,
+    OBSERVED_HISTORY,
+    RECURSIVE_PATH,
+    build_feature_vector,
+    clamp,
+    ensure_prediction_columns,
+    feature_names,
+    feature_start_index,
+    log_returns,
+    safe_log,
+)
 from agentic_trading.pipeline_common import (
     load_json_config,
     read_csv_rows,
-    require_columns,
     require_config_keys,
     resolve_input_files,
     to_number,
@@ -23,13 +35,9 @@ REQUIRED_CONFIG_KEYS = {
     "ridge_alpha",
 }
 
-DEFAULT_LAGS = [1, 2, 5, 10]
-DEFAULT_WINDOWS = [5, 20]
 DEFAULT_BAND_WINDOW = 20
 DEFAULT_CENTER_BLEND = 0.50
 DEFAULT_CONFIG_NAME = "ridge_arx_sentiment"
-OBSERVED_HISTORY = "observed_history"
-RECURSIVE_PATH = "recursive_path"
 
 def generate_full_predictions(
     rows: list[dict[str, str]],
@@ -46,7 +54,7 @@ def generate_full_predictions(
     actual_prices = [to_number(row.get("price", "")) for row in rows]
     actual_log_prices = [safe_log(price) for price in actual_prices]
     actual_log_returns = log_returns(actual_log_prices)
-    feature_start = max(max(lags, default=1) + 1, max(windows, default=1) + 1)
+    feature_start = feature_start_index(lags, windows)
     train_sample_end = max(feature_start, train_end)
     model = fit_ridge_arx_model(
         rows,
@@ -264,87 +272,12 @@ def standardize_features(features: list[float], means: list[float], scales: list
         clamp((value - mean) / scale, -8.0, 8.0)
         for value, mean, scale in zip(features, means, scales, strict=True)
     ]
-
-
-def build_feature_vector(
-    rows: list[dict[str, str]],
-    log_prices: list[float],
-    log_returns_series: list[float],
-    index: int,
-    lags: list[int],
-    windows: list[int],
-    include_sentiment_features: bool,
-) -> list[float]:
-    previous = rows[index - 1]
-    features: list[float] = []
-
-    for lag in lags:
-        features.append(log_prices[index - lag])
-
-    for lag in lags:
-        features.append(log_returns_series[index - lag])
-
-    for window in windows:
-        window_returns = log_returns_series[index - window:index]
-        mean = sum(window_returns) / len(window_returns)
-        variance = sum((value - mean) ** 2 for value in window_returns) / len(window_returns)
-        features.extend([mean, math.sqrt(variance)])
-
-    if include_sentiment_features:
-        features.extend(exogenous_features(previous))
-
-    return features
-
-
-def exogenous_features(row: dict[str, str]) -> list[float]:
-    return [
-        to_number(row.get("sentiment_score", "")),
-        to_number(row.get("finbert_sentiment_score", "")),
-        to_number(row.get("positive", "")),
-        to_number(row.get("neutral", "")),
-        to_number(row.get("negative", "")),
-        to_number(row.get("finbert_positive", "")),
-        to_number(row.get("finbert_neutral", "")),
-        to_number(row.get("finbert_negative", "")),
-        to_number(row.get("news_count", "")),
-    ]
-
-
-def feature_names(lags: list[int], windows: list[int], include_sentiment_features: bool) -> list[str]:
-    names = [f"lag_log_price_{lag}" for lag in lags]
-    names.extend(f"lag_log_return_{lag}" for lag in lags)
-    for window in windows:
-        names.extend([f"rolling_log_return_mean_{window}", f"rolling_log_return_vol_{window}"])
-    if include_sentiment_features:
-        names.extend([
-            "sentiment_score",
-            "finbert_sentiment_score",
-            "positive",
-            "neutral",
-            "negative",
-            "finbert_positive",
-            "finbert_neutral",
-            "finbert_negative",
-            "news_count",
-        ])
-    return names
-
-
 def coefficient_for_feature(model: dict[str, object], feature_name: str) -> float:
     names = model["feature_names"]
     coefficients = model["coefficients"]
     if feature_name not in names:
         return 0.0
     return float(coefficients[names.index(feature_name)])
-
-
-def log_returns(log_prices: list[float]) -> list[float]:
-    returns = [0.0]
-    for index in range(1, len(log_prices)):
-        returns.append(log_prices[index] - log_prices[index - 1])
-    return returns
-
-
 def empty_model(names: list[str]) -> dict[str, object]:
     return {
         "coefficients": [0.0 for _ in names],
@@ -356,16 +289,6 @@ def empty_model(names: list[str]) -> dict[str, object]:
         "center_blend": DEFAULT_CENTER_BLEND,
         "level_band": 0.12,
     }
-
-
-def safe_log(value: float) -> float:
-    return math.log(max(value, 1e-9))
-
-
-def clamp(value: float, lower: float, upper: float) -> float:
-    return max(lower, min(upper, value))
-
-
 def run(config_path: str) -> None:
     config = load_json_config(config_path)
     require_config_keys(config, REQUIRED_CONFIG_KEYS, config_path)
@@ -380,23 +303,7 @@ def run(config_path: str) -> None:
         rows = read_csv_rows(input_file)
         if not rows:
             continue
-        require_columns(rows, {"date", "commodity", "price"}, input_file)
-        if include_sentiment_features:
-            require_columns(
-                rows,
-                {
-                    "news_count",
-                    "sentiment_score",
-                    "finbert_sentiment_score",
-                    "positive",
-                    "neutral",
-                    "negative",
-                    "finbert_positive",
-                    "finbert_neutral",
-                    "finbert_negative",
-                },
-                input_file,
-            )
+        ensure_prediction_columns(rows, input_file, include_sentiment_features=include_sentiment_features)
 
         commodity = rows[0].get("commodity", input_file.stem)
         for split, train_end in walk_forward_boundaries(len(rows), int(config["n_splits"])):

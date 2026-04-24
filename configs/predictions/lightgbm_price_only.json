@@ -1,0 +1,17 @@
+{
+  "input_csv": "data/training/commodity_outputs/*.csv",
+  "output_dir": "data/prediction_outputs/lightgbm_price_only",
+  "n_splits": 3,
+  "num_boost_round": 140,
+  "learning_rate": 0.05,
+  "num_leaves": 15,
+  "min_data_in_leaf": 6,
+  "feature_fraction": 0.9,
+  "bagging_fraction": 0.9,
+  "bagging_freq": 1,
+  "lambda_l2": 0.4,
+  "lags": [1, 2, 5, 10],
+  "windows": [5, 20],
+  "include_sentiment_features": false,
+  "seed": 7
+}

@@ -17,7 +17,9 @@ The repo keeps behavior in config files:
    configs/predictions/
    ├── ar1_baseline.json
    ├── ridge_arx_price_only.json
-   └── ridge_arx_sentiment.json
+   ├── ridge_arx_sentiment.json
+   ├── lightgbm_price_only.json
+   └── lightgbm_sentiment.json
 
 Training modules and forecast generators read configs rather than embedding direct file paths in the browser layer.
 
@@ -37,6 +39,7 @@ Forecast commands
 
    npm run predict:baseline
    npm run predict:ridge
+   npm run predict:lightgbm
 
 Single-asset PPO
 ----------------
@@ -64,8 +67,10 @@ The forecast layer currently exposes:
 * a baseline trend forecast
 * Ridge ARX price-only
 * Ridge ARX price-plus-sentiment
+* LightGBM price-only
+* LightGBM price-plus-sentiment
 
-Ridge ARX emits two evaluation variants:
+Ridge ARX and LightGBM emit two evaluation variants:
 
 * ``observed_history``
 * ``recursive_path``

@@ -43,8 +43,10 @@ agentic-trading-bots/
 │   ├── pipeline_common.py       # Shared config/CSV/split helpers
 │   ├── preprocessing.py         # Raw-to-derived data pipeline
 │   ├── finbert_sentiment.py     # FinBERT event scoring + cache helpers
+│   ├── prediction_features.py   # Shared lag/sentiment feature builder
 │   ├── prediction_baseline.py   # Baseline forecast generator
 │   ├── prediction_ridge_arx.py  # Ridge ARX forecast generator
+│   ├── prediction_lightgbm.py   # LightGBM forecast generator
 │   └── training/                # PPO training modules
 ├── configs/
 │   ├── preprocessing/
@@ -67,7 +69,7 @@ Use Node 20 and Python 3.11 or newer.
 
 ```bash
 npm install
-python3 -m pip install ".[sentiment]"
+python3 -m pip install ".[agents,sentiment]"
 npm run preprocess
 npm run dev
 ```
@@ -98,6 +100,7 @@ Forecast generation:
 ```bash
 npm run predict:baseline
 npm run predict:ridge
+npm run predict:lightgbm
 ```
 
 Checks:
@@ -133,8 +136,10 @@ The predictions layer currently includes:
 * baseline trend forecast
 * Ridge ARX with price-only features
 * Ridge ARX with price + sentiment features
+* LightGBM with price-only features
+* LightGBM with price + sentiment features
 
-Ridge ARX supports two evaluation modes in the app:
+Ridge ARX and LightGBM both support two evaluation modes in the app:
 
 * `Observed history`
 * `Recursive path`

@@ -49,7 +49,13 @@ type PredictionChartPoint = PredictionPoint & {
 };
 
 const PREDICTION_COLOR = "#f6c85f";
-const MODEL_ORDER: PredictionModelKind[] = ["ridge_arx_sentiment", "ridge_arx_price_only", "ar1_baseline"];
+const MODEL_ORDER: PredictionModelKind[] = [
+  "lightgbm_sentiment",
+  "lightgbm_price_only",
+  "ridge_arx_sentiment",
+  "ridge_arx_price_only",
+  "ar1_baseline",
+];
 const PRICE_AXIS_WIDTH = 58;
 const PLOT_RIGHT_PADDING = 2;
 
@@ -329,7 +335,7 @@ function Control({ label, children }: { label: string; children: React.ReactNode
 }
 
 function PredictionPointState({ model, point }: { model: PredictionModelKind; point: PredictionChartPoint }) {
-  const isArxModel = model === "ridge_arx_price_only" || model === "ridge_arx_sentiment";
+  const metadata = modelMetadata(model, point);
   return (
     <div className="chart-detail-panel">
       <div className="bot-state-hero">
@@ -344,20 +350,16 @@ function PredictionPointState({ model, point }: { model: PredictionModelKind; po
         <Stat label="Forecast" value={`$${point.predictedPrice?.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
         <Stat label="Error" value={formatSigned(point.error)} />
         <Stat label="Abs error" value={`$${point.absoluteError?.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
-        <Stat
-          label={isArxModel ? "Intercept" : "Anchor"}
-          value={isArxModel ? point.alpha.toFixed(6) : `$${point.alpha.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
-        />
-        <Stat
-          label={isArxModel ? "Lag1 coeff" : "Slope"}
-          value={point.beta.toFixed(6)}
-        />
+        <Stat label={metadata[0].label} value={metadata[0].value} />
+        <Stat label={metadata[1].label} value={metadata[1].value} />
       </div>
     </div>
   );
 }
 
 function modelLabel(model: PredictionModelKind) {
+  if (model === "lightgbm_sentiment") return "LightGBM (Price + sentiment)";
+  if (model === "lightgbm_price_only") return "LightGBM (Price only)";
   if (model === "ridge_arx_sentiment") return "Ridge ARX (Price + sentiment)";
   if (model === "ridge_arx_price_only") return "Ridge ARX (Price only)";
   return "Trend baseline";
@@ -381,6 +383,27 @@ function formatSigned(value: number | null) {
   if (value === null) return "n/a";
   const prefix = value > 0 ? "+" : "";
   return `${prefix}$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
+
+function modelMetadata(model: PredictionModelKind, point: PredictionChartPoint) {
+  if (model === "ridge_arx_price_only" || model === "ridge_arx_sentiment") {
+    return [
+      { label: "Intercept", value: point.alpha.toFixed(6) },
+      { label: "Lag1 coeff", value: point.beta.toFixed(6) },
+    ];
+  }
+
+  if (model === "lightgbm_price_only" || model === "lightgbm_sentiment") {
+    return [
+      { label: "Trees", value: String(Math.round(point.alpha)) },
+      { label: "Leaves", value: String(Math.round(point.beta)) },
+    ];
+  }
+
+  return [
+    { label: "Anchor", value: `$${point.alpha.toLocaleString(undefined, { maximumFractionDigits: 2 })}` },
+    { label: "Slope", value: point.beta.toFixed(6) },
+  ];
 }
 
 function SeriesMarker({

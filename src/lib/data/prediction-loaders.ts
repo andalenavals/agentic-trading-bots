@@ -5,6 +5,14 @@ import { parseCsv, toNumber } from "@/lib/data/csv";
 import { predictionOutputPath } from "@/lib/data/paths";
 import type { PredictionChartData, PredictionEvaluationMode, PredictionPoint } from "@/lib/types";
 
+const PREDICTION_MODELS = [
+  "ar1_baseline",
+  "ridge_arx_price_only",
+  "ridge_arx_sentiment",
+  "lightgbm_price_only",
+  "lightgbm_sentiment",
+] as const;
+
 export const loadPredictionChartData = cache(async (): Promise<PredictionChartData> => {
   const sources = await discoverPredictionSources();
   const loaded = await Promise.all(
@@ -29,7 +37,7 @@ async function discoverPredictionSources(): Promise<PredictionChartData["sources
   const modelDirs = await safeReadDir(predictionOutputPath());
   const discovered = await Promise.all(
     modelDirs.map(async (modelDir) => {
-      if (modelDir !== "ar1_baseline" && modelDir !== "ridge_arx_price_only" && modelDir !== "ridge_arx_sentiment") return [];
+      if (!isPredictionModel(modelDir)) return [];
       const files = await safeReadDir(predictionOutputPath(modelDir));
       return files.flatMap((file) => predictionSource(modelDir, file));
     }),
@@ -56,7 +64,7 @@ async function exists(filePath: string) {
 }
 
 function predictionSource(
-  model: "ar1_baseline" | "ridge_arx_price_only" | "ridge_arx_sentiment",
+  model: typeof PREDICTION_MODELS[number],
   file: string,
 ): PredictionChartData["sources"] {
   const recursiveMatch = file.match(/^full_dataset_predictions_([a-z_]+)_split_(\d+)_(recursive_path)\.csv$/);
@@ -85,7 +93,7 @@ function predictionSource(
 
 function parsePredictionRow(
   row: Record<string, string>,
-  model: "ar1_baseline" | "ridge_arx_price_only" | "ridge_arx_sentiment",
+  model: typeof PREDICTION_MODELS[number],
   evaluationMode: PredictionEvaluationMode,
   split: number,
 ): PredictionPoint[] {
@@ -107,4 +115,8 @@ function parsePredictionRow(
     alpha: toNumber(row.alpha),
     beta: toNumber(row.beta),
   }];
+}
+
+function isPredictionModel(value: string): value is typeof PREDICTION_MODELS[number] {
+  return (PREDICTION_MODELS as readonly string[]).includes(value);
 }
