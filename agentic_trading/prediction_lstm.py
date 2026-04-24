@@ -19,6 +19,7 @@ from agentic_trading.prediction_features import (
     safe_log,
 )
 from agentic_trading.prediction_lightgbm_common import estimate_target_band
+from agentic_trading.prediction_metrics import PREDICTION_OUTPUT_FIELDNAMES, build_prediction_output_row
 from agentic_trading.pipeline_common import (
     load_json_config,
     read_csv_rows,
@@ -92,11 +93,12 @@ def generate_full_predictions(
     for index, row in enumerate(rows):
         phase = "train" if index < train_end else "test"
         predicted_price = None
-        error = None
-        absolute_error = None
+        actual_origin_price = None
+        predicted_origin_price = None
 
         if phase == "test" and index >= sequence_start:
             if evaluation_mode == OBSERVED_HISTORY:
+                actual_origin_price = actual_prices[index - 1]
                 features = build_sequence_features(
                     rows,
                     actual_log_prices,
@@ -109,6 +111,8 @@ def generate_full_predictions(
                 )
                 previous_log_price = actual_log_prices[index - 1]
             else:
+                actual_origin_price = actual_prices[index - 1]
+                predicted_origin_price = math.exp(predicted_log_prices[index - 1])
                 features = build_sequence_features(
                     rows,
                     predicted_log_prices,
@@ -147,23 +151,20 @@ def generate_full_predictions(
             predicted_log_returns[index] = predicted_log_return
 
             predicted_price = math.exp(next_log_price)
-            error = predicted_price - actual_prices[index]
-            absolute_error = abs(error)
 
         generated.append(
-            {
-                "date": row.get("date", ""),
-                "commodity": row.get("commodity", ""),
-                "dataset_index": index,
-                "split": split,
-                "phase": phase,
-                "price": row.get("price", ""),
-                "predicted_price": "" if predicted_price is None else predicted_price,
-                "error": "" if error is None else error,
-                "absolute_error": "" if absolute_error is None else absolute_error,
-                "alpha": model["epochs"],
-                "beta": model["hidden_size"],
-            }
+            build_prediction_output_row(
+                row=row,
+                dataset_index=index,
+                split=split,
+                phase=phase,
+                actual_price=actual_prices[index],
+                predicted_price=predicted_price,
+                actual_origin_price=actual_origin_price,
+                predicted_origin_price=predicted_origin_price,
+                alpha=float(model["epochs"]),
+                beta=float(model["hidden_size"]),
+            )
         )
 
     return generated
@@ -502,19 +503,7 @@ def run(config_path: str) -> None:
             write_csv_rows(
                 output_dir / f"full_dataset_predictions_{commodity}_split_{split}.csv",
                 observed_predictions,
-                [
-                    "date",
-                    "commodity",
-                    "dataset_index",
-                    "split",
-                    "phase",
-                    "price",
-                    "predicted_price",
-                    "error",
-                    "absolute_error",
-                    "alpha",
-                    "beta",
-                ],
+                PREDICTION_OUTPUT_FIELDNAMES,
             )
             recursive_predictions = generate_full_predictions(
                 rows,
@@ -529,19 +518,7 @@ def run(config_path: str) -> None:
             write_csv_rows(
                 output_dir / f"full_dataset_predictions_{commodity}_split_{split}_{RECURSIVE_PATH}.csv",
                 recursive_predictions,
-                [
-                    "date",
-                    "commodity",
-                    "dataset_index",
-                    "split",
-                    "phase",
-                    "price",
-                    "predicted_price",
-                    "error",
-                    "absolute_error",
-                    "alpha",
-                    "beta",
-                ],
+                PREDICTION_OUTPUT_FIELDNAMES,
             )
 
 

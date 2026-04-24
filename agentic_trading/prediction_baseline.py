@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from agentic_trading.prediction_features import OBSERVED_HISTORY, RECURSIVE_PATH
+from agentic_trading.prediction_metrics import PREDICTION_OUTPUT_FIELDNAMES, build_prediction_output_row
 from agentic_trading.pipeline_common import (
     load_json_config,
     read_csv_rows,
@@ -57,34 +58,34 @@ def generate_full_predictions(
     for index, row in enumerate(rows):
         phase = "train" if index < train_end else "test"
         predicted_price = None
-        error = None
-        absolute_error = None
+        actual_origin_price = None
+        predicted_origin_price = None
         alpha = anchor_price
         beta = slope
 
         if phase == "test":
             if evaluation_mode == OBSERVED_HISTORY:
-                predicted_price = prices[index - 1] + slope
+                actual_origin_price = prices[index - 1]
+                predicted_price = actual_origin_price + slope
             else:
+                actual_origin_price = prices[index - 1]
+                predicted_origin_price = recursive_previous_price
                 predicted_price = recursive_previous_price + slope
                 recursive_previous_price = predicted_price
-            error = predicted_price - prices[index]
-            absolute_error = abs(error)
 
         generated.append(
-            {
-                "date": row.get("date", ""),
-                "commodity": row.get("commodity", ""),
-                "dataset_index": index,
-                "split": split,
-                "phase": phase,
-                "price": row.get("price", ""),
-                "predicted_price": "" if predicted_price is None else predicted_price,
-                "error": "" if error is None else error,
-                "absolute_error": "" if absolute_error is None else absolute_error,
-                "alpha": alpha,
-                "beta": beta,
-            }
+            build_prediction_output_row(
+                row=row,
+                dataset_index=index,
+                split=split,
+                phase=phase,
+                actual_price=prices[index],
+                predicted_price=predicted_price,
+                actual_origin_price=actual_origin_price,
+                predicted_origin_price=predicted_origin_price,
+                alpha=alpha,
+                beta=beta,
+            )
         )
 
     return generated
@@ -111,19 +112,7 @@ def run(config_path: str) -> None:
             write_csv_rows(
                 output_dir / f"full_dataset_predictions_{commodity}_split_{split}.csv",
                 observed_predictions,
-                [
-                    "date",
-                    "commodity",
-                    "dataset_index",
-                    "split",
-                    "phase",
-                    "price",
-                    "predicted_price",
-                    "error",
-                    "absolute_error",
-                    "alpha",
-                    "beta",
-                ],
+                PREDICTION_OUTPUT_FIELDNAMES,
             )
             recursive_predictions = generate_full_predictions(
                 rows,
@@ -134,19 +123,7 @@ def run(config_path: str) -> None:
             write_csv_rows(
                 output_dir / f"full_dataset_predictions_{commodity}_split_{split}_{RECURSIVE_PATH}.csv",
                 recursive_predictions,
-                [
-                    "date",
-                    "commodity",
-                    "dataset_index",
-                    "split",
-                    "phase",
-                    "price",
-                    "predicted_price",
-                    "error",
-                    "absolute_error",
-                    "alpha",
-                    "beta",
-                ],
+                PREDICTION_OUTPUT_FIELDNAMES,
             )
 
 

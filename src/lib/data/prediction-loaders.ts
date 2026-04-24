@@ -17,17 +17,32 @@ const PREDICTION_MODELS = [
   "lightgbm_sentiment",
 ] as const;
 
+type DiscoveredPredictionSource = Omit<
+  PredictionChartData["sources"][number],
+  "directionAccuracy" | "directionCorrectCount" | "directionEvaluatedCount"
+>;
+
 export const loadPredictionChartData = cache(async (): Promise<PredictionChartData> => {
   const sources = await discoverPredictionSources();
   const loaded = await Promise.all(
     sources.map(async (source) => {
       const fullPath = predictionOutputPath(source.path);
-      if (!(await exists(fullPath))) return { points: [] as PredictionPoint[], source };
+      if (!(await exists(fullPath))) {
+        return {
+          points: [] as PredictionPoint[],
+          source: {
+            ...source,
+            directionAccuracy: null,
+            directionCorrectCount: 0,
+            directionEvaluatedCount: 0,
+          },
+        };
+      }
 
       const text = await readFile(fullPath, "utf8");
       const rows = parseCsv(text);
       const points = rows.flatMap((row) => parsePredictionRow(row, source.model, source.evaluationMode, source.split));
-      return { points, source };
+      return { points, source: { ...source, ...summarizeDirectionAccuracy(rows) } };
     }),
   );
 
@@ -37,7 +52,7 @@ export const loadPredictionChartData = cache(async (): Promise<PredictionChartDa
   };
 });
 
-async function discoverPredictionSources(): Promise<PredictionChartData["sources"]> {
+async function discoverPredictionSources(): Promise<DiscoveredPredictionSource[]> {
   const modelDirs = await safeReadDir(predictionOutputPath());
   const discovered = await Promise.all(
     modelDirs.map(async (modelDir) => {
@@ -70,7 +85,7 @@ async function exists(filePath: string) {
 function predictionSource(
   model: typeof PREDICTION_MODELS[number],
   file: string,
-): PredictionChartData["sources"] {
+): DiscoveredPredictionSource[] {
   const recursiveMatch = file.match(/^full_dataset_predictions_([a-z_]+)_split_(\d+)_(recursive_path)\.csv$/);
   if (recursiveMatch) {
     return [{
@@ -122,6 +137,26 @@ function parsePredictionRow(
     alpha: toNumber(row.alpha),
     beta: toNumber(row.beta),
   }];
+}
+
+function summarizeDirectionAccuracy(rows: Array<Record<string, string>>) {
+  let directionCorrectCount = 0;
+  let directionEvaluatedCount = 0;
+
+  for (const row of rows) {
+    if (row.phase !== "test" || row.predicted_price === "") continue;
+    if (row.direction_correct === "") continue;
+    directionEvaluatedCount += 1;
+    if (toNumber(row.direction_correct) >= 0.5) {
+      directionCorrectCount += 1;
+    }
+  }
+
+  return {
+    directionAccuracy: directionEvaluatedCount > 0 ? directionCorrectCount / directionEvaluatedCount : null,
+    directionCorrectCount,
+    directionEvaluatedCount,
+  };
 }
 
 function isPredictionModel(value: string): value is typeof PREDICTION_MODELS[number] {

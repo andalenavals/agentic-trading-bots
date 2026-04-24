@@ -129,13 +129,18 @@ export type PredictionPoint = {
   beta: number;
 };
 
+export type PredictionSource = {
+  model: PredictionModelKind;
+  evaluationMode: PredictionEvaluationMode;
+  split: number;
+  commodity?: CommoditySlug;
+  path: string;
+  directionAccuracy: number | null;
+  directionCorrectCount: number;
+  directionEvaluatedCount: number;
+};
+
 export type PredictionChartData = {
   points: PredictionPoint[];
-  sources: Array<{
-    model: PredictionModelKind;
-    evaluationMode: PredictionEvaluationMode;
-    split: number;
-    commodity?: CommoditySlug;
-    path: string;
-  }>;
+  sources: PredictionSource[];
 };

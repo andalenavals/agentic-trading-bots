@@ -155,6 +155,9 @@ class LightGBMPredictionTest(unittest.TestCase):
         self.assertTrue(predicted_rows)
         self.assertTrue(any(float(row["absolute_error"]) > 0 for row in predicted_rows))
         self.assertEqual(test_rows[0]["predicted_price"], predicted_rows[0]["predicted_price"])
+        self.assertIn(predicted_rows[0]["predicted_direction"], {"up", "down", "flat"})
+        self.assertIn(predicted_rows[0]["actual_direction"], {"up", "down", "flat"})
+        self.assertIn(predicted_rows[0]["direction_correct"], {0, 1})
 
     def test_lightgbm_direct_uses_training_boundary_only(self) -> None:
         rows = build_rows()

@@ -103,8 +103,12 @@ class PreprocessingTest(unittest.TestCase):
         self.assertEqual(observed[0]["phase"], "train")
         self.assertEqual(observed[3]["phase"], "test")
         self.assertEqual(observed[2]["predicted_price"], "")
+        self.assertEqual(observed[2]["direction_correct"], "")
         self.assertNotEqual(observed[3]["predicted_price"], "")
         self.assertNotEqual(observed[4]["error"], "")
+        self.assertEqual(observed[3]["predicted_direction"], "up")
+        self.assertEqual(observed[3]["actual_direction"], "up")
+        self.assertEqual(observed[3]["direction_correct"], 1)
         first_pred = float(recursive[3]["predicted_price"])
         second_pred = float(recursive[4]["predicted_price"])
         anchor = float(recursive[4]["alpha"])
@@ -147,6 +151,9 @@ class PreprocessingTest(unittest.TestCase):
         self.assertTrue(any(float(row["absolute_error"]) > 0 for row in test_rows))
         self.assertNotEqual(test_rows[0]["predicted_price"], rows[25]["price"])
         self.assertNotEqual(test_rows[0]["predicted_price"], test_rows[1]["predicted_price"])
+        self.assertIn(test_rows[0]["predicted_direction"], {"up", "down", "flat"})
+        self.assertIn(test_rows[0]["actual_direction"], {"up", "down", "flat"})
+        self.assertIn(test_rows[0]["direction_correct"], {0, 1})
 
     def test_ridge_arx_does_not_use_current_target_price(self) -> None:
         rows = []

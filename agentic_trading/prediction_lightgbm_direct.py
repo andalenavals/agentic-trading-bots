@@ -16,6 +16,7 @@ from agentic_trading.prediction_features import (
     log_returns,
     safe_log,
 )
+from agentic_trading.prediction_metrics import PREDICTION_OUTPUT_FIELDNAMES, build_prediction_output_row
 from agentic_trading.prediction_lightgbm_common import (
     DEFAULT_RETURN_BAND,
     build_model_params,
@@ -92,13 +93,12 @@ def generate_full_predictions(
         else None
     )
     origin_log_price = actual_log_prices[train_end - 1] if train_end > 0 else 0.0
+    origin_actual_price = actual_prices[train_end - 1] if train_end > 0 else None
     generated: list[dict[str, object]] = []
 
     for index, row in enumerate(rows):
         phase = "train" if index < train_end else "test"
         predicted_price = None
-        error = None
-        absolute_error = None
         horizon = index - train_end + 1
 
         if phase == "test" and origin_features is not None and direct_model.get("booster") is not None:
@@ -114,23 +114,20 @@ def generate_full_predictions(
             )
             next_log_price = origin_log_price + cumulative_log_return
             predicted_price = math.exp(next_log_price)
-            error = predicted_price - actual_prices[index]
-            absolute_error = abs(error)
 
         generated.append(
-            {
-                "date": row.get("date", ""),
-                "commodity": row.get("commodity", ""),
-                "dataset_index": index,
-                "split": split,
-                "phase": phase,
-                "price": row.get("price", ""),
-                "predicted_price": "" if predicted_price is None else predicted_price,
-                "error": "" if error is None else error,
-                "absolute_error": "" if absolute_error is None else absolute_error,
-                "alpha": direct_model["num_trees"],
-                "beta": direct_model["num_leaves"],
-            }
+            build_prediction_output_row(
+                row=row,
+                dataset_index=index,
+                split=split,
+                phase=phase,
+                actual_price=actual_prices[index],
+                predicted_price=predicted_price,
+                actual_origin_price=origin_actual_price,
+                predicted_origin_price=origin_actual_price,
+                alpha=float(direct_model["num_trees"]),
+                beta=float(direct_model["num_leaves"]),
+            )
         )
 
     return generated
@@ -248,19 +245,7 @@ def run(config_path: str) -> None:
             write_csv_rows(
                 output_dir / f"full_dataset_predictions_{commodity}_split_{split}.csv",
                 predictions,
-                [
-                    "date",
-                    "commodity",
-                    "dataset_index",
-                    "split",
-                    "phase",
-                    "price",
-                    "predicted_price",
-                    "error",
-                    "absolute_error",
-                    "alpha",
-                    "beta",
-                ],
+                PREDICTION_OUTPUT_FIELDNAMES,
             )
 
 

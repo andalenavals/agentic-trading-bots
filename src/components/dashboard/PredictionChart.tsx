@@ -152,6 +152,16 @@ export function PredictionChart({
   const testStart = displayedPoints.find((point) => point.phase === "test");
   const selectedPoint = chartPoints.find((point) => point.key === selectedPointKey) ?? null;
   const activeModelInfo = predictionModelInfo(activeModel);
+  const activeSource = useMemo(
+    () =>
+      predictionChart.sources.find((source) => (
+        source.model === activeModel
+        && source.evaluationMode === activeEvaluationMode
+        && source.commodity === activeCommodity
+        && source.split === activeSplit
+      )) ?? null,
+    [activeCommodity, activeEvaluationMode, activeModel, activeSplit, predictionChart.sources],
+  );
 
   function pointFromChartEvent(event: ChartClickEvent | undefined) {
     const payloadPoint = event?.activePayload?.[0]?.payload;
@@ -340,6 +350,20 @@ export function PredictionChart({
                   <span>Evaluation</span>
                   <p>{predictionEvaluationInfo(activeEvaluationMode)}</p>
                 </div>
+                <div className="model-info-mode">
+                  <span>Direction accuracy</span>
+                  <p>{formatDirectionAccuracy(activeSource?.directionAccuracy ?? null)}</p>
+                </div>
+                <div className="model-meta-grid">
+                  <div className="model-meta-item">
+                    <span>Directional hits</span>
+                    <strong>{formatDirectionalHits(activeSource)}</strong>
+                  </div>
+                  <div className="model-meta-item">
+                    <span>Evaluated points</span>
+                    <strong>{String(activeSource?.directionEvaluatedCount ?? 0)}</strong>
+                  </div>
+                </div>
                 <div className="model-meta-grid">
                   {activeModelInfo.hyperparameters.map((item) => (
                     <div key={`${activeModel}-${item.label}`} className="model-meta-item">
@@ -435,6 +459,16 @@ function formatSigned(value: number | null) {
   if (value === null) return "n/a";
   const prefix = value > 0 ? "+" : "";
   return `${prefix}$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
+
+function formatDirectionAccuracy(value: number | null) {
+  if (value === null) return "n/a";
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function formatDirectionalHits(source: PredictionChartData["sources"][number] | null) {
+  if (!source) return "0 / 0";
+  return `${source.directionCorrectCount} / ${source.directionEvaluatedCount}`;
 }
 
 function modelMetadata(model: PredictionModelKind, point: PredictionChartPoint) {
