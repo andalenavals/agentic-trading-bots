@@ -16,6 +16,8 @@ The repo keeps behavior in config files:
 
    configs/predictions/
    ├── ar1_baseline.json
+   ├── gaussian_process_price_only.json
+   ├── gaussian_process_sentiment.json
    ├── lstm_price_only.json
    ├── lstm_sentiment.json
    ├── ridge_arx_price_only.json
@@ -45,6 +47,7 @@ Forecast commands
    npm run predict:ridge
    npm run predict:lightgbm
    npm run predict:lightgbm:direct
+   npm run predict:gp
    npm run predict:lstm
 
 Single-asset PPO
@@ -77,10 +80,12 @@ The forecast layer currently exposes:
 * LightGBM price-plus-sentiment
 * Direct multi-horizon LightGBM price-only
 * Direct multi-horizon LightGBM price-plus-sentiment
+* Gaussian process price-only
+* Gaussian process price-plus-sentiment
 * LSTM price-only
 * LSTM price-plus-sentiment
 
-Ridge ARX and one-step LightGBM emit two evaluation variants:
+Ridge ARX, one-step LightGBM, Gaussian process, and LSTM emit two evaluation variants:
 
 * ``observed_history``
 * ``recursive_path``

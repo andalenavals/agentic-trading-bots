@@ -1,4 +1,6 @@
 import ar1BaselineConfig from "../../configs/predictions/ar1_baseline.json";
+import gaussianProcessPriceOnlyConfig from "../../configs/predictions/gaussian_process_price_only.json";
+import gaussianProcessSentimentConfig from "../../configs/predictions/gaussian_process_sentiment.json";
 import lightgbmDirectPriceOnlyConfig from "../../configs/predictions/lightgbm_direct_price_only.json";
 import lightgbmDirectSentimentConfig from "../../configs/predictions/lightgbm_direct_sentiment.json";
 import lightgbmPriceOnlyConfig from "../../configs/predictions/lightgbm_price_only.json";
@@ -23,6 +25,12 @@ type PredictionConfig = {
   bagging_fraction?: number;
   bagging_freq?: number;
   lambda_l2?: number;
+  max_train_samples?: number;
+  signal_variance?: number;
+  length_scale?: number;
+  noise_level?: number;
+  alpha?: number;
+  n_restarts_optimizer?: number;
   sequence_length?: number;
   hidden_size?: number;
   num_layers?: number;
@@ -46,6 +54,8 @@ export type PredictionModelInfo = {
 
 const MODEL_CONFIGS: Record<PredictionModelKind, PredictionConfig> = {
   ar1_baseline: ar1BaselineConfig,
+  gaussian_process_price_only: gaussianProcessPriceOnlyConfig,
+  gaussian_process_sentiment: gaussianProcessSentimentConfig,
   lstm_price_only: lstmPriceOnlyConfig,
   lstm_sentiment: lstmSentimentConfig,
   ridge_arx_price_only: ridgeArxPriceOnlyConfig,
@@ -82,6 +92,16 @@ export function predictionModelInfo(model: PredictionModelKind): PredictionModel
         hyperparameter("Windows", formatList(config.windows)),
         hyperparameter("Sentiment inputs", formatToggle(config.include_sentiment_features)),
       ],
+    };
+  }
+
+  if (model === "gaussian_process_price_only" || model === "gaussian_process_sentiment") {
+    return {
+      theory:
+        model === "gaussian_process_sentiment"
+          ? "Gaussian-process regression for one-step return forecasts using lagged price states plus sentiment and news context, fit on a capped recent training window."
+          : "Gaussian-process regression for one-step return forecasts using lagged price and rolling-return context, fit on a capped recent training window.",
+      hyperparameters: gaussianProcessHyperparameters(config),
     };
   }
 
@@ -137,6 +157,20 @@ function lightgbmHyperparameters(config: PredictionConfig): PredictionHyperparam
     hyperparameter("L2", formatScalar(config.lambda_l2)),
     hyperparameter("Sentiment inputs", formatToggle(config.include_sentiment_features)),
     hyperparameter("Seed", formatScalar(config.seed)),
+  ];
+}
+
+function gaussianProcessHyperparameters(config: PredictionConfig): PredictionHyperparameter[] {
+  return [
+    hyperparameter("Train window", formatScalar(config.max_train_samples)),
+    hyperparameter("Signal variance", formatScalar(config.signal_variance)),
+    hyperparameter("Length scale", formatScalar(config.length_scale)),
+    hyperparameter("Noise level", formatScalar(config.noise_level)),
+    hyperparameter("Alpha", formatScalar(config.alpha)),
+    hyperparameter("Optimizer restarts", formatScalar(config.n_restarts_optimizer)),
+    hyperparameter("Lags", formatList(config.lags)),
+    hyperparameter("Windows", formatList(config.windows)),
+    hyperparameter("Sentiment inputs", formatToggle(config.include_sentiment_features)),
   ];
 }
 

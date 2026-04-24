@@ -20,7 +20,7 @@ import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
 import { predictionEvaluationInfo, predictionModelInfo } from "@/lib/prediction-model-info";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 import type { XRange } from "@/lib/analytics/chart-zoom";
-import type { CommoditySlug, PredictionChartData, PredictionEvaluationMode, PredictionModelKind, PredictionPoint } from "@/lib/types";
+import type { CommoditySlug, PredictionChartData, PredictionEvaluationMode, PredictionModelKind, PredictionPoint, SentimentPoint } from "@/lib/types";
 
 type Props = {
   activeCommodity: CommoditySlug;
@@ -31,6 +31,7 @@ type Props = {
   markerSize: number;
   markerType: MarkerType;
   onSharedXRangeChange: (range: XRange, chartLength: number) => void;
+  priceSeries: SentimentPoint[];
   predictionChart: PredictionChartData;
   range: number;
   sharedXRange: XRange;
@@ -46,11 +47,15 @@ type ChartClickEvent = {
 type PredictionChartPoint = PredictionPoint & {
   key: string;
   label: string;
+  phase: "train" | "test";
+  price: number;
   x: number;
 };
 
 const PREDICTION_COLOR = "#f6c85f";
 const MODEL_ORDER: PredictionModelKind[] = [
+  "gaussian_process_sentiment",
+  "gaussian_process_price_only",
   "lstm_sentiment",
   "lstm_price_only",
   "lightgbm_direct_sentiment",
@@ -73,6 +78,7 @@ export function PredictionChart({
   markerSize,
   markerType,
   onSharedXRangeChange,
+  priceSeries,
   predictionChart,
   range,
   sharedXRange,
@@ -112,7 +118,7 @@ export function PredictionChart({
   }, [activeCommodity, activeEvaluationMode, activeModel, predictionChart.points, split]);
   const activeSplit = splitOptions.includes(split) ? split : splitOptions[0];
 
-  const chartPoints = useMemo(
+  const predictionPoints = useMemo(
     () =>
       predictionChart.points
         .filter((point) => (
@@ -121,19 +127,43 @@ export function PredictionChart({
           && point.commodity === activeCommodity
           && point.split === activeSplit
         ))
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .map((point, index) => ({
-          ...point,
-          key: `${point.model}-${point.commodity}-${point.split}-${point.datasetIndex}-${point.date}`,
-          label: new Date(point.date).toLocaleDateString("en-US", {
-            day: range < 365 ? "numeric" : undefined,
-            month: "short",
-            year: range >= 365 ? "2-digit" : undefined,
-          }),
-          x: index,
-        })),
-    [activeCommodity, activeEvaluationMode, activeModel, activeSplit, predictionChart.points, range],
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    [activeCommodity, activeEvaluationMode, activeModel, activeSplit, predictionChart.points],
   );
+  const chartPoints = useMemo(() => {
+    if (!predictionPoints.length) return [];
+
+    const predictionByDate = new Map(predictionPoints.map((point) => [point.date, point]));
+    const firstPredictionDate = predictionPoints[0]?.date ?? "";
+    return priceSeries.map((point, index) => {
+      const prediction = predictionByDate.get(point.date) ?? null;
+      const phase: "train" | "test" = firstPredictionDate !== "" && point.date >= firstPredictionDate ? "test" : "train";
+      return {
+        ...(prediction ?? {
+          model: activeModel,
+          evaluationMode: activeEvaluationMode,
+          split: activeSplit,
+          datasetIndex: index,
+          commodity: point.commodity,
+          date: point.date,
+          predictedPrice: null,
+          error: null,
+          absoluteError: null,
+          alpha: 0,
+          beta: 0,
+        }),
+        phase,
+        price: point.price,
+        key: `${activeModel}-${point.commodity}-${activeSplit}-${prediction?.datasetIndex ?? index}-${point.date}`,
+        label: new Date(point.date).toLocaleDateString("en-US", {
+          day: range < 365 ? "numeric" : undefined,
+          month: "short",
+          year: range >= 365 ? "2-digit" : undefined,
+        }),
+        x: index,
+      };
+    });
+  }, [activeEvaluationMode, activeModel, activeSplit, predictionPoints, priceSeries, range]);
 
   const displayedPoints = useMemo(
     () => (range >= 99999 ? chartPoints : chartPoints.slice(-range).map((point, index) => ({ ...point, x: index }))),
@@ -210,11 +240,11 @@ export function PredictionChart({
             <div className="empty-state">
               <h3>No predictions generated yet</h3>
               <p>
-                Run <code>npm run predict:lightgbm:direct</code>, <code>npm run predict:lightgbm</code>, <code>npm run predict:ridge</code>, or <code>npm run predict:baseline</code> to generate forecast files under{" "}
+                Run <code>npm run predict:lightgbm:direct</code>, <code>npm run predict:lightgbm</code>, <code>npm run predict:ridge</code>, <code>npm run predict:gp</code>, or <code>npm run predict:baseline</code> to generate forecast files under{" "}
                 <code>data/prediction_outputs</code>.
               </p>
               <p>
-                The LSTM family uses <code>npm run predict:lstm</code>.
+                Sequence LSTM uses <code>npm run predict:lstm</code>.
               </p>
             </div>
           ) : mounted ? (
@@ -425,6 +455,8 @@ function PredictionPointState({ model, point }: { model: PredictionModelKind; po
 }
 
 function modelLabel(model: PredictionModelKind) {
+  if (model === "gaussian_process_sentiment") return "Gaussian Process (Price + sentiment)";
+  if (model === "gaussian_process_price_only") return "Gaussian Process (Price only)";
   if (model === "lstm_sentiment") return "LSTM (Price + sentiment)";
   if (model === "lstm_price_only") return "LSTM (Price only)";
   if (model === "lightgbm_direct_sentiment") return "LightGBM Direct (Price + sentiment)";
@@ -472,6 +504,13 @@ function formatDirectionalHits(source: PredictionChartData["sources"][number] | 
 }
 
 function modelMetadata(model: PredictionModelKind, point: PredictionChartPoint) {
+  if (model === "gaussian_process_price_only" || model === "gaussian_process_sentiment") {
+    return [
+      { label: "Train rows", value: String(Math.round(point.alpha)) },
+      { label: "Length scale", value: point.beta.toFixed(3) },
+    ];
+  }
+
   if (model === "lstm_price_only" || model === "lstm_sentiment") {
     return [
       { label: "Epochs", value: String(Math.round(point.alpha)) },

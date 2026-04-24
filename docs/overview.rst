@@ -42,8 +42,16 @@ The prediction panel shows:
 * a baseline trend forecast
 * Ridge ARX price-only forecasts
 * Ridge ARX price-plus-sentiment forecasts
+* LightGBM price-only forecasts
+* LightGBM price-plus-sentiment forecasts
+* Direct multi-horizon LightGBM price-only forecasts
+* Direct multi-horizon LightGBM price-plus-sentiment forecasts
+* Gaussian process price-only forecasts
+* Gaussian process price-plus-sentiment forecasts
+* LSTM price-only forecasts
+* LSTM price-plus-sentiment forecasts
 
-For Ridge ARX the UI exposes both:
+For Ridge ARX, one-step LightGBM, Gaussian process, and LSTM the UI exposes both:
 
 * ``Observed history``
 * ``Recursive path``

@@ -1,0 +1,14 @@
+{
+  "input_csv": "data/training/commodity_outputs/*.csv",
+  "output_dir": "data/prediction_outputs/gaussian_process_sentiment",
+  "n_splits": 3,
+  "max_train_samples": 240,
+  "signal_variance": 1.0,
+  "length_scale": 1.5,
+  "noise_level": 0.3,
+  "alpha": 0.0001,
+  "n_restarts_optimizer": 0,
+  "lags": [1, 2, 5, 10],
+  "windows": [5, 20],
+  "include_sentiment_features": true
+}

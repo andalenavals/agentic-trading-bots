@@ -7,6 +7,8 @@ import type { PredictionChartData, PredictionEvaluationMode, PredictionPoint } f
 
 const PREDICTION_MODELS = [
   "ar1_baseline",
+  "gaussian_process_price_only",
+  "gaussian_process_sentiment",
   "lstm_price_only",
   "lstm_sentiment",
   "lightgbm_direct_price_only",
@@ -119,6 +121,8 @@ function parsePredictionRow(
   evaluationMode: PredictionEvaluationMode,
   split: number,
 ): PredictionPoint[] {
+  if (row.phase !== "test" || row.predicted_price === "") return [];
+
   const commodity = normalizeCommodity(row.commodity);
   if (!commodity) return [];
 
@@ -127,10 +131,8 @@ function parsePredictionRow(
     evaluationMode,
     split,
     datasetIndex: toNumber(row.dataset_index),
-    phase: row.phase === "test" ? "test" : "train",
     date: row.date,
     commodity,
-    price: toNumber(row.price),
     predictedPrice: row.predicted_price ? toNumber(row.predicted_price) : null,
     error: row.error ? toNumber(row.error) : null,
     absoluteError: row.absolute_error ? toNumber(row.absolute_error) : null,

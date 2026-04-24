@@ -103,6 +103,8 @@ export type AgentGymData = {
 
 export type PredictionModelKind =
   | "ar1_baseline"
+  | "gaussian_process_price_only"
+  | "gaussian_process_sentiment"
   | "lstm_price_only"
   | "lstm_sentiment"
   | "ridge_arx_price_only"
@@ -118,10 +120,8 @@ export type PredictionPoint = {
   evaluationMode: PredictionEvaluationMode;
   split: number;
   datasetIndex: number;
-  phase: "train" | "test";
   date: string;
   commodity: CommoditySlug;
-  price: number;
   predictedPrice: number | null;
   error: number | null;
   absoluteError: number | null;

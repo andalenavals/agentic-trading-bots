@@ -254,6 +254,7 @@ export function Dashboard({ data }: Props) {
                 markerSize={markerSize}
                 markerType={markerType}
                 onSharedXRangeChange={handleViewportChangeFromChart}
+                priceSeries={activePoints}
                 predictionChart={data.predictionChart}
                 range={range}
                 sharedXRange={sharedXDomain}
