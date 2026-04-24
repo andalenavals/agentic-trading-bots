@@ -730,13 +730,41 @@ h1 {
   z-index: 1;
 }
 
-.prediction-subpanel-tabs .segmented {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+.prediction-drawer-handle {
+  align-items: center;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 0 0 7px 7px;
+  color: var(--muted);
+  display: inline-flex;
+  gap: 10px;
+  justify-content: space-between;
+  min-width: 180px;
+  padding: 8px 12px;
+}
+
+.prediction-drawer-handle.open {
+  border-top-color: transparent;
+}
+
+.prediction-drawer-handle span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.prediction-drawer-handle strong {
+  color: var(--gold);
+  font-size: 14px;
+  line-height: 1;
 }
 
 .prediction-subpanel {
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
   border-top: 1px solid var(--line);
+  margin: 0 var(--panel-gutter);
 }
 
 .prediction-subpanel-controls .gym-controls {
@@ -995,6 +1023,10 @@ h1 {
 
   .model-meta-grid {
     grid-template-columns: 1fr;
+  }
+
+  .prediction-drawer-handle {
+    min-width: 150px;
   }
 
   .commodity-picker {

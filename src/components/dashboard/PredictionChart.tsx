@@ -287,17 +287,6 @@ export function PredictionChart({
         ) : null}
       </ChartGestureSurface>
       {selectedPoint && selectedPoint.predictedPrice !== null ? <PredictionPointState model={activeModel} point={selectedPoint} /> : null}
-      <div className="prediction-subpanel-tabs">
-        <div className="segmented">
-          <button
-            className={showSetupPanel ? "active" : undefined}
-            onClick={() => setShowSetupPanel((current) => !current)}
-            type="button"
-          >
-            Forecast setup
-          </button>
-        </div>
-      </div>
       {showSetupPanel ? (
         <div className="prediction-subpanel prediction-subpanel-controls">
           <div className="gym-controls">
@@ -363,6 +352,17 @@ export function PredictionChart({
           </details>
         </div>
       ) : null}
+      <div className="prediction-subpanel-tabs">
+        <button
+          aria-expanded={showSetupPanel}
+          className={`prediction-drawer-handle${showSetupPanel ? " open" : ""}`}
+          onClick={() => setShowSetupPanel((current) => !current)}
+          type="button"
+        >
+          <span>Forecast setup</span>
+          <strong aria-hidden="true">{showSetupPanel ? "\u2191" : "\u2193"}</strong>
+        </button>
+      </div>
     </section>
   );
 }
