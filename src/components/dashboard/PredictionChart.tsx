@@ -185,7 +185,7 @@ export function PredictionChart({
 
   return (
     <section className="agent-gym">
-      <div className={`chart-window-shell forecast-tab-shell${selectedPoint || showSetupPanel ? " has-chart-extension" : ""}`}>
+      <div className={`chart-window-shell compact-drawer-shell${selectedPoint || showSetupPanel ? " has-chart-extension" : ""}`}>
         <ChartGestureSurface
           className="chart-box gym-chart"
           style={{ height: 390 }}

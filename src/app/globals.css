@@ -558,7 +558,7 @@ h1 {
   margin: 0;
 }
 
-.forecast-tab-shell .chart-box::after {
+.compact-drawer-shell .chart-box::after {
   border-bottom-right-radius: 0;
 }
 

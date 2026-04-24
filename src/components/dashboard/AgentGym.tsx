@@ -172,7 +172,7 @@ export function AgentGym({
 
   return (
     <section className="agent-gym">
-      <div className={`chart-window-shell${selectedPoint || showSetupPanel ? " has-chart-extension" : ""}`}>
+      <div className={`chart-window-shell compact-drawer-shell${selectedPoint || showSetupPanel ? " has-chart-extension" : ""}`}>
         <ChartGestureSurface
           className="chart-box gym-chart"
           style={{ height: 390 }}
@@ -272,10 +272,10 @@ export function AgentGym({
             </div>
           </div>
         ) : null}
-        <div className="chart-drawer-tabs">
+        <div className="chart-drawer-tabs compact-right">
           <button
             aria-expanded={showSetupPanel}
-            className={`chart-drawer-handle${showSetupPanel ? " open" : ""}`}
+            className={`chart-drawer-handle compact-right${showSetupPanel ? " open" : ""}`}
             onClick={() => setShowSetupPanel((current) => !current)}
             type="button"
           >
