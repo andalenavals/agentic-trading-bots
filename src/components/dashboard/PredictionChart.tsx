@@ -74,7 +74,7 @@ export function PredictionChart({
   sharedXRangeLength,
 }: Props) {
   const mounted = useClientMounted();
-  const markersOnly = markerType !== "none";
+  const showMarkers = markerType !== "none";
   const [model, setModel] = useState<PredictionModelKind>("ridge_arx_sentiment");
   const [evaluationMode, setEvaluationMode] = useState<PredictionEvaluationMode>("observed_history");
   const [split, setSplit] = useState(1);
@@ -262,7 +262,7 @@ export function PredictionChart({
                 tickLine={false}
                 width={PRICE_AXIS_WIDTH}
               />
-              {markersOnly ? null : chartType === "bar" ? (
+              {chartType === "bar" ? (
                 <Bar dataKey="price" fill={commodity.colorHex} isAnimationActive={false} opacity={0.42} radius={[3, 3, 0, 0]} />
               ) : chartType === "area" ? (
                 <Area
@@ -279,18 +279,16 @@ export function PredictionChart({
               ) : (
                 <Line dataKey="price" dot={false} isAnimationActive={false} stroke={commodity.colorHex} strokeOpacity={0.62} strokeWidth={lineWidth} type="monotone" />
               )}
-              {markersOnly ? null : (
-                <Line
-                  connectNulls={false}
-                  dataKey="predictedPrice"
-                  dot={false}
-                  isAnimationActive={false}
-                  stroke={PREDICTION_COLOR}
-                  strokeDasharray="6 4"
-                  strokeWidth={lineWidth}
-                  type="monotone"
-                />
-              )}
+              <Line
+                connectNulls={false}
+                dataKey="predictedPrice"
+                dot={false}
+                isAnimationActive={false}
+                stroke={PREDICTION_COLOR}
+                strokeDasharray="6 4"
+                strokeWidth={lineWidth}
+                type="monotone"
+              />
               {testStart ? (
                 <ReferenceLine
                   ifOverflow="extendDomain"
@@ -300,7 +298,7 @@ export function PredictionChart({
                   x={testStart.x}
                 />
               ) : null}
-              {markersOnly ? (
+              {showMarkers ? (
                 <>
                   <Scatter
                     data={displayedPoints}
