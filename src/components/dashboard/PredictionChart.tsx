@@ -328,13 +328,7 @@ export function PredictionChart({
               </Control>
             </div>
             <details className="model-info-panel">
-              <summary>
-                <div className="model-info-summary">
-                  <span>Model notes</span>
-                  <strong>{modelLabel(activeModel)}</strong>
-                </div>
-                <span className="source">{evaluationModeLabel(activeEvaluationMode)}</span>
-              </summary>
+              <summary>Model notes</summary>
               <div className="model-info-body">
                 <p>{activeModelInfo.theory}</p>
                 <div className="model-info-mode">

@@ -836,8 +836,8 @@ h1 {
 
 .model-info-panel summary::after {
   color: var(--gold);
-  content: "\25BE";
-  font-size: 13px;
+  content: "+";
+  font-size: 16px;
   line-height: 1;
 }
 
@@ -846,13 +846,7 @@ h1 {
 }
 
 .model-info-panel[open] summary::after {
-  content: "\25B4";
-}
-
-.model-info-summary {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+  content: "-";
 }
 
 .model-info-summary span,
