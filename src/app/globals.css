@@ -800,6 +800,7 @@ h1 {
 
 .chart-drawer-panel {
   background: #151923;
+  border-bottom: 1px solid rgba(123, 132, 151, 0.34);
   border-left: 1px solid rgba(123, 132, 151, 0.34);
   border-right: 1px solid rgba(123, 132, 151, 0.34);
   border-top: 1px solid var(--line);
@@ -821,6 +822,33 @@ h1 {
 
 .model-info-panel {
   border-top: 1px solid var(--line);
+}
+
+.model-info-summary-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px var(--panel-gutter);
+  text-align: left;
+  width: 100%;
+}
+
+.model-info-summary-button span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.model-info-summary-button strong {
+  color: var(--gold);
+  font-size: 16px;
+  line-height: 1;
 }
 
 .model-info-panel summary {

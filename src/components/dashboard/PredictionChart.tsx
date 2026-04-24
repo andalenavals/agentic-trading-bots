@@ -93,6 +93,8 @@ export function PredictionChart({
   const [split, setSplit] = useState(1);
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
   const [showSetupPanel, setShowSetupPanel] = useState(false);
+  const [showModelNotes, setShowModelNotes] = useState(false);
+  const [showEvaluationMetrics, setShowEvaluationMetrics] = useState(false);
   const availableModels = useMemo<PredictionModelKind[]>(() => {
     const models = new Set(predictionChart.points.filter((point) => point.commodity === activeCommodity).map((point) => point.model));
     return models.size
@@ -184,16 +186,42 @@ export function PredictionChart({
   const testStart = displayedPoints.find((point) => point.phase === "test");
   const selectedPoint = chartPoints.find((point) => point.key === selectedPointKey) ?? null;
   const activeModelInfo = predictionModelInfo(activeModel);
-  const activeSource = useMemo(
-    () =>
-      predictionChart.sources.find((source) => (
-        source.model === activeModel
-        && source.evaluationMode === activeEvaluationMode
-        && source.commodity === activeCommodity
-        && source.split === activeSplit
-      )) ?? null,
-    [activeCommodity, activeEvaluationMode, activeModel, activeSplit, predictionChart.sources],
-  );
+  const evaluationMetrics = useMemo(() => {
+    let absoluteErrorSum = 0;
+    let squaredErrorSum = 0;
+    let evaluatedCount = 0;
+    let directionCorrectCount = 0;
+    let directionEvaluatedCount = 0;
+
+    for (let index = 0; index < chartPoints.length; index += 1) {
+      const point = chartPoints[index];
+      if (point.phase !== "test" || point.predictedPrice === null) continue;
+
+      const error = point.predictedPrice - point.price;
+      absoluteErrorSum += Math.abs(error);
+      squaredErrorSum += error * error;
+      evaluatedCount += 1;
+
+      const previousPoint = chartPoints[index - 1];
+      if (!previousPoint) continue;
+
+      const predictedDirection = Math.sign(point.predictedPrice - previousPoint.price);
+      const actualDirection = Math.sign(point.price - previousPoint.price);
+      directionEvaluatedCount += 1;
+      if (predictedDirection === actualDirection) {
+        directionCorrectCount += 1;
+      }
+    }
+
+    return {
+      directionAccuracy: directionEvaluatedCount > 0 ? directionCorrectCount / directionEvaluatedCount : null,
+      directionCorrectCount,
+      directionEvaluatedCount,
+      mae: evaluatedCount > 0 ? absoluteErrorSum / evaluatedCount : null,
+      mse: evaluatedCount > 0 ? squaredErrorSum / evaluatedCount : null,
+      evaluatedCount,
+    };
+  }, [chartPoints]);
 
   function pointFromChartEvent(event: ChartClickEvent | undefined) {
     const payloadPoint = event?.activePayload?.[0]?.payload;
@@ -374,49 +402,77 @@ export function PredictionChart({
                 </select>
               </Control>
             </div>
-            <details className="model-info-panel">
-              <summary>Model notes</summary>
-              <div className="model-info-body">
-                <p>{activeModelInfo.theory}</p>
-                <div className="model-info-mode">
-                  <span>Used features</span>
-                </div>
-                <div className="model-meta-grid">
-                  {activeModelInfo.features.map((item) => (
-                    <div key={`${activeModel}-feature-${item.label}`} className="model-meta-item">
-                      <span>{item.label}</span>
-                      <strong>{item.value}</strong>
-                    </div>
-                  ))}
-                </div>
-                <div className="model-info-mode">
-                  <span>Evaluation</span>
-                  <p>{predictionEvaluationInfo(activeEvaluationMode)}</p>
-                </div>
-                <div className="model-info-mode">
-                  <span>Direction accuracy</span>
-                  <p>{formatDirectionAccuracy(activeSource?.directionAccuracy ?? null)}</p>
-                </div>
-                <div className="model-meta-grid">
-                  <div className="model-meta-item">
-                    <span>Directional hits</span>
-                    <strong>{formatDirectionalHits(activeSource)}</strong>
+            <div className="model-info-panel">
+              <button
+                className="model-info-summary-button"
+                onClick={() => setShowModelNotes((current) => !current)}
+                type="button"
+              >
+                <span>Model notes</span>
+                <strong aria-hidden="true">{showModelNotes ? "-" : "+"}</strong>
+              </button>
+              {showModelNotes ? (
+                <div className="model-info-body">
+                  <p>{activeModelInfo.theory}</p>
+                  <div className="model-meta-grid">
+                    {activeModelInfo.features.map((item) => (
+                      <div key={`${activeModel}-feature-${item.label}`} className="model-meta-item">
+                        <span>{item.label}</span>
+                        <strong>{item.value}</strong>
+                      </div>
+                    ))}
                   </div>
-                  <div className="model-meta-item">
-                    <span>Evaluated points</span>
-                    <strong>{String(activeSource?.directionEvaluatedCount ?? 0)}</strong>
+                  <div className="model-info-mode">
+                    <span>Evaluation</span>
+                    <p>{predictionEvaluationInfo(activeEvaluationMode)}</p>
+                  </div>
+                  <div className="model-meta-grid">
+                    {activeModelInfo.hyperparameters.map((item) => (
+                      <div key={`${activeModel}-${item.label}`} className="model-meta-item">
+                        <span>{item.label}</span>
+                        <strong>{item.value}</strong>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="model-meta-grid">
-                  {activeModelInfo.hyperparameters.map((item) => (
-                    <div key={`${activeModel}-${item.label}`} className="model-meta-item">
-                      <span>{item.label}</span>
-                      <strong>{item.value}</strong>
+              ) : null}
+            </div>
+            <div className="model-info-panel">
+              <button
+                className="model-info-summary-button"
+                onClick={() => setShowEvaluationMetrics((current) => !current)}
+                type="button"
+              >
+                <span>Evaluation metrics</span>
+                <strong aria-hidden="true">{showEvaluationMetrics ? "-" : "+"}</strong>
+              </button>
+              {showEvaluationMetrics ? (
+                <div className="model-info-body">
+                  <div className="model-meta-grid">
+                    <div className="model-meta-item">
+                      <span>MAE</span>
+                      <strong>{formatMetricValue(evaluationMetrics.mae)}</strong>
                     </div>
-                  ))}
+                    <div className="model-meta-item">
+                      <span>MSE</span>
+                      <strong>{formatMetricValue(evaluationMetrics.mse)}</strong>
+                    </div>
+                    <div className="model-meta-item">
+                      <span>Direction accuracy</span>
+                      <strong>{formatDirectionAccuracy(evaluationMetrics.directionAccuracy)}</strong>
+                    </div>
+                    <div className="model-meta-item">
+                      <span>Directional hits</span>
+                      <strong>{`${evaluationMetrics.directionCorrectCount} / ${evaluationMetrics.directionEvaluatedCount}`}</strong>
+                    </div>
+                    <div className="model-meta-item">
+                      <span>Test predictions</span>
+                      <strong>{String(evaluationMetrics.evaluatedCount)}</strong>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </details>
+              ) : null}
+            </div>
           </div>
         ) : null}
         <div className="chart-drawer-tabs compact-right">
@@ -427,7 +483,7 @@ export function PredictionChart({
             type="button"
           >
             <span>Forecast setup</span>
-            <strong aria-hidden="true">{showSetupPanel ? "-" : "+"}</strong>
+            <strong aria-hidden="true">{showSetupPanel ? "\u25B4" : "\u25BE"}</strong>
           </button>
         </div>
       </div>
@@ -513,9 +569,9 @@ function formatDirectionAccuracy(value: number | null) {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-function formatDirectionalHits(source: PredictionChartData["sources"][number] | null) {
-  if (!source) return "0 / 0";
-  return `${source.directionCorrectCount} / ${source.directionEvaluatedCount}`;
+function formatMetricValue(value: number | null) {
+  if (value === null) return "n/a";
+  return value.toFixed(4);
 }
 
 function modelMetadata(model: PredictionModelKind, point: PredictionChartPoint) {
