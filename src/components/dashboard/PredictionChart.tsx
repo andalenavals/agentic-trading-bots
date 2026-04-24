@@ -353,10 +353,10 @@ export function PredictionChart({
             </details>
           </div>
         ) : null}
-        <div className="chart-drawer-tabs">
+        <div className="chart-drawer-tabs compact-right">
           <button
             aria-expanded={showSetupPanel}
-            className={`chart-drawer-handle${showSetupPanel ? " open" : ""}`}
+            className={`chart-drawer-handle compact-right${showSetupPanel ? " open" : ""}`}
             onClick={() => setShowSetupPanel((current) => !current)}
             type="button"
           >

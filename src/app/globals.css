@@ -742,6 +742,10 @@ h1 {
   z-index: 1;
 }
 
+.chart-drawer-tabs.compact-right {
+  justify-content: flex-end;
+}
+
 .chart-drawer-handle {
   align-items: center;
   background: #171c26;
@@ -756,6 +760,15 @@ h1 {
   padding: 8px 12px;
 }
 
+.chart-drawer-handle.compact-right {
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 7px 7px;
+  gap: 8px;
+  padding: 6px 10px;
+  width: auto;
+}
+
 .chart-drawer-handle.open {
   border-top-color: var(--line);
 }
@@ -765,6 +778,10 @@ h1 {
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+.chart-drawer-handle.compact-right span {
+  font-size: 11px;
 }
 
 .chart-drawer-handle strong {
