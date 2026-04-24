@@ -82,6 +82,7 @@ export function PredictionChart({
   const [evaluationMode, setEvaluationMode] = useState<PredictionEvaluationMode>("observed_history");
   const [split, setSplit] = useState(1);
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
+  const [activeInfoPanel, setActiveInfoPanel] = useState<"setup" | "notes" | null>(null);
   const availableModels = useMemo<PredictionModelKind[]>(() => {
     const models = new Set(predictionChart.points.filter((point) => point.commodity === activeCommodity).map((point) => point.model));
     return models.size
@@ -184,67 +185,6 @@ export function PredictionChart({
 
   return (
     <section className="agent-gym">
-      <div className="gym-controls">
-        <Control label="Model">
-          <select
-            value={activeModel}
-            onChange={(event) => {
-              setModel(event.target.value as PredictionModelKind);
-              setSelectedPointKey(null);
-            }}
-          >
-            {availableModels.map((item) => (
-              <option key={item} value={item}>{modelLabel(item)}</option>
-            ))}
-          </select>
-        </Control>
-        {availableModes.length > 1 ? (
-          <Control label="Evaluation">
-            <select
-              value={activeEvaluationMode}
-              onChange={(event) => {
-                setEvaluationMode(event.target.value as PredictionEvaluationMode);
-                setSelectedPointKey(null);
-              }}
-            >
-              {availableModes.map((item) => (
-                <option key={item} value={item}>{evaluationModeLabel(item)}</option>
-              ))}
-            </select>
-          </Control>
-        ) : null}
-        <Control label="Split">
-          <select value={activeSplit} onChange={(event) => setSplit(Number(event.target.value))}>
-            {splitOptions.map((item) => (
-              <option key={item} value={item}>Split {item}</option>
-            ))}
-          </select>
-        </Control>
-      </div>
-      <details className="model-info-panel">
-        <summary>
-          <div className="model-info-summary">
-            <span>Model notes</span>
-            <strong>{modelLabel(activeModel)}</strong>
-          </div>
-          <span className="source">{evaluationModeLabel(activeEvaluationMode)}</span>
-        </summary>
-        <div className="model-info-body">
-          <p>{activeModelInfo.theory}</p>
-          <div className="model-info-mode">
-            <span>Evaluation</span>
-            <p>{predictionEvaluationInfo(activeEvaluationMode)}</p>
-          </div>
-          <div className="model-meta-grid">
-            {activeModelInfo.hyperparameters.map((item) => (
-              <div key={`${activeModel}-${item.label}`} className="model-meta-item">
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-            ))}
-          </div>
-        </div>
-      </details>
       <ChartGestureSurface
         className="chart-box gym-chart"
         style={{ height: 390 }}
@@ -347,6 +287,88 @@ export function PredictionChart({
         ) : null}
       </ChartGestureSurface>
       {selectedPoint && selectedPoint.predictedPrice !== null ? <PredictionPointState model={activeModel} point={selectedPoint} /> : null}
+      <div className="prediction-subpanel-tabs">
+        <div className="segmented">
+          <button
+            className={activeInfoPanel === "setup" ? "active" : undefined}
+            onClick={() => setActiveInfoPanel((current) => current === "setup" ? null : "setup")}
+            type="button"
+          >
+            Forecast setup
+          </button>
+          <button
+            className={activeInfoPanel === "notes" ? "active" : undefined}
+            onClick={() => setActiveInfoPanel((current) => current === "notes" ? null : "notes")}
+            type="button"
+          >
+            Model notes
+          </button>
+        </div>
+      </div>
+      {activeInfoPanel === "setup" ? (
+        <div className="prediction-subpanel prediction-subpanel-controls">
+          <div className="gym-controls">
+            <Control label="Model">
+              <select
+                value={activeModel}
+                onChange={(event) => {
+                  setModel(event.target.value as PredictionModelKind);
+                  setSelectedPointKey(null);
+                }}
+              >
+                {availableModels.map((item) => (
+                  <option key={item} value={item}>{modelLabel(item)}</option>
+                ))}
+              </select>
+            </Control>
+            {availableModes.length > 1 ? (
+              <Control label="Evaluation">
+                <select
+                  value={activeEvaluationMode}
+                  onChange={(event) => {
+                    setEvaluationMode(event.target.value as PredictionEvaluationMode);
+                    setSelectedPointKey(null);
+                  }}
+                >
+                  {availableModes.map((item) => (
+                    <option key={item} value={item}>{evaluationModeLabel(item)}</option>
+                  ))}
+                </select>
+              </Control>
+            ) : null}
+            <Control label="Split">
+              <select value={activeSplit} onChange={(event) => setSplit(Number(event.target.value))}>
+                {splitOptions.map((item) => (
+                  <option key={item} value={item}>Split {item}</option>
+                ))}
+              </select>
+            </Control>
+          </div>
+        </div>
+      ) : null}
+      {activeInfoPanel === "notes" ? (
+        <div className="prediction-subpanel model-info-panel">
+          <div className="model-info-body">
+            <div className="model-info-summary">
+              <span>Model notes</span>
+              <strong>{modelLabel(activeModel)}</strong>
+            </div>
+            <p>{activeModelInfo.theory}</p>
+            <div className="model-info-mode">
+              <span>Evaluation</span>
+              <p>{predictionEvaluationInfo(activeEvaluationMode)}</p>
+            </div>
+            <div className="model-meta-grid">
+              {activeModelInfo.hyperparameters.map((item) => (
+                <div key={`${activeModel}-${item.label}`} className="model-meta-item">
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

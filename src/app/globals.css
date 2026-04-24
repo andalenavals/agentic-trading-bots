@@ -721,6 +721,21 @@ h1 {
   padding: 9px 10px;
 }
 
+.prediction-subpanel-tabs {
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-start;
+  padding: 14px var(--panel-gutter) 0;
+}
+
+.prediction-subpanel {
+  border-top: 1px solid var(--line);
+}
+
+.prediction-subpanel-controls .gym-controls {
+  padding-top: 14px;
+}
+
 .model-info-panel {
   border-top: 1px solid var(--line);
 }
@@ -969,10 +984,6 @@ h1 {
 
   .gym-controls {
     grid-template-columns: 1fr;
-  }
-
-  .model-info-panel summary {
-    padding: 10px 12px;
   }
 
   .model-meta-grid {

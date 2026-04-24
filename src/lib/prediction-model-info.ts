@@ -52,7 +52,6 @@ export function predictionModelInfo(model: PredictionModelKind): PredictionModel
       theory:
         "Train-only trend baseline. It anchors on the last train price and extends the train slope through the test window.",
       hyperparameters: [
-        hyperparameter("Walk-forward splits", formatScalar(config.n_splits)),
         hyperparameter("Forecast anchor", "last train price"),
         hyperparameter("Trend fit", "linear slope"),
       ],
@@ -66,7 +65,6 @@ export function predictionModelInfo(model: PredictionModelKind): PredictionModel
           ? "Linear ARX model with L2 regularization on lagged price features plus sentiment and news inputs."
           : "Linear autoregressive model with L2 regularization on lagged price and rolling-return features.",
       hyperparameters: [
-        hyperparameter("Walk-forward splits", formatScalar(config.n_splits)),
         hyperparameter("Ridge alpha", formatScalar(config.ridge_alpha)),
         hyperparameter("Lags", formatList(config.lags)),
         hyperparameter("Windows", formatList(config.windows)),
@@ -106,7 +104,6 @@ export function predictionEvaluationInfo(mode: PredictionEvaluationMode) {
 
 function lightgbmHyperparameters(config: PredictionConfig): PredictionHyperparameter[] {
   return [
-    hyperparameter("Walk-forward splits", formatScalar(config.n_splits)),
     hyperparameter("Boost rounds", formatScalar(config.num_boost_round)),
     hyperparameter("Learning rate", formatScalar(config.learning_rate)),
     hyperparameter("Leaves", formatScalar(config.num_leaves)),
