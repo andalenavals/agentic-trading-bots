@@ -172,7 +172,7 @@ export function AgentGym({
 
   return (
     <section className="agent-gym">
-      <div className="chart-window-shell">
+      <div className={`chart-window-shell${selectedPoint || showSetupPanel ? " has-chart-extension" : ""}`}>
         <ChartGestureSurface
           className="chart-box gym-chart"
           style={{ height: 390 }}

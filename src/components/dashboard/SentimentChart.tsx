@@ -130,7 +130,7 @@ export function SentimentChart({
 
   return (
     <section className="sentiment-panel">
-      <div className="chart-window-shell">
+      <div className={`chart-window-shell${selectedPoint || showSetupPanel ? " has-chart-extension" : ""}`}>
         <ChartGestureSurface
           className="chart-box"
           xLength={chartData.length}

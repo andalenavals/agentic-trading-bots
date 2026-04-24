@@ -549,15 +549,13 @@ h1 {
 }
 
 .chart-window-shell {
-  background: #151923;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
   --chart-inner-frame-offset: 8px;
+  padding: var(--chart-inner-frame-offset) var(--chart-inner-frame-offset) 0;
+  position: relative;
 }
 
 .chart-window-shell .chart-box {
-  margin: var(--chart-inner-frame-offset) var(--chart-inner-frame-offset) 0;
+  margin: 0;
 }
 
 .chart-box > :not(.gesture-hitbox),
@@ -572,6 +570,12 @@ h1 {
   inset: 0;
   pointer-events: none;
   position: absolute;
+}
+
+.chart-window-shell.has-chart-extension .chart-box::after {
+  border-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .gesture-surface.dragging.chart-box::after {
@@ -791,8 +795,11 @@ h1 {
 }
 
 .chart-drawer-panel {
+  background: #151923;
+  border-left: 1px solid rgba(123, 132, 151, 0.34);
+  border-right: 1px solid rgba(123, 132, 151, 0.34);
   border-top: 1px solid var(--line);
-  margin: 0 var(--chart-inner-frame-offset);
+  margin: 0;
 }
 
 .chart-drawer-panel-controls .gym-controls {
@@ -1000,6 +1007,9 @@ h1 {
 }
 
 .chart-detail-panel {
+  background: #151923;
+  border-left: 1px solid rgba(123, 132, 151, 0.34);
+  border-right: 1px solid rgba(123, 132, 151, 0.34);
   border-top: 1px solid var(--line);
   display: grid;
   gap: 14px;
