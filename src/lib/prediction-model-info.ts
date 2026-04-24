@@ -1,4 +1,6 @@
 import ar1BaselineConfig from "../../configs/predictions/ar1_baseline.json";
+import arimaxPriceOnlyConfig from "../../configs/predictions/arimax_price_only.json";
+import arimaxSentimentConfig from "../../configs/predictions/arimax_sentiment.json";
 import gaussianProcessPriceOnlyConfig from "../../configs/predictions/gaussian_process_price_only.json";
 import gaussianProcessSentimentConfig from "../../configs/predictions/gaussian_process_sentiment.json";
 import lightgbmDirectPriceOnlyConfig from "../../configs/predictions/lightgbm_direct_price_only.json";
@@ -17,6 +19,10 @@ type PredictionConfig = {
   lags?: number[];
   windows?: number[];
   include_sentiment_features?: boolean;
+  ar_order?: number;
+  ma_order?: number;
+  maxiter?: number;
+  trend?: string;
   num_boost_round?: number;
   learning_rate?: number;
   num_leaves?: number;
@@ -54,6 +60,8 @@ export type PredictionModelInfo = {
 
 const MODEL_CONFIGS: Record<PredictionModelKind, PredictionConfig> = {
   ar1_baseline: ar1BaselineConfig,
+  arimax_price_only: arimaxPriceOnlyConfig,
+  arimax_sentiment: arimaxSentimentConfig,
   gaussian_process_price_only: gaussianProcessPriceOnlyConfig,
   gaussian_process_sentiment: gaussianProcessSentimentConfig,
   lstm_price_only: lstmPriceOnlyConfig,
@@ -92,6 +100,16 @@ export function predictionModelInfo(model: PredictionModelKind): PredictionModel
         hyperparameter("Windows", formatList(config.windows)),
         hyperparameter("Sentiment inputs", formatToggle(config.include_sentiment_features)),
       ],
+    };
+  }
+
+  if (model === "arimax_price_only" || model === "arimax_sentiment") {
+    return {
+      theory:
+        model === "arimax_sentiment"
+          ? "ARIMAX on one-step log returns with autoregressive and moving-average dynamics plus exogenous lag, rolling, sentiment, and news context."
+          : "ARIMAX on one-step log returns with autoregressive and moving-average dynamics plus exogenous lag and rolling-return context.",
+      hyperparameters: arimaxHyperparameters(config),
     };
   }
 
@@ -157,6 +175,20 @@ function lightgbmHyperparameters(config: PredictionConfig): PredictionHyperparam
     hyperparameter("L2", formatScalar(config.lambda_l2)),
     hyperparameter("Sentiment inputs", formatToggle(config.include_sentiment_features)),
     hyperparameter("Seed", formatScalar(config.seed)),
+  ];
+}
+
+function arimaxHyperparameters(config: PredictionConfig): PredictionHyperparameter[] {
+  return [
+    hyperparameter("AR order", formatScalar(config.ar_order)),
+    hyperparameter("MA order", formatScalar(config.ma_order)),
+    hyperparameter("Train window", formatScalar(config.max_train_samples)),
+    hyperparameter("Max iterations", formatScalar(config.maxiter)),
+    hyperparameter("Trend", config.trend ?? "n/a"),
+    hyperparameter("Recursive blend", formatScalar(config.center_blend)),
+    hyperparameter("Lags", formatList(config.lags)),
+    hyperparameter("Windows", formatList(config.windows)),
+    hyperparameter("Sentiment inputs", formatToggle(config.include_sentiment_features)),
   ];
 }
 

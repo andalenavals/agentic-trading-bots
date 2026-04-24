@@ -72,7 +72,7 @@ Saved PPO outputs used by the ``Decision Chart``.
 ``data/prediction_outputs/**/*.csv``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Saved baseline, Ridge ARX, LightGBM, Gaussian-process, and LSTM outputs used by the ``Predictions Chart``.
+Saved baseline, Ridge ARX, ARIMAX, LightGBM, Gaussian-process, and LSTM outputs used by the ``Predictions Chart``.
 
 Refresh workflow
 ----------------
@@ -90,6 +90,7 @@ Optional regeneration of model outputs:
    npm run train:single
    npm run train:multi
    npm run predict:baseline
+   npm run predict:arimax
    npm run predict:ridge
    npm run predict:lightgbm
    npm run predict:lightgbm:direct

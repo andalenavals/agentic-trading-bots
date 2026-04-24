@@ -16,6 +16,8 @@ The repo keeps behavior in config files:
 
    configs/predictions/
    ├── ar1_baseline.json
+   ├── arimax_price_only.json
+   ├── arimax_sentiment.json
    ├── gaussian_process_price_only.json
    ├── gaussian_process_sentiment.json
    ├── lstm_price_only.json
@@ -44,6 +46,7 @@ Forecast commands
 .. code-block:: bash
 
    npm run predict:baseline
+   npm run predict:arimax
    npm run predict:ridge
    npm run predict:lightgbm
    npm run predict:lightgbm:direct
@@ -76,6 +79,8 @@ The forecast layer currently exposes:
 * a baseline trend forecast
 * Ridge ARX price-only
 * Ridge ARX price-plus-sentiment
+* ARIMAX price-only
+* ARIMAX price-plus-sentiment
 * LightGBM price-only
 * LightGBM price-plus-sentiment
 * Direct multi-horizon LightGBM price-only
@@ -85,7 +90,7 @@ The forecast layer currently exposes:
 * LSTM price-only
 * LSTM price-plus-sentiment
 
-Ridge ARX, one-step LightGBM, Gaussian process, and LSTM emit two evaluation variants:
+Ridge ARX, ARIMAX, one-step LightGBM, Gaussian process, and LSTM emit two evaluation variants:
 
 * ``observed_history``
 * ``recursive_path``

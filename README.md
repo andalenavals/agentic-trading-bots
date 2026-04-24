@@ -45,6 +45,7 @@ agentic-trading-bots/
 │   ├── finbert_sentiment.py     # FinBERT event scoring + cache helpers
 │   ├── prediction_features.py   # Shared lag/sentiment feature builder
 │   ├── prediction_baseline.py   # Baseline forecast generator
+│   ├── prediction_arimax.py     # ARIMAX forecast generator
 │   ├── prediction_gaussian_process.py # Gaussian-process forecast generator
 │   ├── prediction_ridge_arx.py  # Ridge ARX forecast generator
 │   ├── prediction_lightgbm.py   # LightGBM forecast generator
@@ -102,6 +103,7 @@ Forecast generation:
 
 ```bash
 npm run predict:baseline
+npm run predict:arimax
 npm run predict:ridge
 npm run predict:lightgbm
 npm run predict:lightgbm:direct
@@ -142,6 +144,8 @@ The predictions layer currently includes:
 * baseline trend forecast
 * Ridge ARX with price-only features
 * Ridge ARX with price + sentiment features
+* ARIMAX with price-only features
+* ARIMAX with price + sentiment features
 * LightGBM with price-only features
 * LightGBM with price + sentiment features
 * Direct multi-horizon LightGBM with price-only features
@@ -151,7 +155,7 @@ The predictions layer currently includes:
 * LSTM with price-only features
 * LSTM with price + sentiment features
 
-Ridge ARX, one-step LightGBM, Gaussian process, and LSTM support two evaluation modes in the app:
+Ridge ARX, ARIMAX, one-step LightGBM, Gaussian process, and LSTM support two evaluation modes in the app:
 
 * `Observed history`
 * `Recursive path`

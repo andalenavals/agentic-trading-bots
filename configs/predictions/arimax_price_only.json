@@ -1,0 +1,14 @@
+{
+  "input_csv": "data/training/commodity_outputs/*.csv",
+  "output_dir": "data/prediction_outputs/arimax_price_only",
+  "n_splits": 3,
+  "max_train_samples": 240,
+  "ar_order": 2,
+  "ma_order": 1,
+  "maxiter": 80,
+  "trend": "c",
+  "center_blend": 0.9,
+  "lags": [1, 2, 5, 10],
+  "windows": [5, 20],
+  "include_sentiment_features": false
+}

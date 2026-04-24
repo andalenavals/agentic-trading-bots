@@ -17,6 +17,7 @@ agents = [
   "pandas>=2.2",
   "scikit-learn>=1.4",
   "stable-baselines3>=2.3",
+  "statsmodels>=0.14",
   "torch>=2.2",
 ]
 sentiment = [

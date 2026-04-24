@@ -54,6 +54,8 @@ type PredictionChartPoint = PredictionPoint & {
 
 const PREDICTION_COLOR = "#f6c85f";
 const MODEL_ORDER: PredictionModelKind[] = [
+  "arimax_sentiment",
+  "arimax_price_only",
   "gaussian_process_sentiment",
   "gaussian_process_price_only",
   "lstm_sentiment",
@@ -240,7 +242,7 @@ export function PredictionChart({
             <div className="empty-state">
               <h3>No predictions generated yet</h3>
               <p>
-                Run <code>npm run predict:lightgbm:direct</code>, <code>npm run predict:lightgbm</code>, <code>npm run predict:ridge</code>, <code>npm run predict:gp</code>, or <code>npm run predict:baseline</code> to generate forecast files under{" "}
+                Run <code>npm run predict:lightgbm:direct</code>, <code>npm run predict:lightgbm</code>, <code>npm run predict:ridge</code>, <code>npm run predict:arimax</code>, <code>npm run predict:gp</code>, or <code>npm run predict:baseline</code> to generate forecast files under{" "}
                 <code>data/prediction_outputs</code>.
               </p>
               <p>
@@ -455,6 +457,8 @@ function PredictionPointState({ model, point }: { model: PredictionModelKind; po
 }
 
 function modelLabel(model: PredictionModelKind) {
+  if (model === "arimax_sentiment") return "ARIMAX (Price + sentiment)";
+  if (model === "arimax_price_only") return "ARIMAX (Price only)";
   if (model === "gaussian_process_sentiment") return "Gaussian Process (Price + sentiment)";
   if (model === "gaussian_process_price_only") return "Gaussian Process (Price only)";
   if (model === "lstm_sentiment") return "LSTM (Price + sentiment)";
@@ -504,6 +508,13 @@ function formatDirectionalHits(source: PredictionChartData["sources"][number] | 
 }
 
 function modelMetadata(model: PredictionModelKind, point: PredictionChartPoint) {
+  if (model === "arimax_price_only" || model === "arimax_sentiment") {
+    return [
+      { label: "AR order", value: String(Math.round(point.alpha)) },
+      { label: "MA order", value: String(Math.round(point.beta)) },
+    ];
+  }
+
   if (model === "gaussian_process_price_only" || model === "gaussian_process_sentiment") {
     return [
       { label: "Train rows", value: String(Math.round(point.alpha)) },

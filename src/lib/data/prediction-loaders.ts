@@ -7,6 +7,8 @@ import type { PredictionChartData, PredictionEvaluationMode, PredictionPoint } f
 
 const PREDICTION_MODELS = [
   "ar1_baseline",
+  "arimax_price_only",
+  "arimax_sentiment",
   "gaussian_process_price_only",
   "gaussian_process_sentiment",
   "lstm_price_only",
