@@ -1057,7 +1057,8 @@ h1 {
   }
 
   .chart-box {
-    height: 330px;
+    aspect-ratio: 4 / 3;
+    height: auto !important;
   }
 
   .gym-controls {
