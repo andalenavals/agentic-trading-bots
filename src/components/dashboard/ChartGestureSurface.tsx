@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { normalizeXDomain } from "@/lib/analytics/chart-zoom";
 import type { CSSProperties, MouseEvent, PointerEvent, ReactNode } from "react";
 import type { XRange } from "@/lib/analytics/chart-zoom";
@@ -138,7 +138,7 @@ export function ChartGestureSurface({ children, className, onClick, onXChange, s
     const nextRange = pendingRangeRef.current;
     if (!nextRange) return;
     pendingRangeRef.current = null;
-    startTransition(() => onXChange(nextRange));
+    onXChange(nextRange);
   }
 
   return (
