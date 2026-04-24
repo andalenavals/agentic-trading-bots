@@ -721,6 +721,97 @@ h1 {
   padding: 9px 10px;
 }
 
+.model-info-panel {
+  border-top: 1px solid var(--line);
+}
+
+.model-info-panel summary {
+  align-items: center;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  list-style: none;
+  padding: 12px var(--panel-gutter);
+}
+
+.model-info-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.model-info-panel summary::after {
+  color: var(--gold);
+  content: "+";
+  font-size: 16px;
+  line-height: 1;
+}
+
+.model-info-panel[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.model-info-panel[open] summary::after {
+  content: "-";
+}
+
+.model-info-summary {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.model-info-summary span,
+.model-info-mode span,
+.model-meta-item span {
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.model-info-summary strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.model-info-body {
+  display: grid;
+  gap: 14px;
+  padding: 14px var(--panel-gutter) 16px;
+}
+
+.model-info-body p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.model-info-mode {
+  display: grid;
+  gap: 6px;
+}
+
+.model-meta-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.model-meta-item {
+  background: #151923;
+  border: 1px solid #222838;
+  border-radius: 6px;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.model-meta-item strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
 .gym-layout {
   display: grid;
   gap: 18px;
@@ -877,6 +968,14 @@ h1 {
   }
 
   .gym-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .model-info-panel summary {
+    padding: 10px 12px;
+  }
+
+  .model-meta-grid {
     grid-template-columns: 1fr;
   }
 

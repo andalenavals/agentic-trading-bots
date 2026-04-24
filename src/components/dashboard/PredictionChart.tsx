@@ -17,6 +17,7 @@ import { ChartGestureSurface } from "@/components/dashboard/ChartGestureSurface"
 import { MarkerGlyph } from "@/components/dashboard/MarkerGlyph";
 import { fullYRange, normalizeXRange, remapXRange, xAxisTicks } from "@/lib/analytics/chart-zoom";
 import { COMMODITY_LOOKUP } from "@/lib/analytics/commodities";
+import { predictionEvaluationInfo, predictionModelInfo } from "@/lib/prediction-model-info";
 import type { ChartType, MarkerType } from "@/components/dashboard/VisualizationControls";
 import type { XRange } from "@/lib/analytics/chart-zoom";
 import type { CommoditySlug, PredictionChartData, PredictionEvaluationMode, PredictionModelKind, PredictionPoint } from "@/lib/types";
@@ -147,6 +148,7 @@ export function PredictionChart({
   const commodity = COMMODITY_LOOKUP[activeCommodity];
   const testStart = displayedPoints.find((point) => point.phase === "test");
   const selectedPoint = chartPoints.find((point) => point.key === selectedPointKey) ?? null;
+  const activeModelInfo = predictionModelInfo(activeModel);
 
   function pointFromChartEvent(event: ChartClickEvent | undefined) {
     const payloadPoint = event?.activePayload?.[0]?.payload;
@@ -219,6 +221,30 @@ export function PredictionChart({
           </select>
         </Control>
       </div>
+      <details className="model-info-panel">
+        <summary>
+          <div className="model-info-summary">
+            <span>Model notes</span>
+            <strong>{modelLabel(activeModel)}</strong>
+          </div>
+          <span className="source">{evaluationModeLabel(activeEvaluationMode)}</span>
+        </summary>
+        <div className="model-info-body">
+          <p>{activeModelInfo.theory}</p>
+          <div className="model-info-mode">
+            <span>Evaluation</span>
+            <p>{predictionEvaluationInfo(activeEvaluationMode)}</p>
+          </div>
+          <div className="model-meta-grid">
+            {activeModelInfo.hyperparameters.map((item) => (
+              <div key={`${activeModel}-${item.label}`} className="model-meta-item">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </details>
       <ChartGestureSurface
         className="chart-box gym-chart"
         style={{ height: 390 }}
