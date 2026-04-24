@@ -806,7 +806,6 @@ h1 {
   margin: 0;
 }
 
-.chart-window-shell.has-chart-extension .chart-drawer-panel,
 .chart-window-shell.has-chart-extension .chart-detail-panel,
 .chart-window-shell.has-chart-extension .sentiment-state {
   border-top: 0;

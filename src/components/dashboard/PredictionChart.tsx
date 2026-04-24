@@ -384,7 +384,7 @@ export function PredictionChart({
             type="button"
           >
             <span>Forecast setup</span>
-            <strong aria-hidden="true">{showSetupPanel ? "\u25B4" : "\u25BE"}</strong>
+            <strong aria-hidden="true">{showSetupPanel ? "-" : "+"}</strong>
           </button>
         </div>
       </div>

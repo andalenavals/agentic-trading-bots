@@ -221,7 +221,7 @@ export function SentimentChart({
             type="button"
           >
             <span>Sentiment setup</span>
-            <strong aria-hidden="true">{showSetupPanel ? "\u25B4" : "\u25BE"}</strong>
+            <strong aria-hidden="true">{showSetupPanel ? "-" : "+"}</strong>
           </button>
         </div>
       </div>
