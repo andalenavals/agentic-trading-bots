@@ -78,6 +78,7 @@ export function AgentGym({
   const [model, setModel] = useState<AgentModelKind>("single_asset_ppo");
   const [split, setSplit] = useState(1);
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
+  const [showSetupPanel, setShowSetupPanel] = useState(false);
 
   const availableCommodities = useMemo(() => {
     const slugs = new Set(
@@ -171,21 +172,6 @@ export function AgentGym({
 
   return (
     <section className="agent-gym">
-      <div className="gym-controls">
-        <Control label="Model">
-          <select value={model} onChange={(event) => handleModelChange(event.target.value as AgentModelKind)}>
-            <option value="single_asset_ppo">Single asset PPO</option>
-            <option value="multiple_asset_ppo">Multi asset PPO</option>
-          </select>
-        </Control>
-        <Control label="Split">
-          <select value={activeSplit} onChange={(event) => handleSplitChange(Number(event.target.value))}>
-            {splitOptions.map((item) => (
-              <option key={item} value={item}>Split {item}</option>
-            ))}
-          </select>
-        </Control>
-      </div>
       <ChartGestureSurface
         className="chart-box gym-chart"
         style={{ height: 390 }}
@@ -266,6 +252,36 @@ export function AgentGym({
         ) : null}
       </ChartGestureSurface>
       {selectedPoint ? <BotPointState point={selectedPoint} /> : null}
+      {showSetupPanel ? (
+        <div className="chart-drawer-panel chart-drawer-panel-controls">
+          <div className="gym-controls">
+            <Control label="Model">
+              <select value={model} onChange={(event) => handleModelChange(event.target.value as AgentModelKind)}>
+                <option value="single_asset_ppo">Single asset PPO</option>
+                <option value="multiple_asset_ppo">Multi asset PPO</option>
+              </select>
+            </Control>
+            <Control label="Split">
+              <select value={activeSplit} onChange={(event) => handleSplitChange(Number(event.target.value))}>
+                {splitOptions.map((item) => (
+                  <option key={item} value={item}>Split {item}</option>
+                ))}
+              </select>
+            </Control>
+          </div>
+        </div>
+      ) : null}
+      <div className="chart-drawer-tabs">
+        <button
+          aria-expanded={showSetupPanel}
+          className={`chart-drawer-handle${showSetupPanel ? " open" : ""}`}
+          onClick={() => setShowSetupPanel((current) => !current)}
+          type="button"
+        >
+          <span>Decision setup</span>
+          <strong aria-hidden="true">{showSetupPanel ? "\u2191" : "\u2193"}</strong>
+        </button>
+      </div>
     </section>
   );
 }

@@ -68,6 +68,7 @@ export function SentimentChart({
   const hoveredPoint = useRef<SentimentChartPoint | null>(null);
   const [mode, setMode] = useState<SentimentMode>("sentiment");
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
+  const [showSetupPanel, setShowSetupPanel] = useState(false);
 
   const filtered = useMemo(() => (range >= 9999 ? points : points.slice(-range)), [points, range]);
   const chartData = useMemo(
@@ -129,21 +130,6 @@ export function SentimentChart({
 
   return (
     <section className="sentiment-panel">
-      <div className="sentiment-controls">
-        <label>
-          <span>Sentiment view</span>
-          <select
-            value={mode}
-            onChange={(event) => {
-              setMode(event.target.value as SentimentMode);
-              setSelectedPointKey(null);
-            }}
-          >
-            <option value="sentiment">Simple sentiment</option>
-            <option value="finbert">FinBERT</option>
-          </select>
-        </label>
-      </div>
       <ChartGestureSurface
         className="chart-box"
         xLength={chartData.length}
@@ -207,6 +193,36 @@ export function SentimentChart({
         ) : null}
       </ChartGestureSurface>
       {selectedPoint ? <SentimentPointState mode={mode} point={selectedPoint} /> : null}
+      {showSetupPanel ? (
+        <div className="chart-drawer-panel chart-drawer-panel-controls">
+          <div className="sentiment-controls">
+            <label>
+              <span>Sentiment view</span>
+              <select
+                value={mode}
+                onChange={(event) => {
+                  setMode(event.target.value as SentimentMode);
+                  setSelectedPointKey(null);
+                }}
+              >
+                <option value="sentiment">Simple sentiment</option>
+                <option value="finbert">FinBERT</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      ) : null}
+      <div className="chart-drawer-tabs">
+        <button
+          aria-expanded={showSetupPanel}
+          className={`chart-drawer-handle${showSetupPanel ? " open" : ""}`}
+          onClick={() => setShowSetupPanel((current) => !current)}
+          type="button"
+        >
+          <span>Sentiment setup</span>
+          <strong aria-hidden="true">{showSetupPanel ? "\u2191" : "\u2193"}</strong>
+        </button>
+      </div>
     </section>
   );
 }

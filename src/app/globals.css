@@ -721,7 +721,7 @@ h1 {
   padding: 9px 10px;
 }
 
-.prediction-subpanel-tabs {
+.chart-drawer-tabs {
   display: flex;
   justify-content: flex-start;
   margin-top: -1px;
@@ -730,7 +730,7 @@ h1 {
   z-index: 1;
 }
 
-.prediction-drawer-handle {
+.chart-drawer-handle {
   align-items: center;
   background: var(--panel-strong);
   border: 1px solid var(--line);
@@ -743,31 +743,35 @@ h1 {
   padding: 8px 12px;
 }
 
-.prediction-drawer-handle.open {
+.chart-drawer-handle.open {
   border-top-color: transparent;
 }
 
-.prediction-drawer-handle span {
+.chart-drawer-handle span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
 }
 
-.prediction-drawer-handle strong {
+.chart-drawer-handle strong {
   color: var(--gold);
   font-size: 14px;
   line-height: 1;
 }
 
-.prediction-subpanel {
+.chart-drawer-panel {
   border-left: 1px solid var(--line);
   border-right: 1px solid var(--line);
   border-top: 1px solid var(--line);
   margin: 0;
 }
 
-.prediction-subpanel-controls .gym-controls {
+.chart-drawer-panel-controls .gym-controls {
+  padding-top: 14px;
+}
+
+.chart-drawer-panel-controls .sentiment-controls {
   padding-top: 14px;
 }
 
@@ -1025,7 +1029,7 @@ h1 {
     grid-template-columns: 1fr;
   }
 
-  .prediction-drawer-handle {
+  .chart-drawer-handle {
     width: 100%;
   }
 
