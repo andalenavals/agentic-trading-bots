@@ -725,7 +725,7 @@ h1 {
   display: flex;
   justify-content: flex-start;
   margin-top: -1px;
-  padding: 0 var(--panel-gutter);
+  padding: 0;
   position: relative;
   z-index: 1;
 }
@@ -736,10 +736,10 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 0 0 7px 7px;
   color: var(--muted);
-  display: inline-flex;
+  display: flex;
   gap: 10px;
   justify-content: space-between;
-  min-width: 180px;
+  width: 100%;
   padding: 8px 12px;
 }
 
@@ -764,7 +764,7 @@ h1 {
   border-left: 1px solid var(--line);
   border-right: 1px solid var(--line);
   border-top: 1px solid var(--line);
-  margin: 0 var(--panel-gutter);
+  margin: 0;
 }
 
 .prediction-subpanel-controls .gym-controls {
@@ -1026,7 +1026,7 @@ h1 {
   }
 
   .prediction-drawer-handle {
-    min-width: 150px;
+    width: 100%;
   }
 
   .commodity-picker {
