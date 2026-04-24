@@ -1,14 +1,8 @@
 export type ChartType = "line" | "area" | "bar";
 export type MarkerType = "none" | "circle" | "square" | "diamond";
 
-type RangeOption = {
-  label: string;
-  value: number;
-};
-
 type Props = {
   alphaLevel: number;
-  chartType: ChartType;
   lineWidth: number;
   markerSize: number;
   markerType: MarkerType;
@@ -16,22 +10,16 @@ type Props = {
   logScale: boolean;
   logScaleDisabled?: boolean;
   onAlphaLevelChange: (value: number) => void;
-  onChartTypeChange: (value: ChartType) => void;
   onLineWidthChange: (value: number) => void;
   onLogScaleChange: (value: boolean) => void;
   onMarkerSizeChange: (value: number) => void;
   onMarkerTypeChange: (value: MarkerType) => void;
-  onRangeChange: (value: number) => void;
-  range: number;
-  ranges: RangeOption[];
 };
 
-const CHART_TYPES: ChartType[] = ["line", "area", "bar"];
 const MARKER_TYPES: MarkerType[] = ["none", "circle", "square", "diamond"];
 
 export function VisualizationControls({
   alphaLevel,
-  chartType,
   lineWidth,
   markerSize,
   markerType,
@@ -39,39 +27,15 @@ export function VisualizationControls({
   logScale,
   logScaleDisabled = false,
   onAlphaLevelChange,
-  onChartTypeChange,
   onLineWidthChange,
   onLogScaleChange,
   onMarkerSizeChange,
   onMarkerTypeChange,
-  onRangeChange,
-  range,
-  ranges,
 }: Props) {
   return (
     <details className="plot-settings">
       <summary>Plot settings</summary>
       <div className="viz-controls">
-        <ControlGroup label="Range">
-          <div className="segmented">
-            {ranges.map((item) => (
-              <button className={range === item.value ? "active" : ""} key={item.label} onClick={() => onRangeChange(item.value)} type="button">
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </ControlGroup>
-
-        <ControlGroup label="View">
-          <div className="segmented">
-            {CHART_TYPES.map((type) => (
-              <button className={chartType === type ? "active" : ""} key={type} onClick={() => onChartTypeChange(type)} type="button">
-                {type}
-              </button>
-            ))}
-          </div>
-        </ControlGroup>
-
         <ControlGroup label="Y scale">
           <div className="segmented">
             <button className={!logScale ? "active" : ""} onClick={() => onLogScaleChange(false)} type="button">

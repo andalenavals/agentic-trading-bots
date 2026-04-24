@@ -32,7 +32,7 @@ const DEFAULT_LINE_WIDTH = 2;
 export function Dashboard({ data }: Props) {
   const [activeCommodity, setActiveCommodity] = useState<CommoditySlug>("copper_lme");
   const [selectedPoint, setSelectedPoint] = useState<SentimentPoint | null>(null);
-  const [chartType, setChartType] = useState<ChartType>("area");
+  const chartType: ChartType = "area";
   const [range, setRange] = useState(99999);
   const [markerSize, setMarkerSize] = useState(5);
   const [markerType, setMarkerType] = useState<MarkerType>("none");
@@ -123,6 +123,11 @@ export function Dashboard({ data }: Props) {
     handleViewportChange(remapXRange(nextRange, chartLength, filteredPoints.length));
   }
 
+  function handleRangePresetChange(nextRange: number) {
+    setRange(nextRange);
+    setImmediateViewport(null);
+  }
+
   return (
     <main className="shell">
       <header className="topbar">
@@ -144,28 +149,26 @@ export function Dashboard({ data }: Props) {
         />
         <VisualizationControls
           alphaLevel={alphaLevel}
-          chartType={chartType}
           lineWidth={lineWidth}
           markerSize={markerSize}
           markerType={markerType}
           logScale={logScale}
-          range={range}
-          ranges={MARKET_RANGES}
           viewportControls={(
             <TimeSeriesRangeBar
+              activePreset={range}
               labels={viewportLabels}
               length={filteredPoints.length}
               onChange={handleViewportChange}
+              onPresetSelect={handleRangePresetChange}
+              presets={MARKET_RANGES}
               range={sharedVisibleRange}
             />
           )}
           onAlphaLevelChange={setAlphaLevel}
-          onChartTypeChange={setChartType}
           onLineWidthChange={handleLineWidthChange}
           onLogScaleChange={setLogScale}
           onMarkerSizeChange={handleMarkerSizeChange}
           onMarkerTypeChange={handleMarkerTypeChange}
-          onRangeChange={setRange}
         />
         <details className="panel market-panel news-chart-panel" open={openPanels.news} onToggle={(event) => handlePanelToggle("news", event.currentTarget.open)}>
           <summary>News Chart</summary>

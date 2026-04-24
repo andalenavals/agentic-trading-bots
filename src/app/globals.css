@@ -341,6 +341,10 @@ h1 {
   content: "-";
 }
 
+.plot-settings-extra {
+  border-top: 1px solid var(--line);
+}
+
 .viz-control-group {
   display: grid;
   align-content: start;
@@ -395,11 +399,18 @@ h1 {
 .time-range-bar {
   align-items: center;
   background: #151923;
-  border-top: 1px solid var(--line);
   display: grid;
   gap: 10px;
   grid-template-columns: minmax(0, 1fr) auto;
   padding: 12px var(--panel-gutter) 14px;
+}
+
+.time-range-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .range-button-group {
@@ -467,6 +478,10 @@ h1 {
   font-size: 11px;
   font-weight: 800;
   text-align: center;
+}
+
+.time-range-presets {
+  width: auto;
 }
 
 .segmented {
@@ -917,7 +932,16 @@ h1 {
 
   .time-range-bar {
     gap: 8px;
+    grid-template-columns: 1fr;
     padding: 10px 12px 12px;
+  }
+
+  .time-range-actions {
+    justify-content: stretch;
+  }
+
+  .time-range-presets {
+    width: 100%;
   }
 
   .layer-switch {

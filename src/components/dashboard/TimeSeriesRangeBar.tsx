@@ -4,13 +4,16 @@ import type { XRange } from "@/lib/analytics/chart-zoom";
 import type { PointerEvent } from "react";
 
 type Props = {
+  activePreset?: number;
   labels: string[];
   length: number;
   onChange: (range: XRange, animated?: boolean) => void;
+  onPresetSelect?: (value: number) => void;
+  presets?: Array<{ label: string; value: number }>;
   range: XRange;
 };
 
-export function TimeSeriesRangeBar({ labels, length, onChange, range }: Props) {
+export function TimeSeriesRangeBar({ activePreset, labels, length, onChange, onPresetSelect, presets, range }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [dragGrabRatio, setDragGrabRatio] = useState<number | null>(null);
   const normalized = normalizeXRange(range, length);
@@ -95,19 +98,35 @@ export function TimeSeriesRangeBar({ labels, length, onChange, range }: Props) {
           {startLabel} - {endLabel}
         </span>
       </div>
-      <div className="range-button-group horizontal">
-        <button disabled={disabled || normalized.start <= 0} onClick={() => nudge(-1)} title="Move left" type="button">
-          {"<"}
-        </button>
-        <button disabled={disabled || normalized.end >= length - 1} onClick={() => nudge(1)} title="Move right" type="button">
-          {">"}
-        </button>
-        <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "out"), true)} title="Zoom out" type="button">
-          -
-        </button>
-        <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "in"), true)} title="Zoom in" type="button">
-          +
-        </button>
+      <div className="time-range-actions">
+        <div className="range-button-group horizontal">
+          <button disabled={disabled || normalized.start <= 0} onClick={() => nudge(-1)} title="Move left" type="button">
+            {"<"}
+          </button>
+          <button disabled={disabled || normalized.end >= length - 1} onClick={() => nudge(1)} title="Move right" type="button">
+            {">"}
+          </button>
+          <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "out"), true)} title="Zoom out" type="button">
+            -
+          </button>
+          <button disabled={disabled} onClick={() => onChange(zoomXRangeFromCenter(normalized, length, "in"), true)} title="Zoom in" type="button">
+            +
+          </button>
+        </div>
+        {presets?.length && onPresetSelect ? (
+          <div className="segmented time-range-presets">
+            {presets.map((preset) => (
+              <button
+                className={activePreset === preset.value ? "active" : ""}
+                key={preset.label}
+                onClick={() => onPresetSelect(preset.value)}
+                type="button"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   );
