@@ -74,6 +74,12 @@ export function Dashboard({ data }: Props) {
   );
   const sharedXDomain = sharedViewportRange ?? fullXRange(filteredPoints.length);
   const sharedVisibleRange = normalizeXRange(sharedXDomain, filteredPoints.length);
+  const activeRangePreset =
+    filteredPoints.length > 0
+    && sharedVisibleRange.start === 0
+    && sharedVisibleRange.end === filteredPoints.length - 1
+      ? range
+      : undefined;
 
   useEffect(() => {
     if (previousRange.current === range) return;
@@ -155,7 +161,7 @@ export function Dashboard({ data }: Props) {
           logScale={logScale}
           viewportControls={(
             <TimeSeriesRangeBar
-              activePreset={range}
+              activePreset={activeRangePreset}
               labels={viewportLabels}
               length={filteredPoints.length}
               onChange={handleViewportChange}
