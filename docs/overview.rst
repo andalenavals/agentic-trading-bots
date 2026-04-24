@@ -4,36 +4,56 @@ Overview
 Purpose
 -------
 
-The project is a local-first MVP for exploring commodity market signals and trained trading-bot behavior.
+The current project focuses on four synchronized chart panels for one selected commodity:
 
-It answers three practical questions:
+* ``News Chart``
+* ``Sentiment Chart``
+* ``Decision Chart``
+* ``Predictions Chart``
 
-* What are copper, nickel, and aluminium prices doing?
-* Which market events and sentiment summaries explain the recent context?
-* How did trained PPO agents choose between hold, buy, and sell over the price series?
+Each panel shares the same horizontal viewport controls so the user can inspect price, sentiment, bot behavior, and forecast behavior over the same time region.
 
-Application Layers
-------------------
+What the demo shows
+-------------------
 
-Market + News
-~~~~~~~~~~~~~
+News Chart
+~~~~~~~~~~
 
-The market layer shows:
+The price series is linked to normalized news events. News is shown only after clicking the chart. Multiple news items can appear on the same day, and a single event can affect more than one commodity.
 
-* commodity cards with price, trend, volatility, and sentiment
-* a single-commodity price chart
-* relative performance across commodities
-* a market-event feed
+Sentiment Chart
+~~~~~~~~~~~~~~~
 
-News summaries are not shown in the price-chart hover tooltip. When a chart point is clicked, the price chart expands the selected day's linked news below the chart. A single news item can affect more than one asset, and multiple items can appear on the same commodity/date row.
+The sentiment panel lets the user switch between:
 
-Trading Bots Gym
-~~~~~~~~~~~~~~~~
+* simple rule-based sentiment
+* FinBERT sentiment
 
-The trading bots gym shows:
+Decision Chart
+~~~~~~~~~~~~~~
 
-* a selected commodity price time series
-* PPO decisions overlaid as colored markers
-* buy, hold, and sell probabilities
-* confidence via marker size and opacity
-* controls for model, dataset, split, commodity, date interval, and granularity
+The PPO panel overlays buy, hold, and sell decisions on top of the price series. Clicking a point reveals the stored action probabilities and portfolio state for that step.
+
+Predictions Chart
+~~~~~~~~~~~~~~~~~
+
+The prediction panel shows:
+
+* a baseline trend forecast
+* Ridge ARX price-only forecasts
+* Ridge ARX price-plus-sentiment forecasts
+
+For Ridge ARX the UI exposes both:
+
+* ``Observed history``
+* ``Recursive path``
+
+Local workflow
+--------------
+
+The project is intentionally local-first:
+
+1. keep source CSVs in ``data/raw/``
+2. generate derived data with preprocessing
+3. optionally retrain PPO agents or regenerate predictions
+4. inspect the outputs in the dashboard

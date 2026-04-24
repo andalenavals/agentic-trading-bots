@@ -1,8 +1,8 @@
 import { cache } from "react";
 import { access, readFile, readdir } from "node:fs/promises";
-import path from "node:path";
 import { normalizeCommodity } from "@/lib/analytics/commodities";
 import { parseCsv, toNumber } from "@/lib/data/csv";
+import { agentOutputPath } from "@/lib/data/paths";
 import type {
   AgentActionName,
   AgentDatasetKind,
@@ -11,8 +11,6 @@ import type {
   AgentModelKind,
   CommoditySlug,
 } from "@/lib/types";
-
-const AGENT_ROOT = path.join(process.cwd(), "data", "agent_outputs");
 const ACTION_NAMES: Record<0 | 1 | 2, AgentActionName> = {
   0: "hold",
   1: "buy",
@@ -23,7 +21,7 @@ export const loadAgentGymData = cache(async (): Promise<AgentGymData> => {
   const sources = await discoverAgentSources();
   const loaded = await Promise.all(
     sources.map(async (source) => {
-      const fullPath = path.join(AGENT_ROOT, source.path);
+      const fullPath = agentOutputPath(source.path);
       if (!(await exists(fullPath))) return { source, points: [] };
 
       const text = await readFile(fullPath, "utf8");
@@ -44,8 +42,8 @@ export const loadAgentGymData = cache(async (): Promise<AgentGymData> => {
 
 async function discoverAgentSources(): Promise<AgentGymData["sources"]> {
   const [singleAssetFiles, multipleAssetFiles] = await Promise.all([
-    safeReadDir(path.join(AGENT_ROOT, "single_asset_ppo")),
-    safeReadDir(path.join(AGENT_ROOT, "multiple_asset_ppo")),
+    safeReadDir(agentOutputPath("single_asset_ppo")),
+    safeReadDir(agentOutputPath("multiple_asset_ppo")),
   ]);
 
   return [
@@ -173,7 +171,7 @@ function parseMultipleAssetRow(
   split: number,
   rowIndex: number,
 ): AgentDecisionPoint[] {
-  const commodities: CommoditySlug[] = ["aluminium_lme", "copper_lme", "nickel_lme"];
+  const commodities = inferCommodityColumns(row);
 
   return commodities.map((commodity) => {
     const action = toAction(row[`action_${commodity}`]);
@@ -218,4 +216,12 @@ function toAction(value: string): 0 | 1 | 2 {
 function normalizeEntropy(entropy: number) {
   if (entropy <= 0) return 0;
   return Math.min(1, entropy / Math.log(3));
+}
+
+function inferCommodityColumns(row: Record<string, string>): CommoditySlug[] {
+  return Object.keys(row)
+    .filter((key) => key.startsWith("price_"))
+    .map((key) => normalizeCommodity(key.slice("price_".length)))
+    .filter((commodity): commodity is CommoditySlug => commodity !== null)
+    .sort();
 }

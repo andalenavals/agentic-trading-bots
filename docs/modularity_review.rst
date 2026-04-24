@@ -1,63 +1,62 @@
 Modularity Review
 =================
 
-Review Findings
----------------
+Review summary
+--------------
 
-The project previously mixed three concerns:
+The main weaknesses identified in this review were:
 
-* checked-in raw data and checked-in generated data
-* copied PPO scripts with hardcoded paths
-* plotting scripts living beside training logic
+* duplicated Python pipeline helpers across preprocessing and prediction modules
+* one stale duplicate prediction config
+* docs describing older UI concepts such as relative performance and market-event panels
+* app-side multi-asset loading tied too tightly to one fixed commodity list
+* tests concentrated in one file and not covering shared pipeline utilities
 
-That made the MVP work, but it also meant the repository could drift from its source data and training pipeline.
+Fixes applied
+-------------
 
-Refactor Decisions
-------------------
+Shared Python helpers
+~~~~~~~~~~~~~~~~~~~~~
 
-Raw Data Boundary
-~~~~~~~~~~~~~~~~~
+``agentic_trading/pipeline_common.py`` now centralizes:
 
-Only ``data/raw/prices.csv`` and ``data/raw/news.csv`` are required source data.
+* JSON config loading
+* config-key validation
+* CSV reading and writing
+* input-file discovery
+* walk-forward split boundaries
+* numeric coercion
 
-Generated artifacts are ignored:
-
-* ``data/processed/``
-* ``data/training/``
-* ``data/agent_outputs/``
-
-Preprocessing Boundary
+Preprocessing boundary
 ~~~~~~~~~~~~~~~~~~~~~~
 
-``agentic_trading/preprocessing.py`` now has two responsibilities:
+``preprocessing.py`` now uses a typed ``PreprocessingConfig`` plus a ``run_command`` dispatcher so the CLI and full pipeline path share the same config semantics.
 
-* generate visualization-friendly data by joining prices, news summaries, and sentiment fields
-* organize bot-training data by commodity
+Prediction boundary
+~~~~~~~~~~~~~~~~~~~
 
-The pipeline is configured by ``configs/preprocessing/default.json``.
+Both prediction modules now reuse the shared pipeline helpers and validate their input schemas more explicitly.
 
-Agent Boundary
-~~~~~~~~~~~~~~
+Loader boundary
+~~~~~~~~~~~~~~~
 
-Agent behavior is configured under ``configs/agents/``. Training modules read configs instead of embedding direct data paths.
+``src/lib/data/agent-loaders.ts`` no longer hardcodes the multi-asset commodity set when parsing output rows. It now infers commodity price columns from the file schema.
 
-The single-asset and multi-asset PPO modules both emit the action, probability, entropy, position, reward, and net-worth fields that the dashboard expects. Feature scalers are fit on each training window and then applied to that split's test and full-dataset diagnostic outputs.
+Docs boundary
+~~~~~~~~~~~~~
 
-Plotting code was removed from the agent layer. Visualization belongs in the Next.js dashboard or separate analysis notebooks/scripts, not in the training modules.
+The Sphinx docs and README were updated to describe the current dashboard structure:
 
-App Boundary
-~~~~~~~~~~~~
+* News Chart
+* Sentiment Chart
+* Decision Chart
+* Predictions Chart
 
-The Next.js app reads derived files. It does not generate them. The build command runs preprocessing first so deployment is reproducible from raw CSVs.
+Remaining tradeoffs
+-------------------
 
-Agent-output discovery is file-pattern based rather than hardcoded to three splits. This keeps config changes in the training layer from forcing app-loader changes.
+The project is still intentionally small. A deeper future refactor could extract:
 
-Documentation Boundary
-~~~~~~~~~~~~~~~~~~~~~~
-
-Sphinx documentation uses the Read the Docs theme and is built into ``out/docs`` by the same GitHub Pages workflow that builds the static demo.
-
-Cleanup Policy
-~~~~~~~~~~~~~~
-
-Generated folders such as ``data/processed/``, ``data/training/``, ``data/agent_outputs/``, ``out/``, and ``.next/`` stay ignored. Local cache files such as ``.DS_Store``, ``__pycache__/``, and ``*.tsbuildinfo`` should not be committed.
+* shared TS chart interaction helpers
+* a server-side schema validation layer for dashboard CSVs
+* richer JS/TS unit tests in addition to the existing Python pipeline tests

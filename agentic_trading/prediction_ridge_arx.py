@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import math
-import sys
 from pathlib import Path
 
-from agentic_trading.training.common import load_config, require_config_keys
+from agentic_trading.pipeline_common import (
+    load_json_config,
+    read_csv_rows,
+    require_columns,
+    require_config_keys,
+    resolve_input_files,
+    to_number,
+    walk_forward_boundaries,
+    write_csv_rows,
+)
 
 
 REQUIRED_CONFIG_KEYS = {
@@ -23,48 +30,6 @@ DEFAULT_CENTER_BLEND = 0.50
 DEFAULT_CONFIG_NAME = "ridge_arx_sentiment"
 OBSERVED_HISTORY = "observed_history"
 RECURSIVE_PATH = "recursive_path"
-csv.field_size_limit(sys.maxsize)
-
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    with path.open(newline="", encoding="utf-8") as handle:
-        return list(csv.DictReader(handle))
-
-
-def write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def resolve_input_files(input_csv: str) -> list[Path]:
-    path = Path(input_csv)
-    if any(character in input_csv for character in "*?[]"):
-        files = sorted(path.parent.glob(path.name))
-    elif path.is_dir():
-        files = sorted(path.glob("*.csv"))
-    else:
-        files = [path]
-
-    if not files:
-        raise ValueError(f"No ridge-arx input CSVs matched {input_csv!r}.")
-    return files
-
-
-def walk_forward_boundaries(length: int, n_splits: int):
-    if n_splits < 1:
-        raise ValueError("n_splits must be at least 1.")
-
-    split_size = length // (n_splits + 1)
-    if split_size <= 1:
-        raise ValueError("Not enough rows for the requested walk-forward split count.")
-
-    for index in range(n_splits):
-        train_end = split_size * (index + 1)
-        yield index + 1, train_end
-
 
 def generate_full_predictions(
     rows: list[dict[str, str]],
@@ -393,13 +358,6 @@ def empty_model(names: list[str]) -> dict[str, object]:
     }
 
 
-def to_number(value: str) -> float:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return 0.0
-
-
 def safe_log(value: float) -> float:
     return math.log(max(value, 1e-9))
 
@@ -409,7 +367,7 @@ def clamp(value: float, lower: float, upper: float) -> float:
 
 
 def run(config_path: str) -> None:
-    config = load_config(config_path)
+    config = load_json_config(config_path)
     require_config_keys(config, REQUIRED_CONFIG_KEYS, config_path)
     output_dir = Path(config["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -419,9 +377,26 @@ def run(config_path: str) -> None:
     include_sentiment_features = bool(config.get("include_sentiment_features", True))
 
     for input_file in resolve_input_files(config["input_csv"]):
-        rows = read_csv(input_file)
+        rows = read_csv_rows(input_file)
         if not rows:
             continue
+        require_columns(rows, {"date", "commodity", "price"}, input_file)
+        if include_sentiment_features:
+            require_columns(
+                rows,
+                {
+                    "news_count",
+                    "sentiment_score",
+                    "finbert_sentiment_score",
+                    "positive",
+                    "neutral",
+                    "negative",
+                    "finbert_positive",
+                    "finbert_neutral",
+                    "finbert_negative",
+                },
+                input_file,
+            )
 
         commodity = rows[0].get("commodity", input_file.stem)
         for split, train_end in walk_forward_boundaries(len(rows), int(config["n_splits"])):
@@ -435,7 +410,7 @@ def run(config_path: str) -> None:
                 evaluation_mode=OBSERVED_HISTORY,
                 include_sentiment_features=include_sentiment_features,
             )
-            write_csv(
+            write_csv_rows(
                 output_dir / f"full_dataset_predictions_{commodity}_split_{split}.csv",
                 observed_predictions,
                 [
@@ -462,7 +437,7 @@ def run(config_path: str) -> None:
                 evaluation_mode=RECURSIVE_PATH,
                 include_sentiment_features=include_sentiment_features,
             )
-            write_csv(
+            write_csv_rows(
                 output_dir / f"full_dataset_predictions_{commodity}_split_{split}_{RECURSIVE_PATH}.csv",
                 recursive_predictions,
                 [

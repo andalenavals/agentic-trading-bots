@@ -11,6 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from stable_baselines3 import PPO
 from torch import nn
 
+from agentic_trading.pipeline_common import resolve_input_files
 from agentic_trading.training.common import load_config, require_config_keys
 
 
@@ -197,8 +198,8 @@ def run(config_path: str) -> None:
     output_dir = Path(config["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    for input_csv in resolve_input_files(config["input_csv"]):
-        data = load_dataset(input_csv)
+    for input_path in resolve_input_files(config["input_csv"]):
+        data = load_dataset(str(input_path))
         commodity = str(data.iloc[0]["commodity"])
 
         for split, train_raw, test_raw in walk_forward_split(data, config["n_splits"]):
@@ -237,22 +238,6 @@ def run(config_path: str) -> None:
                 train_end_index=train_end_index,
             )
             full_predictions.to_csv(output_dir / f"full_dataset_predictions_{commodity}_split_{split}.csv", index=False)
-
-
-def resolve_input_files(input_csv: str) -> list[str]:
-    path = Path(input_csv)
-    if any(character in input_csv for character in "*?[]"):
-        files = sorted(str(file) for file in path.parent.glob(path.name))
-    elif path.is_dir():
-        files = sorted(str(file) for file in path.glob("*.csv"))
-    else:
-        files = [input_csv]
-
-    if not files:
-        raise ValueError(f"No single-asset input CSVs matched {input_csv!r}.")
-    return files
-
-
 def load_dataset(input_csv: str) -> pd.DataFrame:
     data = pd.read_csv(input_csv)
     required = {"commodity", "price", "sentiment_score"}

@@ -1,95 +1,93 @@
 Data
 ====
 
-Current Files
--------------
+Source boundary
+---------------
 
-.. list-table::
-   :header-rows: 1
+The only required source files are:
 
-   * - Path
-     - Source
-     - Purpose
-   * - ``data/raw/prices.csv``
-     - Commodity snapshot
-     - Base LME price rows
-   * - ``data/raw/news.csv``
-     - Commodity snapshot
-     - Curated news events
-   * - ``data/processed/*.csv``
-     - Generated
-     - Joined price, news, and sentiment rows
-   * - ``data/training/commodity_outputs/*.csv``
-     - Generated
-     - Per-commodity training data for single-asset bots
-   * - ``data/agent_outputs/**/*.csv``
-     - Generated
-     - PPO evaluation outputs used by the trading bots gym
+* ``data/raw/prices.csv``
+* ``data/raw/news.csv``
 
-Only ``data/raw/prices.csv`` and ``data/raw/news.csv`` are required checked-in data. The other paths are generated and ignored by Git.
+Everything else is either generated or a committed demo snapshot.
 
-Primary Dashboard Schema
-------------------------
+Generated and committed artifacts
+---------------------------------
 
-``prices_with_sentiment.csv`` is the dashboard's main fact table:
+Some derived files are intentionally committed because the deployed static demo depends on them:
 
-.. code-block:: text
+* ``data/processed/finbert_event_sentiment.csv``
+* ``data/agent_outputs/**``
+* ``data/prediction_outputs/**``
 
-   date,commodity,price,news_ids,news_count,news_items,news_summary,negative,neutral,positive,sentiment_score,finbert_negative,finbert_neutral,finbert_positive,finbert_sentiment_score,finbert_label
+Other derived files are regenerated during preprocessing or local training runs.
 
-``news_events.csv`` is a normalized event table generated from raw news:
+Primary derived tables
+----------------------
+
+``data/processed/news_events.csv``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Normalized event table generated from raw news:
 
 .. code-block:: text
 
    event_id,date,event_day,title,url,impacted_commodities,summary
 
-``impacted_commodities`` is a semicolon-separated list of canonical slugs. This preserves the real relationship that one news item can affect multiple assets.
+``impacted_commodities`` is a semicolon-separated list of canonical slugs.
 
-``news_items`` stores the full list of matched news objects as JSON inside the generated CSV row. This solves the case where one price row has more than one relevant news item, while ``news_summary`` remains a compact combined text field for sentiment scoring and quick chart summaries.
+``data/processed/prices_with_news.csv``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The lightweight ``negative``, ``neutral``, ``positive``, and ``sentiment_score`` fields are retained for MVP compatibility and existing PPO configs. The ``finbert_*`` fields are generated with ``ProsusAI/finbert``. The pipeline scores each normalized news event once, caches those outputs in ``data/processed/finbert_event_sentiment.csv``, and averages all linked event scores onto each price row.
-
-The loader maps commodities into canonical slugs:
-
-* ``copper_lme``
-* ``nickel_lme``
-* ``aluminium_lme``
-
-Agent Output Schema
--------------------
-
-The dashboard normalizes single-asset and multi-asset PPO outputs into one UI shape:
+Joined price/news table used before sentiment enrichment:
 
 .. code-block:: text
 
-   date, commodity, action, prob_hold, prob_buy, prob_sell, entropy, net_worth, reward
+   date,commodity,price,news_ids,news_count,news_items,news_summary
 
-For the trading bots gym layer, opacity is derived from decision confidence:
+``news_items`` stores the full event payload list as JSON so the dashboard can show multiple events for a single date row without flattening them away.
 
-.. code-block:: text
+``data/processed/prices_with_sentiment.csv``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-   confidence = max(prob_hold, prob_buy, prob_sell)
-
-Lower opacity means the agent was more uncertain.
-
-The agent-output loader discovers files rather than relying on a fixed split count. Supported filename patterns are:
+Main dashboard fact table:
 
 .. code-block:: text
 
-   data/agent_outputs/single_asset_ppo/evaluation_<commodity>_split_<n>.csv
-   data/agent_outputs/single_asset_ppo/full_dataset_predictions_<commodity>_split_<n>.csv
-   data/agent_outputs/multiple_asset_ppo/evaluation_split_<n>_multi_asset_<mode>.csv
-   data/agent_outputs/multiple_asset_ppo/evaluation_full_dataset_split_<n>_multi_asset_<mode>.csv
+   date,commodity,price,news_ids,news_count,news_items,news_summary,negative,neutral,positive,sentiment_score,finbert_negative,finbert_neutral,finbert_positive,finbert_sentiment_score,finbert_label
 
-Full-dataset diagnostic outputs include a ``phase`` column. The trading bots gym plots the full series and uses that field to draw the vertical transition from training history to test period.
+Training and model outputs
+--------------------------
 
-Refresh Rule
-------------
+``data/training/commodity_outputs/*.csv``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Keep raw data snapshots in ``data/raw/``. Generate processed visualization data and bot training data with:
+Per-commodity training inputs for single-asset PPO and forecast modules.
+
+``data/agent_outputs/**/*.csv``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Saved PPO outputs used by the ``Decision Chart``.
+
+``data/prediction_outputs/**/*.csv``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Saved baseline and Ridge ARX outputs used by the ``Predictions Chart``.
+
+Refresh workflow
+----------------
+
+Generate preprocessing outputs with:
 
 .. code-block:: bash
 
    npm run preprocess
 
-Keep transformation logic in ``agentic_trading/preprocessing.py``, ``src/lib/data``, and ``src/lib/analytics``. Avoid embedding data assumptions directly inside React components.
+Optional regeneration of model outputs:
+
+.. code-block:: bash
+
+   npm run train:single
+   npm run train:multi
+   npm run predict:baseline
+   npm run predict:ridge

@@ -86,7 +86,7 @@ export function ChartGestureSurface({ children, className, onClick, onXChange, s
     const gesture = gestureRef.current;
     if (!gesture) return;
 
-    if (gesture.moved) suppressClickUntilRef.current = Date.now() + CLICK_SUPPRESS_MS;
+    if (gesture.moved) suppressClickUntilRef.current = event.timeStamp + CLICK_SUPPRESS_MS;
     gesture.pointers.delete(event.pointerId);
     flushPendingRange();
 
@@ -106,7 +106,7 @@ export function ChartGestureSurface({ children, className, onClick, onXChange, s
   }
 
   function suppressDraggedClick(event: MouseEvent<HTMLDivElement>) {
-    if (Date.now() < suppressClickUntilRef.current) {
+    if (event.timeStamp < suppressClickUntilRef.current) {
       event.preventDefault();
       event.stopPropagation();
       return;

@@ -4,40 +4,44 @@ Deployment
 GitHub Pages
 ------------
 
-The repository deploys two static pages to GitHub Pages:
+The repository deploys two static pages from one GitHub Actions workflow:
 
 * demo: ``https://andalenavals.github.io/agentic-trading-bots/``
 * docs: ``https://andalenavals.github.io/agentic-trading-bots/docs/``
 
-The GitHub Actions workflow builds both pieces into one artifact:
+Workflow steps
+--------------
 
-1. ``npm ci``
-2. ``npm run typecheck``
-3. ``npm run lint``
-4. ``npm run test:py``
-5. ``GITHUB_PAGES=true npm run build`` (this runs preprocessing first)
-6. ``sphinx-build -b html docs out/docs``
-7. upload ``out`` with ``actions/upload-pages-artifact``
-8. deploy with ``actions/deploy-pages``
+The deployment workflow:
 
-Local Build
------------
+1. installs Node dependencies with ``npm ci``
+2. installs Sphinx dependencies
+3. runs ``npm run typecheck``
+4. runs ``npm run lint``
+5. runs ``npm run test:py``
+6. runs ``npm run build`` with ``GITHUB_PAGES=true`` and the Pages preprocessing config
+7. builds Sphinx docs into ``out/docs``
+8. uploads ``out`` as the Pages artifact
+9. deploys with ``actions/deploy-pages``
 
-Build the demo. The build command runs preprocessing first:
+Local verification
+------------------
 
-.. code-block:: bash
-
-   npm run build
-
-Build the GitHub Pages version:
+Static app build:
 
 .. code-block:: bash
 
    GITHUB_PAGES=true npm run build
 
-Build the Sphinx docs:
+Docs build:
 
 .. code-block:: bash
 
    npm run docs:install
    npm run docs:build
+
+Full local check:
+
+.. code-block:: bash
+
+   npm test

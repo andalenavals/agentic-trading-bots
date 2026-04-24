@@ -1,16 +1,14 @@
 import { cache } from "react";
 import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { COMMODITIES, normalizeCommodity } from "@/lib/analytics/commodities";
 import { loadAgentGymData } from "@/lib/data/agent-loaders";
 import { loadPredictionChartData } from "@/lib/data/prediction-loaders";
 import { parseCsv, toNumber } from "@/lib/data/csv";
+import { dataPath } from "@/lib/data/paths";
 import type { CommoditySlug, DashboardData, NewsEvent, SentimentPoint } from "@/lib/types";
 
-const DATA_ROOT = path.join(process.cwd(), "data");
-
 async function readDataFile(relativePath: string) {
-  return readFile(path.join(DATA_ROOT, relativePath), "utf8");
+  return readFile(dataPath(relativePath), "utf8");
 }
 
 export const loadDashboardData = cache(async (): Promise<DashboardData> => {

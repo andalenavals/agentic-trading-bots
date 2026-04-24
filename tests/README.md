@@ -1,11 +1,20 @@
 # Tests
 
-The current test suite covers the Python preprocessing boundary: raw prices/news are transformed into visualization rows and per-commodity training files.
+The test suite currently focuses on the Python generation boundary:
 
-Run it with:
+* preprocessing transformations
+* prediction helper behavior
+* Ridge ARX evaluation modes
+* shared pipeline utilities
+
+Run the Python tests with:
 
 ```bash
 npm run test:py
 ```
 
-Use `npm test` for the full local check: TypeScript typecheck, ESLint, and Python preprocessing tests.
+Run the full local check with:
+
+```bash
+npm test
+```

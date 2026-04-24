@@ -1,17 +1,15 @@
 import { cache } from "react";
 import { access, readFile, readdir } from "node:fs/promises";
-import path from "node:path";
 import { normalizeCommodity } from "@/lib/analytics/commodities";
 import { parseCsv, toNumber } from "@/lib/data/csv";
+import { predictionOutputPath } from "@/lib/data/paths";
 import type { PredictionChartData, PredictionEvaluationMode, PredictionPoint } from "@/lib/types";
-
-const PREDICTION_ROOT = path.join(process.cwd(), "data", "prediction_outputs");
 
 export const loadPredictionChartData = cache(async (): Promise<PredictionChartData> => {
   const sources = await discoverPredictionSources();
   const loaded = await Promise.all(
     sources.map(async (source) => {
-      const fullPath = path.join(PREDICTION_ROOT, source.path);
+      const fullPath = predictionOutputPath(source.path);
       if (!(await exists(fullPath))) return { points: [] as PredictionPoint[], source };
 
       const text = await readFile(fullPath, "utf8");
@@ -28,11 +26,11 @@ export const loadPredictionChartData = cache(async (): Promise<PredictionChartDa
 });
 
 async function discoverPredictionSources(): Promise<PredictionChartData["sources"]> {
-  const modelDirs = await safeReadDir(PREDICTION_ROOT);
+  const modelDirs = await safeReadDir(predictionOutputPath());
   const discovered = await Promise.all(
     modelDirs.map(async (modelDir) => {
       if (modelDir !== "ar1_baseline" && modelDir !== "ridge_arx_price_only" && modelDir !== "ridge_arx_sentiment") return [];
-      const files = await safeReadDir(path.join(PREDICTION_ROOT, modelDir));
+      const files = await safeReadDir(predictionOutputPath(modelDir));
       return files.flatMap((file) => predictionSource(modelDir, file));
     }),
   );

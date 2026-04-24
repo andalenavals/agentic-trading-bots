@@ -1,63 +1,74 @@
 Architecture
 ============
 
-The project follows a small modular structure so that data loading, analytics, UI, and PPO code can evolve independently.
+The repository is organized around one simple rule: generation logic stays in Python, while the Next.js app only loads and visualizes derived files.
 
 Layers
 ------
 
-Data
-~~~~
+Python pipeline
+~~~~~~~~~~~~~~~
 
-``agentic_trading/preprocessing.py`` owns raw-to-derived data generation. ``src/lib/data/`` owns app-side file loading and CSV parsing. UI components should not read files directly.
+``agentic_trading/`` contains generation code:
 
-Analytics
-~~~~~~~~~
+* ``pipeline_common.py``: shared config, CSV, and split helpers
+* ``preprocessing.py``: raw prices/news to derived dashboard and training data
+* ``finbert_sentiment.py``: FinBERT scoring and cache helpers
+* ``prediction_baseline.py`` and ``prediction_ridge_arx.py``: forecast generators
+* ``training/``: PPO training modules
 
-``src/lib/analytics/`` owns deterministic transformations:
+This is the main refactor boundary for reproducibility. Forecasting and training modules should not own UI logic, plotting logic, or browser-only assumptions.
 
-* commodity metadata and normalization
-* price signal calculations
-* news filtering and source labels
+App-side loading
+~~~~~~~~~~~~~~~~
 
-These helpers are framework-light and can be tested without React.
+``src/lib/data/`` owns local file loading and normalization for the dashboard. The React components consume typed data objects rather than reading CSV files directly.
 
-Application
-~~~~~~~~~~~
+The main loaders are:
 
-``src/app/`` loads dashboard data once on the server and passes serializable props to client dashboard components.
+* ``loaders.ts``
+* ``agent-loaders.ts``
+* ``prediction-loaders.ts``
 
-``src/lib/data/agent-loaders.ts`` discovers generated agent outputs by filename pattern, so the UI is not coupled to a fixed number of train/test splits.
+Analytics helpers
+~~~~~~~~~~~~~~~~~
 
-Components
-~~~~~~~~~~
+``src/lib/analytics/`` contains deterministic helpers for:
 
-``src/components/dashboard/`` contains reusable visual panels:
+* commodity normalization and metadata
+* chart viewport math
+* signal summaries
+* news source labels
 
-* commodity cards
-* single-commodity price chart
-* relative performance chart
-* event feed
-* trading bots gym visualization
+UI
+~~
 
-MVP Boundary
-------------
+``src/components/dashboard/`` contains reusable chart and control components. The dashboard owns interaction state such as:
 
-Included:
+* selected commodity
+* shared viewport range
+* marker and line styling
+* panel open/closed state
 
-* local CSV ingestion
-* generated processed/training data from raw CSVs
-* price and sentiment dashboard
-* event feed
-* config-driven single-asset and multi-asset PPO training modules
-* PPO decision-output visualization
-* Sphinx documentation deployed with the demo using the Read the Docs theme
-* repeatable local checks through ``npm test`` and docs/static build commands
+The UI should stay thin: it reads generated files and renders them.
 
-Deferred:
+Current modularity improvements
+-------------------------------
 
-* Supabase import/export
-* ARIMA or model-backed forecasts
-* chatbot or briefing API
-* full trading-policy simulator
-* browser-based PPO retraining
+The main cleanup applied in this review was:
+
+* shared Python pipeline utilities moved into ``agentic_trading/pipeline_common.py``
+* preprocessing config coercion moved into a typed ``PreprocessingConfig``
+* duplicate prediction config removed
+* multi-asset loader stopped hardcoding a fixed commodity list and now discovers commodity price columns from the output schema
+* docs were rewritten to match the current four-chart dashboard
+
+Non-goals
+---------
+
+Still intentionally out of scope:
+
+* in-browser retraining
+* a backend API service
+* database-backed persistence
+* notebook-style plotting embedded in training code
