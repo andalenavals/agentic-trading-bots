@@ -577,7 +577,6 @@ h1 {
 }
 
 .chart-window-shell.has-chart-extension .chart-box::after {
-  border-bottom: 0;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -805,6 +804,12 @@ h1 {
   border-right: 1px solid rgba(123, 132, 151, 0.34);
   border-top: 1px solid var(--line);
   margin: 0;
+}
+
+.chart-window-shell.has-chart-extension .chart-drawer-panel,
+.chart-window-shell.has-chart-extension .chart-detail-panel,
+.chart-window-shell.has-chart-extension .sentiment-state {
+  border-top: 0;
 }
 
 .chart-drawer-panel-controls .gym-controls {
