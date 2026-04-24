@@ -50,6 +50,8 @@ type PredictionChartPoint = PredictionPoint & {
 
 const PREDICTION_COLOR = "#f6c85f";
 const MODEL_ORDER: PredictionModelKind[] = ["ridge_arx_sentiment", "ridge_arx_price_only", "ar1_baseline"];
+const PRICE_AXIS_WIDTH = 58;
+const PLOT_RIGHT_PADDING = 6;
 
 export function PredictionChart({
   activeCommodity,
@@ -161,8 +163,8 @@ export function PredictionChart({
     const bounds = event.currentTarget.getBoundingClientRect();
     if (bounds.width <= 0 || !displayedPoints.length) return;
 
-    const plotLeft = 62;
-    const plotRight = 8;
+    const plotLeft = PRICE_AXIS_WIDTH;
+    const plotRight = PLOT_RIGHT_PADDING;
     const plotWidth = Math.max(1, bounds.width - plotLeft - plotRight);
     const relativeX = Math.min(1, Math.max(0, (event.clientX - bounds.left - plotLeft) / plotWidth));
     const index = Math.round(xDomain.start + relativeX * (xDomain.end - xDomain.start));
@@ -254,7 +256,7 @@ export function PredictionChart({
                     tick={{ fill: "#697185", fontSize: 11 }}
                     tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
                     tickLine={false}
-                    width={62}
+                    width={PRICE_AXIS_WIDTH}
                   />
                   {markersOnly ? null : chartType === "bar" ? (
                     <Bar dataKey="price" fill={commodity.colorHex} opacity={0.42} radius={[3, 3, 0, 0]} />

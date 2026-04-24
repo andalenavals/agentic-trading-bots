@@ -56,6 +56,9 @@ const ACTION_COLOR: Record<AgentActionName, string> = {
   sell: "#ef5350",
 };
 
+const PRICE_AXIS_WIDTH = 58;
+const PLOT_RIGHT_PADDING = 6;
+
 export function AgentGym({
   alphaLevel,
   activeCommodity: selectedCommodity,
@@ -157,8 +160,8 @@ export function AgentGym({
     const bounds = event.currentTarget.getBoundingClientRect();
     if (bounds.width <= 0 || !displayedPoints.length) return;
 
-    const plotLeft = 62;
-    const plotRight = 8;
+    const plotLeft = PRICE_AXIS_WIDTH;
+    const plotRight = PLOT_RIGHT_PADDING;
     const plotWidth = Math.max(1, bounds.width - plotLeft - plotRight);
     const relativeX = clamp((event.clientX - bounds.left - plotLeft) / plotWidth, 0, 1);
     const index = Math.round(xDomain.start + relativeX * (xDomain.end - xDomain.start));
@@ -231,7 +234,7 @@ export function AgentGym({
                     tick={{ fill: "#697185", fontSize: 11 }}
                     tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
                     tickLine={false}
-                    width={62}
+                    width={PRICE_AXIS_WIDTH}
                   />
                   {chartType === "bar" ? (
                     <Bar dataKey="price" fill={activeCommodity.colorHex} opacity={0.62} radius={[3, 3, 0, 0]} />

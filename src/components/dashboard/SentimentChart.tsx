@@ -49,6 +49,9 @@ type SentimentChartPoint = SentimentPoint & {
   x: number;
 };
 
+const VALUE_AXIS_WIDTH = 58;
+const PLOT_RIGHT_PADDING = 6;
+
 export function SentimentChart({
   alphaLevel,
   chartType,
@@ -115,8 +118,8 @@ export function SentimentChart({
     const bounds = event.currentTarget.getBoundingClientRect();
     if (bounds.width <= 0 || !chartData.length) return;
 
-    const plotLeft = 62;
-    const plotRight = 8;
+    const plotLeft = VALUE_AXIS_WIDTH;
+    const plotRight = PLOT_RIGHT_PADDING;
     const plotWidth = Math.max(1, bounds.width - plotLeft - plotRight);
     const relativeX = clamp((event.clientX - bounds.left - plotLeft) / plotWidth, 0, 1);
     const index = Math.round(xDomain.start + relativeX * (xDomain.end - xDomain.start));
@@ -180,7 +183,7 @@ export function SentimentChart({
                 tick={{ fill: "#697185", fontSize: 11 }}
                 tickFormatter={(value) => Number(value).toFixed(2)}
                 tickLine={false}
-                width={62}
+                width={VALUE_AXIS_WIDTH}
               />
               <ReferenceLine stroke="#394153" strokeDasharray="4 4" y={0} />
               {chartType === "bar" ? (
