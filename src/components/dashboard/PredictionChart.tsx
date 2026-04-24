@@ -25,6 +25,7 @@ type Props = {
   activeCommodity: CommoditySlug;
   alphaLevel: number;
   chartType: ChartType;
+  lineWidth: number;
   logScale: boolean;
   markerSize: number;
   markerType: MarkerType;
@@ -54,6 +55,7 @@ export function PredictionChart({
   activeCommodity,
   alphaLevel,
   chartType,
+  lineWidth,
   logScale,
   markerSize,
   markerType,
@@ -264,11 +266,11 @@ export function PredictionChart({
                       fillOpacity={0.45}
                       stroke={commodity.colorHex}
                       strokeOpacity={0.62}
-                      strokeWidth={2}
+                      strokeWidth={lineWidth}
                       type="monotone"
                     />
                   ) : (
-                    <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeOpacity={0.62} strokeWidth={2} type="monotone" />
+                    <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeOpacity={0.62} strokeWidth={lineWidth} type="monotone" />
                   )}
                   {markersOnly ? null : (
                     <Line
@@ -278,7 +280,7 @@ export function PredictionChart({
                       isAnimationActive={false}
                       stroke={PREDICTION_COLOR}
                       strokeDasharray="6 4"
-                      strokeWidth={3}
+                      strokeWidth={lineWidth}
                       type="monotone"
                     />
                   )}

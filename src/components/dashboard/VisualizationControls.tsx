@@ -9,6 +9,7 @@ type RangeOption = {
 type Props = {
   alphaLevel: number;
   chartType: ChartType;
+  lineWidth: number;
   markerSize: number;
   markerType: MarkerType;
   viewportControls?: React.ReactNode;
@@ -16,6 +17,7 @@ type Props = {
   logScaleDisabled?: boolean;
   onAlphaLevelChange: (value: number) => void;
   onChartTypeChange: (value: ChartType) => void;
+  onLineWidthChange: (value: number) => void;
   onLogScaleChange: (value: boolean) => void;
   onMarkerSizeChange: (value: number) => void;
   onMarkerTypeChange: (value: MarkerType) => void;
@@ -30,6 +32,7 @@ const MARKER_TYPES: MarkerType[] = ["none", "circle", "square", "diamond"];
 export function VisualizationControls({
   alphaLevel,
   chartType,
+  lineWidth,
   markerSize,
   markerType,
   viewportControls,
@@ -37,6 +40,7 @@ export function VisualizationControls({
   logScaleDisabled = false,
   onAlphaLevelChange,
   onChartTypeChange,
+  onLineWidthChange,
   onLogScaleChange,
   onMarkerSizeChange,
   onMarkerTypeChange,
@@ -92,6 +96,13 @@ export function VisualizationControls({
           </label>
         </ControlGroup>
 
+        <ControlGroup label="Line width">
+          <label className="range-control">
+            <input max="6" min="0.25" onChange={(event) => onLineWidthChange(Number(event.target.value))} step="0.25" type="range" value={lineWidth} />
+            <span>{formatPixels(lineWidth)}</span>
+          </label>
+        </ControlGroup>
+
         <ControlGroup label="Marker type">
           <select value={markerType} onChange={(event) => onMarkerTypeChange(event.target.value as MarkerType)}>
             {MARKER_TYPES.map((type) => (
@@ -121,4 +132,8 @@ function ControlGroup({ children, label }: { children: React.ReactNode; label: s
       {children}
     </div>
   );
+}
+
+function formatPixels(value: number) {
+  return `${value.toFixed(2).replace(/\.?0+$/, "")}px`;
 }

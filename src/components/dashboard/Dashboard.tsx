@@ -25,6 +25,8 @@ const MARKET_RANGES = [
   { label: "ALL", value: 99999 },
 ];
 
+const DEFAULT_LINE_WIDTH = 2;
+
 export function Dashboard({ data }: Props) {
   const [activeCommodity, setActiveCommodity] = useState<CommoditySlug>("copper_lme");
   const [selectedPoint, setSelectedPoint] = useState<SentimentPoint | null>(null);
@@ -32,6 +34,8 @@ export function Dashboard({ data }: Props) {
   const [range, setRange] = useState(99999);
   const [markerSize, setMarkerSize] = useState(5);
   const [markerType, setMarkerType] = useState<MarkerType>("none");
+  const [lineWidth, setLineWidth] = useState(DEFAULT_LINE_WIDTH);
+  const [lineWidthAuto, setLineWidthAuto] = useState(true);
   const [alphaLevel, setAlphaLevel] = useState(0.72);
   const [logScale, setLogScale] = useState(false);
   const previousRange = useRef(range);
@@ -74,6 +78,27 @@ export function Dashboard({ data }: Props) {
     setSelectedPoint(null);
   }
 
+  function handleMarkerSizeChange(nextSize: number) {
+    setMarkerSize(nextSize);
+    if (lineWidthAuto && markerType !== "none") {
+      setLineWidth(defaultLineWidth(markerType, nextSize));
+    }
+  }
+
+  function handleMarkerTypeChange(nextType: MarkerType) {
+    const shouldResetLineWidth = lineWidthAuto || (markerType === "none" && nextType !== "none");
+    setMarkerType(nextType);
+    if (shouldResetLineWidth) {
+      setLineWidth(defaultLineWidth(nextType, markerSize));
+      setLineWidthAuto(true);
+    }
+  }
+
+  function handleLineWidthChange(nextWidth: number) {
+    setLineWidth(nextWidth);
+    setLineWidthAuto(false);
+  }
+
   function handleViewportChange(nextRange: XRange, animated = false) {
     if (animated) {
       setAnimatedViewport(nextRange, sharedVisibleRange);
@@ -108,6 +133,7 @@ export function Dashboard({ data }: Props) {
         <VisualizationControls
           alphaLevel={alphaLevel}
           chartType={chartType}
+          lineWidth={lineWidth}
           markerSize={markerSize}
           markerType={markerType}
           logScale={logScale}
@@ -123,9 +149,10 @@ export function Dashboard({ data }: Props) {
           )}
           onAlphaLevelChange={setAlphaLevel}
           onChartTypeChange={setChartType}
+          onLineWidthChange={handleLineWidthChange}
           onLogScaleChange={setLogScale}
-          onMarkerSizeChange={setMarkerSize}
-          onMarkerTypeChange={setMarkerType}
+          onMarkerSizeChange={handleMarkerSizeChange}
+          onMarkerTypeChange={handleMarkerTypeChange}
           onRangeChange={setRange}
         />
         <details className="panel market-panel news-chart-panel">
@@ -136,6 +163,7 @@ export function Dashboard({ data }: Props) {
               chartType={chartType}
               commodity={activeCommodityMeta}
               embedded
+              lineWidth={lineWidth}
               logScale={logScale}
               markerSize={markerSize}
               markerType={markerType}
@@ -155,6 +183,7 @@ export function Dashboard({ data }: Props) {
               alphaLevel={alphaLevel}
               chartType={chartType}
               commodity={activeCommodityMeta}
+              lineWidth={lineWidth}
               key={activeCommodity}
               markerSize={markerSize}
               markerType={markerType}
@@ -174,6 +203,7 @@ export function Dashboard({ data }: Props) {
               agentGym={data.agentGym}
               chartType={chartType}
               commodities={data.commodities}
+              lineWidth={lineWidth}
               logScale={logScale}
               markerSize={markerSize}
               markerType={markerType}
@@ -191,6 +221,7 @@ export function Dashboard({ data }: Props) {
               activeCommodity={activeCommodity}
               alphaLevel={alphaLevel}
               chartType={chartType}
+              lineWidth={lineWidth}
               logScale={logScale}
               markerSize={markerSize}
               markerType={markerType}
@@ -205,4 +236,8 @@ export function Dashboard({ data }: Props) {
       </section>
     </main>
   );
+}
+
+function defaultLineWidth(markerType: MarkerType, markerSize: number) {
+  return markerType === "none" ? DEFAULT_LINE_WIDTH : Math.round(markerSize * 25) / 100;
 }

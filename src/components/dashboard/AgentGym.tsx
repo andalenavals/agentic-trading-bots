@@ -34,6 +34,7 @@ type Props = {
   agentGym: AgentGymData;
   chartType: ChartType;
   commodities: Commodity[];
+  lineWidth: number;
   logScale: boolean;
   markerSize: number;
   markerType: MarkerType;
@@ -61,6 +62,7 @@ export function AgentGym({
   agentGym,
   chartType,
   commodities,
+  lineWidth,
   logScale,
   markerSize,
   markerType,
@@ -234,9 +236,9 @@ export function AgentGym({
                   {chartType === "bar" ? (
                     <Bar dataKey="price" fill={activeCommodity.colorHex} opacity={0.62} radius={[3, 3, 0, 0]} />
                   ) : chartType === "area" ? (
-                    <Area dataKey="price" dot={false} fill={`${activeCommodity.colorHex}22`} stroke={activeCommodity.colorHex} strokeWidth={2} type="monotone" />
+                    <Area dataKey="price" dot={false} fill={`${activeCommodity.colorHex}22`} stroke={activeCommodity.colorHex} strokeWidth={lineWidth} type="monotone" />
                   ) : (
-                    <Line dataKey="price" dot={false} stroke={activeCommodity.colorHex} strokeWidth={2} type="monotone" />
+                    <Line dataKey="price" dot={false} stroke={activeCommodity.colorHex} strokeWidth={lineWidth} type="monotone" />
                   )}
                   {testStart ? (
                     <ReferenceLine

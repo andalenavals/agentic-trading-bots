@@ -25,6 +25,7 @@ type Props = {
   alphaLevel: number;
   chartType: ChartType;
   commodity: Commodity;
+  lineWidth: number;
   markerSize: number;
   markerType: MarkerType;
   points: SentimentPoint[];
@@ -52,6 +53,7 @@ export function SentimentChart({
   alphaLevel,
   chartType,
   commodity,
+  lineWidth,
   markerSize,
   markerType,
   onXRangeChange,
@@ -184,9 +186,9 @@ export function SentimentChart({
               {chartType === "bar" ? (
                 <Bar dataKey="value" fill={commodity.colorHex} opacity={0.78} radius={[3, 3, 0, 0]} />
               ) : chartType === "line" ? (
-                <Line dataKey="value" dot={false} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
+                <Line dataKey="value" dot={false} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
               ) : (
-                <Area dataKey="value" dot={false} fill={`url(#sentiment-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
+                <Area dataKey="value" dot={false} fill={`url(#sentiment-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
               )}
               {markerType === "none" ? null : (
                 <Scatter

@@ -27,6 +27,7 @@ type Props = {
   chartType: ChartType;
   commodity: Commodity;
   embedded?: boolean;
+  lineWidth: number;
   logScale: boolean;
   markerSize: number;
   markerType: MarkerType;
@@ -49,6 +50,7 @@ export function PriceChart({
   chartType,
   commodity,
   embedded = false,
+  lineWidth,
   logScale,
   markerSize,
   markerType,
@@ -165,9 +167,9 @@ export function PriceChart({
               {chartType === "bar" ? (
                 <Bar dataKey="price" fill={commodity.colorHex} opacity={0.78} radius={[3, 3, 0, 0]} />
               ) : chartType === "line" ? (
-                <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
+                <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
               ) : (
-                <Area dataKey="price" dot={false} fill={`url(#price-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={2} type="monotone" />
+                <Area dataKey="price" dot={false} fill={`url(#price-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
               )}
               {markerType === "none" ? null : (
                 <Scatter
