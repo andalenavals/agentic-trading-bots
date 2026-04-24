@@ -83,11 +83,9 @@ function predictionSource(
   const observedMatch = file.match(/^full_dataset_predictions_([a-z_]+)_split_(\d+)\.csv$/);
   if (!observedMatch) return [];
   const evaluationMode: PredictionEvaluationMode =
-    model === "ar1_baseline"
-      ? "recursive_path"
-      : isDirectMultiHorizonModel(model)
-        ? "direct_multi_horizon"
-        : "observed_history";
+    isDirectMultiHorizonModel(model)
+      ? "direct_multi_horizon"
+      : "observed_history";
 
   return [{
     model,

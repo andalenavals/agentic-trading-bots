@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from agentic_trading.prediction_features import OBSERVED_HISTORY, RECURSIVE_PATH
 from agentic_trading.pipeline_common import (
     load_json_config,
     read_csv_rows,
@@ -20,6 +21,8 @@ REQUIRED_CONFIG_KEYS = {
     "output_dir",
     "n_splits",
 }
+
+
 def fit_trend_slope(train_prices: list[float]) -> float:
     if len(train_prices) < 2:
         return 0.0
@@ -36,10 +39,19 @@ def fit_trend_slope(train_prices: list[float]) -> float:
     return covariance / variance_x
 
 
-def generate_full_predictions(rows: list[dict[str, str]], split: int, train_end: int) -> list[dict[str, object]]:
+def generate_full_predictions(
+    rows: list[dict[str, str]],
+    split: int,
+    train_end: int,
+    evaluation_mode: str = OBSERVED_HISTORY,
+) -> list[dict[str, object]]:
     prices = [to_number(row.get("price", "")) for row in rows]
     anchor_price = prices[train_end - 1] if train_end > 0 else 0.0
     slope = fit_trend_slope(prices[:train_end])
+    if evaluation_mode not in {OBSERVED_HISTORY, RECURSIVE_PATH}:
+        raise ValueError(f"Unsupported evaluation_mode {evaluation_mode!r}.")
+
+    recursive_previous_price = anchor_price
     generated: list[dict[str, object]] = []
 
     for index, row in enumerate(rows):
@@ -51,8 +63,11 @@ def generate_full_predictions(rows: list[dict[str, str]], split: int, train_end:
         beta = slope
 
         if phase == "test":
-            horizon = index - (train_end - 1)
-            predicted_price = anchor_price + slope * horizon
+            if evaluation_mode == OBSERVED_HISTORY:
+                predicted_price = prices[index - 1] + slope
+            else:
+                predicted_price = recursive_previous_price + slope
+                recursive_previous_price = predicted_price
             error = predicted_price - prices[index]
             absolute_error = abs(error)
 
@@ -87,10 +102,38 @@ def run(config_path: str) -> None:
 
         commodity = rows[0].get("commodity", input_file.stem)
         for split, train_end in walk_forward_boundaries(len(rows), int(config["n_splits"])):
-            full_predictions = generate_full_predictions(rows, split, train_end)
+            observed_predictions = generate_full_predictions(
+                rows,
+                split,
+                train_end,
+                evaluation_mode=OBSERVED_HISTORY,
+            )
             write_csv_rows(
                 output_dir / f"full_dataset_predictions_{commodity}_split_{split}.csv",
-                full_predictions,
+                observed_predictions,
+                [
+                    "date",
+                    "commodity",
+                    "dataset_index",
+                    "split",
+                    "phase",
+                    "price",
+                    "predicted_price",
+                    "error",
+                    "absolute_error",
+                    "alpha",
+                    "beta",
+                ],
+            )
+            recursive_predictions = generate_full_predictions(
+                rows,
+                split,
+                train_end,
+                evaluation_mode=RECURSIVE_PATH,
+            )
+            write_csv_rows(
+                output_dir / f"full_dataset_predictions_{commodity}_split_{split}_{RECURSIVE_PATH}.csv",
+                recursive_predictions,
                 [
                     "date",
                     "commodity",

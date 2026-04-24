@@ -70,6 +70,43 @@ class PipelineCommonTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "missing required columns"):
                 run_baseline_predictions(str(config_path))
 
+    def test_baseline_runner_writes_observed_and_recursive_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_csv = root / "commodity.csv"
+            output_dir = root / "predictions"
+            config_path = root / "baseline.json"
+
+            input_csv.write_text(
+                "\n".join(
+                    [
+                        "date,commodity,price",
+                        "2026-01-01,copper_lme,100",
+                        "2026-01-02,copper_lme,101",
+                        "2026-01-03,copper_lme,103",
+                        "2026-01-04,copper_lme,104",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            config_path.write_text(
+                "\n".join(
+                    [
+                        "{",
+                        f'  "input_csv": "{input_csv}",',
+                        f'  "output_dir": "{output_dir}",',
+                        '  "n_splits": 1',
+                        "}",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            run_baseline_predictions(str(config_path))
+
+            self.assertTrue((output_dir / "full_dataset_predictions_copper_lme_split_1.csv").exists())
+            self.assertTrue((output_dir / "full_dataset_predictions_copper_lme_split_1_recursive_path.csv").exists())
+
     def test_ridge_prediction_config_requires_sentiment_columns_when_enabled(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

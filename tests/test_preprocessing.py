@@ -96,20 +96,23 @@ class PreprocessingTest(unittest.TestCase):
             {"date": "2026-01-06", "commodity": "copper_lme", "price": "106"},
         ]
 
-        generated = generate_full_predictions(rows, split=1, train_end=3)
+        observed = generate_full_predictions(rows, split=1, train_end=3, evaluation_mode="observed_history")
+        recursive = generate_full_predictions(rows, split=1, train_end=3, evaluation_mode="recursive_path")
 
-        self.assertEqual(len(generated), len(rows))
-        self.assertEqual(generated[0]["phase"], "train")
-        self.assertEqual(generated[3]["phase"], "test")
-        self.assertEqual(generated[2]["predicted_price"], "")
-        self.assertNotEqual(generated[3]["predicted_price"], "")
-        self.assertNotEqual(generated[4]["error"], "")
-        first_pred = float(generated[3]["predicted_price"])
-        second_pred = float(generated[4]["predicted_price"])
-        anchor = float(generated[4]["alpha"])
-        slope = float(generated[4]["beta"])
+        self.assertEqual(len(observed), len(rows))
+        self.assertEqual(observed[0]["phase"], "train")
+        self.assertEqual(observed[3]["phase"], "test")
+        self.assertEqual(observed[2]["predicted_price"], "")
+        self.assertNotEqual(observed[3]["predicted_price"], "")
+        self.assertNotEqual(observed[4]["error"], "")
+        first_pred = float(recursive[3]["predicted_price"])
+        second_pred = float(recursive[4]["predicted_price"])
+        anchor = float(recursive[4]["alpha"])
+        slope = float(recursive[4]["beta"])
         self.assertAlmostEqual(first_pred, anchor + slope)
         self.assertAlmostEqual(second_pred, anchor + 2 * slope)
+        self.assertAlmostEqual(float(observed[3]["predicted_price"]), float(recursive[3]["predicted_price"]))
+        self.assertNotEqual(observed[4]["predicted_price"], recursive[4]["predicted_price"])
 
     def test_ridge_arx_generates_pointwise_test_forecasts(self) -> None:
         rows = []

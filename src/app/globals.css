@@ -722,10 +722,17 @@ h1 {
 }
 
 .prediction-subpanel-tabs {
-  border-top: 1px solid var(--line);
   display: flex;
   justify-content: flex-start;
-  padding: 14px var(--panel-gutter) 0;
+  margin-top: -1px;
+  padding: 0 var(--panel-gutter);
+  position: relative;
+  z-index: 1;
+}
+
+.prediction-subpanel-tabs .segmented {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .prediction-subpanel {

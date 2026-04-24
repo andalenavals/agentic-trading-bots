@@ -96,7 +96,7 @@ export function PredictionChart({
         .filter((point) => point.model === activeModel && point.commodity === activeCommodity)
         .map((point) => point.evaluationMode),
     );
-    return modes.size ? Array.from(modes).sort() as PredictionEvaluationMode[] : [activeModel === "ar1_baseline" ? "recursive_path" : "observed_history"];
+    return modes.size ? Array.from(modes).sort() as PredictionEvaluationMode[] : [isDirectModel(activeModel) ? "direct_multi_horizon" : "observed_history"];
   }, [activeCommodity, activeModel, predictionChart.points]);
   const activeEvaluationMode = availableModes.includes(evaluationMode) ? evaluationMode : availableModes[0];
 
@@ -407,6 +407,10 @@ function modelLabel(model: PredictionModelKind) {
   if (model === "ridge_arx_sentiment") return "Ridge ARX (Price + sentiment)";
   if (model === "ridge_arx_price_only") return "Ridge ARX (Price only)";
   return "Trend baseline";
+}
+
+function isDirectModel(model: PredictionModelKind) {
+  return model === "lightgbm_direct_sentiment" || model === "lightgbm_direct_price_only";
 }
 
 function evaluationModeLabel(mode: PredictionEvaluationMode) {
