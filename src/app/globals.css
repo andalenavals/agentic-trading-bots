@@ -605,17 +605,9 @@ h1 {
   text-transform: uppercase;
 }
 
-.agent-gym {
-  background: rgba(19, 23, 34, 0.72);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
+.agent-gym,
 .sentiment-panel {
-  background: rgba(19, 23, 34, 0.72);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  display: block;
   overflow: hidden;
 }
 
@@ -648,6 +640,7 @@ h1 {
 }
 
 .sentiment-state {
+  border-top: 1px solid var(--line);
   display: grid;
   gap: 14px;
   padding: 18px var(--panel-gutter);
@@ -689,15 +682,13 @@ h1 {
   padding: 0 18px 18px;
 }
 
-.gym-stack {
-  display: grid;
-  gap: 18px;
-  padding: 0 var(--panel-gutter) 18px;
-}
-
 .gym-chart,
 .gym-side {
   overflow: hidden;
+}
+
+.gym-chart {
+  display: block;
 }
 
 .gym-inline-head {
@@ -787,6 +778,13 @@ h1 {
 
 .empty-state code {
   color: var(--gold);
+}
+
+.chart-detail-panel {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 14px;
+  padding: 18px var(--panel-gutter);
 }
 
 @media (max-width: 980px) {

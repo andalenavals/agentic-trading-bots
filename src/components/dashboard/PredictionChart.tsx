@@ -211,112 +211,107 @@ export function PredictionChart({
           </select>
         </Control>
       </div>
-
-      <div className="gym-stack">
-        <div className="panel gym-chart">
-          <ChartGestureSurface
-            className="chart-box"
-            style={{ height: 390 }}
-            onClick={selectFromSurfaceClick}
-            xLength={displayedPoints.length}
-            xRange={xDomain}
-            onXChange={(nextRange) => onSharedXRangeChange(nextRange, displayedPoints.length)}
-          >
-            {displayedPoints.length === 0 ? (
-              <div className="empty-state">
-                <h3>No predictions generated yet</h3>
-                <p>
-                  Run <code>npm run predict:ridge</code> or <code>npm run predict:baseline</code> to generate forecast files under{" "}
-                  <code>data/prediction_outputs</code>.
-                </p>
-              </div>
-            ) : mounted ? (
-              <ResponsiveContainer height="100%" width="100%">
-                <ComposedChart
-                  data={displayedPoints}
-                  margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
-                  onClick={(event) => selectPoint(pointFromChartEvent(event as ChartClickEvent | undefined))}
-                >
-                  <CartesianGrid stroke="#252b3a" vertical={false} />
-                  <XAxis
-                    allowDataOverflow
-                    axisLine={false}
-                    dataKey="x"
-                    domain={[xDomain.start, xDomain.end]}
-                    tick={{ fill: "#697185", fontSize: 11 }}
-                    tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
-                    tickLine={false}
-                    ticks={ticks}
-                    type="number"
+      <ChartGestureSurface
+        className="chart-box gym-chart"
+        style={{ height: 390 }}
+        onClick={selectFromSurfaceClick}
+        xLength={displayedPoints.length}
+        xRange={xDomain}
+        onXChange={(nextRange) => onSharedXRangeChange(nextRange, displayedPoints.length)}
+      >
+        {displayedPoints.length === 0 ? (
+          <div className="empty-state">
+            <h3>No predictions generated yet</h3>
+            <p>
+              Run <code>npm run predict:ridge</code> or <code>npm run predict:baseline</code> to generate forecast files under{" "}
+              <code>data/prediction_outputs</code>.
+            </p>
+          </div>
+        ) : mounted ? (
+          <ResponsiveContainer height="100%" width="100%">
+            <ComposedChart
+              data={displayedPoints}
+              margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
+              onClick={(event) => selectPoint(pointFromChartEvent(event as ChartClickEvent | undefined))}
+            >
+              <CartesianGrid stroke="#252b3a" vertical={false} />
+              <XAxis
+                allowDataOverflow
+                axisLine={false}
+                dataKey="x"
+                domain={[xDomain.start, xDomain.end]}
+                tick={{ fill: "#697185", fontSize: 11 }}
+                tickFormatter={(value) => displayedPoints[Math.round(Number(value))]?.label ?? ""}
+                tickLine={false}
+                ticks={ticks}
+                type="number"
+              />
+              <YAxis
+                allowDataOverflow
+                axisLine={false}
+                domain={[visibleYRange.min, visibleYRange.max]}
+                scale={logScale ? "log" : "auto"}
+                tick={{ fill: "#697185", fontSize: 11 }}
+                tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
+                tickLine={false}
+                width={PRICE_AXIS_WIDTH}
+              />
+              {markersOnly ? null : chartType === "bar" ? (
+                <Bar dataKey="price" fill={commodity.colorHex} opacity={0.42} radius={[3, 3, 0, 0]} />
+              ) : chartType === "area" ? (
+                <Area
+                  dataKey="price"
+                  dot={false}
+                  fill={`${commodity.colorHex}22`}
+                  fillOpacity={0.45}
+                  stroke={commodity.colorHex}
+                  strokeOpacity={0.62}
+                  strokeWidth={lineWidth}
+                  type="monotone"
+                />
+              ) : (
+                <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeOpacity={0.62} strokeWidth={lineWidth} type="monotone" />
+              )}
+              {markersOnly ? null : (
+                <Line
+                  connectNulls={false}
+                  dataKey="predictedPrice"
+                  dot={false}
+                  isAnimationActive={false}
+                  stroke={PREDICTION_COLOR}
+                  strokeDasharray="6 4"
+                  strokeWidth={lineWidth}
+                  type="monotone"
+                />
+              )}
+              {testStart ? (
+                <ReferenceLine
+                  ifOverflow="extendDomain"
+                  label={{ fill: "#b6bdcf", fontSize: 11, position: "insideTopRight", value: "test" }}
+                  stroke="#f6c85f"
+                  strokeDasharray="5 5"
+                  x={testStart.x}
+                />
+              ) : null}
+              {markersOnly ? (
+                <>
+                  <Scatter
+                    data={displayedPoints}
+                    dataKey="price"
+                    shape={<SeriesMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
                   />
-                  <YAxis
-                    allowDataOverflow
-                    axisLine={false}
-                    domain={[visibleYRange.min, visibleYRange.max]}
-                    scale={logScale ? "log" : "auto"}
-                    tick={{ fill: "#697185", fontSize: 11 }}
-                    tickFormatter={(value) => `$${(Number(value) / 1000).toFixed(1)}k`}
-                    tickLine={false}
-                    width={PRICE_AXIS_WIDTH}
+                  <Scatter
+                    data={displayedPoints.filter((point) => point.predictedPrice !== null)}
+                    dataKey="predictedPrice"
+                    shape={<SeriesMarker alphaLevel={alphaLevel} color={PREDICTION_COLOR} markerSize={markerSize} markerType={markerType} />}
                   />
-                  {markersOnly ? null : chartType === "bar" ? (
-                    <Bar dataKey="price" fill={commodity.colorHex} opacity={0.42} radius={[3, 3, 0, 0]} />
-                  ) : chartType === "area" ? (
-                    <Area
-                      dataKey="price"
-                      dot={false}
-                      fill={`${commodity.colorHex}22`}
-                      fillOpacity={0.45}
-                      stroke={commodity.colorHex}
-                      strokeOpacity={0.62}
-                      strokeWidth={lineWidth}
-                      type="monotone"
-                    />
-                  ) : (
-                    <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeOpacity={0.62} strokeWidth={lineWidth} type="monotone" />
-                  )}
-                  {markersOnly ? null : (
-                    <Line
-                      connectNulls={false}
-                      dataKey="predictedPrice"
-                      dot={false}
-                      isAnimationActive={false}
-                      stroke={PREDICTION_COLOR}
-                      strokeDasharray="6 4"
-                      strokeWidth={lineWidth}
-                      type="monotone"
-                    />
-                  )}
-                  {testStart ? (
-                    <ReferenceLine
-                      ifOverflow="extendDomain"
-                      label={{ fill: "#b6bdcf", fontSize: 11, position: "insideTopRight", value: "test" }}
-                      stroke="#f6c85f"
-                      strokeDasharray="5 5"
-                      x={testStart.x}
-                    />
-                  ) : null}
-                  {markersOnly ? (
-                    <>
-                      <Scatter
-                        data={displayedPoints}
-                        dataKey="price"
-                        shape={<SeriesMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
-                      />
-                      <Scatter
-                        data={displayedPoints.filter((point) => point.predictedPrice !== null)}
-                        dataKey="predictedPrice"
-                        shape={<SeriesMarker alphaLevel={alphaLevel} color={PREDICTION_COLOR} markerSize={markerSize} markerType={markerType} />}
-                      />
-                    </>
-                  ) : null}
-                </ComposedChart>
-              </ResponsiveContainer>
-            ) : null}
-          </ChartGestureSurface>
-          {selectedPoint && selectedPoint.predictedPrice !== null ? <PredictionPointState model={activeModel} point={selectedPoint} /> : null}
-        </div>
-      </div>
+                </>
+              ) : null}
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : null}
+      </ChartGestureSurface>
+      {selectedPoint && selectedPoint.predictedPrice !== null ? <PredictionPointState model={activeModel} point={selectedPoint} /> : null}
     </section>
   );
 }
@@ -333,7 +328,7 @@ function Control({ label, children }: { label: string; children: React.ReactNode
 function PredictionPointState({ model, point }: { model: PredictionModelKind; point: PredictionChartPoint }) {
   const isArxModel = model === "ridge_arx_price_only" || model === "ridge_arx_sentiment";
   return (
-    <div style={{ display: "grid", gap: 14, padding: 18 }}>
+    <div className="chart-detail-panel">
       <div className="bot-state-hero">
         <span className="source">{new Date(point.date).toLocaleDateString()}</span>
         <strong style={{ color: PREDICTION_COLOR }}>
