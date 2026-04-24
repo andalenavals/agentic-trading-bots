@@ -748,6 +748,7 @@ h1 {
 
 .chart-drawer-tabs.compact-right {
   justify-content: flex-end;
+  padding-right: 0;
 }
 
 .chart-drawer-handle {
@@ -769,7 +770,6 @@ h1 {
   border-top: 0;
   border-radius: 0 0 7px 7px;
   gap: 8px;
-  margin-right: -1px;
   padding: 6px 10px;
   width: auto;
 }
