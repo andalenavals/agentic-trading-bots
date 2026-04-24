@@ -3,6 +3,8 @@ import lightgbmDirectPriceOnlyConfig from "../../configs/predictions/lightgbm_di
 import lightgbmDirectSentimentConfig from "../../configs/predictions/lightgbm_direct_sentiment.json";
 import lightgbmPriceOnlyConfig from "../../configs/predictions/lightgbm_price_only.json";
 import lightgbmSentimentConfig from "../../configs/predictions/lightgbm_sentiment.json";
+import lstmPriceOnlyConfig from "../../configs/predictions/lstm_price_only.json";
+import lstmSentimentConfig from "../../configs/predictions/lstm_sentiment.json";
 import ridgeArxPriceOnlyConfig from "../../configs/predictions/ridge_arx_price_only.json";
 import ridgeArxSentimentConfig from "../../configs/predictions/ridge_arx_sentiment.json";
 import type { PredictionEvaluationMode, PredictionModelKind } from "@/lib/types";
@@ -21,6 +23,13 @@ type PredictionConfig = {
   bagging_fraction?: number;
   bagging_freq?: number;
   lambda_l2?: number;
+  sequence_length?: number;
+  hidden_size?: number;
+  num_layers?: number;
+  dropout?: number;
+  epochs?: number;
+  weight_decay?: number;
+  batch_size?: number;
   seed?: number;
 };
 
@@ -36,6 +45,8 @@ export type PredictionModelInfo = {
 
 const MODEL_CONFIGS: Record<PredictionModelKind, PredictionConfig> = {
   ar1_baseline: ar1BaselineConfig,
+  lstm_price_only: lstmPriceOnlyConfig,
+  lstm_sentiment: lstmSentimentConfig,
   ridge_arx_price_only: ridgeArxPriceOnlyConfig,
   ridge_arx_sentiment: ridgeArxSentimentConfig,
   lightgbm_price_only: lightgbmPriceOnlyConfig,
@@ -70,6 +81,16 @@ export function predictionModelInfo(model: PredictionModelKind): PredictionModel
         hyperparameter("Windows", formatList(config.windows)),
         hyperparameter("Sentiment inputs", formatToggle(config.include_sentiment_features)),
       ],
+    };
+  }
+
+  if (model === "lstm_price_only" || model === "lstm_sentiment") {
+    return {
+      theory:
+        model === "lstm_sentiment"
+          ? "Sequence LSTM for one-step return forecasts using lagged price states plus sentiment and news context across the recent window."
+          : "Sequence LSTM for one-step return forecasts using lagged price and rolling-return context across the recent window.",
+      hyperparameters: lstmHyperparameters(config),
     };
   }
 
@@ -113,6 +134,23 @@ function lightgbmHyperparameters(config: PredictionConfig): PredictionHyperparam
     hyperparameter("Feature fraction", formatScalar(config.feature_fraction)),
     hyperparameter("Bagging", formatBagging(config)),
     hyperparameter("L2", formatScalar(config.lambda_l2)),
+    hyperparameter("Sentiment inputs", formatToggle(config.include_sentiment_features)),
+    hyperparameter("Seed", formatScalar(config.seed)),
+  ];
+}
+
+function lstmHyperparameters(config: PredictionConfig): PredictionHyperparameter[] {
+  return [
+    hyperparameter("Sequence length", formatScalar(config.sequence_length)),
+    hyperparameter("Hidden size", formatScalar(config.hidden_size)),
+    hyperparameter("Layers", formatScalar(config.num_layers)),
+    hyperparameter("Dropout", formatScalar(config.dropout)),
+    hyperparameter("Epochs", formatScalar(config.epochs)),
+    hyperparameter("Learning rate", formatScalar(config.learning_rate)),
+    hyperparameter("Batch size", formatScalar(config.batch_size)),
+    hyperparameter("Weight decay", formatScalar(config.weight_decay)),
+    hyperparameter("Lags", formatList(config.lags)),
+    hyperparameter("Windows", formatList(config.windows)),
     hyperparameter("Sentiment inputs", formatToggle(config.include_sentiment_features)),
     hyperparameter("Seed", formatScalar(config.seed)),
   ];

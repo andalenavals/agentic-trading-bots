@@ -48,6 +48,7 @@ agentic-trading-bots/
 │   ├── prediction_ridge_arx.py  # Ridge ARX forecast generator
 │   ├── prediction_lightgbm.py   # LightGBM forecast generator
 │   ├── prediction_lightgbm_direct.py # Direct multi-horizon LightGBM generator
+│   ├── prediction_lstm.py       # LSTM forecast generator
 │   └── training/                # PPO training modules
 ├── configs/
 │   ├── preprocessing/
@@ -103,6 +104,7 @@ npm run predict:baseline
 npm run predict:ridge
 npm run predict:lightgbm
 npm run predict:lightgbm:direct
+npm run predict:lstm
 ```
 
 Checks:
@@ -142,6 +144,8 @@ The predictions layer currently includes:
 * LightGBM with price + sentiment features
 * Direct multi-horizon LightGBM with price-only features
 * Direct multi-horizon LightGBM with price + sentiment features
+* LSTM with price-only features
+* LSTM with price + sentiment features
 
 Ridge ARX and one-step LightGBM support two evaluation modes in the app:
 

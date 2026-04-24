@@ -7,6 +7,8 @@ import type { PredictionChartData, PredictionEvaluationMode, PredictionPoint } f
 
 const PREDICTION_MODELS = [
   "ar1_baseline",
+  "lstm_price_only",
+  "lstm_sentiment",
   "lightgbm_direct_price_only",
   "lightgbm_direct_sentiment",
   "ridge_arx_price_only",

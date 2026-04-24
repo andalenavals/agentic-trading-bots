@@ -1,0 +1,17 @@
+{
+  "input_csv": "data/training/commodity_outputs/*.csv",
+  "output_dir": "data/prediction_outputs/lstm_sentiment",
+  "n_splits": 3,
+  "sequence_length": 12,
+  "hidden_size": 24,
+  "num_layers": 1,
+  "dropout": 0.0,
+  "epochs": 180,
+  "learning_rate": 0.01,
+  "weight_decay": 0.0001,
+  "batch_size": 16,
+  "lags": [1, 2, 5, 10],
+  "windows": [5, 20],
+  "include_sentiment_features": true,
+  "seed": 7
+}

@@ -103,6 +103,8 @@ export type AgentGymData = {
 
 export type PredictionModelKind =
   | "ar1_baseline"
+  | "lstm_price_only"
+  | "lstm_sentiment"
   | "ridge_arx_price_only"
   | "ridge_arx_sentiment"
   | "lightgbm_direct_price_only"

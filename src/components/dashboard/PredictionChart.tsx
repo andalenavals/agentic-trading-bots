@@ -51,6 +51,8 @@ type PredictionChartPoint = PredictionPoint & {
 
 const PREDICTION_COLOR = "#f6c85f";
 const MODEL_ORDER: PredictionModelKind[] = [
+  "lstm_sentiment",
+  "lstm_price_only",
   "lightgbm_direct_sentiment",
   "lightgbm_direct_price_only",
   "lightgbm_sentiment",
@@ -78,7 +80,7 @@ export function PredictionChart({
 }: Props) {
   const mounted = useClientMounted();
   const showMarkers = markerType !== "none";
-  const [model, setModel] = useState<PredictionModelKind>("ridge_arx_sentiment");
+  const [model, setModel] = useState<PredictionModelKind>("lstm_sentiment");
   const [evaluationMode, setEvaluationMode] = useState<PredictionEvaluationMode>("observed_history");
   const [split, setSplit] = useState(1);
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
@@ -200,6 +202,9 @@ export function PredictionChart({
               <p>
                 Run <code>npm run predict:lightgbm:direct</code>, <code>npm run predict:lightgbm</code>, <code>npm run predict:ridge</code>, or <code>npm run predict:baseline</code> to generate forecast files under{" "}
                 <code>data/prediction_outputs</code>.
+              </p>
+              <p>
+                The LSTM family uses <code>npm run predict:lstm</code>.
               </p>
             </div>
           ) : mounted ? (
@@ -396,6 +401,8 @@ function PredictionPointState({ model, point }: { model: PredictionModelKind; po
 }
 
 function modelLabel(model: PredictionModelKind) {
+  if (model === "lstm_sentiment") return "LSTM (Price + sentiment)";
+  if (model === "lstm_price_only") return "LSTM (Price only)";
   if (model === "lightgbm_direct_sentiment") return "LightGBM Direct (Price + sentiment)";
   if (model === "lightgbm_direct_price_only") return "LightGBM Direct (Price only)";
   if (model === "lightgbm_sentiment") return "LightGBM (Price + sentiment)";
@@ -431,6 +438,13 @@ function formatSigned(value: number | null) {
 }
 
 function modelMetadata(model: PredictionModelKind, point: PredictionChartPoint) {
+  if (model === "lstm_price_only" || model === "lstm_sentiment") {
+    return [
+      { label: "Epochs", value: String(Math.round(point.alpha)) },
+      { label: "Hidden size", value: String(Math.round(point.beta)) },
+    ];
+  }
+
   if (model === "ridge_arx_price_only" || model === "ridge_arx_sentiment") {
     return [
       { label: "Intercept", value: point.alpha.toFixed(6) },
