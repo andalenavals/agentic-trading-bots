@@ -257,20 +257,21 @@ export function PredictionChart({
                 width={PRICE_AXIS_WIDTH}
               />
               {markersOnly ? null : chartType === "bar" ? (
-                <Bar dataKey="price" fill={commodity.colorHex} opacity={0.42} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="price" fill={commodity.colorHex} isAnimationActive={false} opacity={0.42} radius={[3, 3, 0, 0]} />
               ) : chartType === "area" ? (
                 <Area
                   dataKey="price"
                   dot={false}
                   fill={`${commodity.colorHex}22`}
                   fillOpacity={0.45}
+                  isAnimationActive={false}
                   stroke={commodity.colorHex}
                   strokeOpacity={0.62}
                   strokeWidth={lineWidth}
                   type="monotone"
                 />
               ) : (
-                <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeOpacity={0.62} strokeWidth={lineWidth} type="monotone" />
+                <Line dataKey="price" dot={false} isAnimationActive={false} stroke={commodity.colorHex} strokeOpacity={0.62} strokeWidth={lineWidth} type="monotone" />
               )}
               {markersOnly ? null : (
                 <Line
@@ -298,11 +299,13 @@ export function PredictionChart({
                   <Scatter
                     data={displayedPoints}
                     dataKey="price"
+                    isAnimationActive={false}
                     shape={<SeriesMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
                   />
                   <Scatter
                     data={displayedPoints.filter((point) => point.predictedPrice !== null)}
                     dataKey="predictedPrice"
+                    isAnimationActive={false}
                     shape={<SeriesMarker alphaLevel={alphaLevel} color={PREDICTION_COLOR} markerSize={markerSize} markerType={markerType} />}
                   />
                 </>

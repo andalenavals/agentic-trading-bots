@@ -235,11 +235,11 @@ export function AgentGym({
                 width={PRICE_AXIS_WIDTH}
               />
               {chartType === "bar" ? (
-                <Bar dataKey="price" fill={activeCommodity.colorHex} opacity={0.62} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="price" fill={activeCommodity.colorHex} isAnimationActive={false} opacity={0.62} radius={[3, 3, 0, 0]} />
               ) : chartType === "area" ? (
-                <Area dataKey="price" dot={false} fill={`${activeCommodity.colorHex}22`} stroke={activeCommodity.colorHex} strokeWidth={lineWidth} type="monotone" />
+                <Area dataKey="price" dot={false} fill={`${activeCommodity.colorHex}22`} isAnimationActive={false} stroke={activeCommodity.colorHex} strokeWidth={lineWidth} type="monotone" />
               ) : (
-                <Line dataKey="price" dot={false} stroke={activeCommodity.colorHex} strokeWidth={lineWidth} type="monotone" />
+                <Line dataKey="price" dot={false} isAnimationActive={false} stroke={activeCommodity.colorHex} strokeWidth={lineWidth} type="monotone" />
               )}
               {testStart ? (
                 <ReferenceLine
@@ -256,6 +256,7 @@ export function AgentGym({
                     <Scatter
                       data={displayedPoints.filter((point) => point.actionName === actionName)}
                       dataKey="price"
+                      isAnimationActive={false}
                       key={actionName}
                       shape={<DecisionDot alphaLevel={alphaLevel} markerSize={markerSize} markerType={markerType} />}
                     />

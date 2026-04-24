@@ -169,16 +169,17 @@ export function PriceChart({
               />
               <ReferenceLine stroke="#394153" strokeDasharray="4 4" y={signal.average} />
               {chartType === "bar" ? (
-                <Bar dataKey="price" fill={commodity.colorHex} opacity={0.78} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="price" fill={commodity.colorHex} isAnimationActive={false} opacity={0.78} radius={[3, 3, 0, 0]} />
               ) : chartType === "line" ? (
-                <Line dataKey="price" dot={false} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
+                <Line dataKey="price" dot={false} isAnimationActive={false} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
               ) : (
-                <Area dataKey="price" dot={false} fill={`url(#price-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
+                <Area dataKey="price" dot={false} fill={`url(#price-${commodity.slug})`} isAnimationActive={false} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
               )}
               {markerType === "none" ? null : (
                 <Scatter
                   data={chartData}
                   dataKey="price"
+                  isAnimationActive={false}
                   shape={<PriceMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
                 />
               )}

@@ -188,16 +188,17 @@ export function SentimentChart({
               />
               <ReferenceLine stroke="#394153" strokeDasharray="4 4" y={0} />
               {chartType === "bar" ? (
-                <Bar dataKey="value" fill={commodity.colorHex} opacity={0.78} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="value" fill={commodity.colorHex} isAnimationActive={false} opacity={0.78} radius={[3, 3, 0, 0]} />
               ) : chartType === "line" ? (
-                <Line dataKey="value" dot={false} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
+                <Line dataKey="value" dot={false} isAnimationActive={false} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
               ) : (
-                <Area dataKey="value" dot={false} fill={`url(#sentiment-${commodity.slug})`} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
+                <Area dataKey="value" dot={false} fill={`url(#sentiment-${commodity.slug})`} isAnimationActive={false} stroke={commodity.colorHex} strokeWidth={lineWidth} type="monotone" />
               )}
               {markerType === "none" ? null : (
                 <Scatter
                   data={chartData}
                   dataKey="value"
+                  isAnimationActive={false}
                   shape={<SentimentMarker alphaLevel={alphaLevel} color={commodity.colorHex} markerSize={markerSize} markerType={markerType} />}
                 />
               )}
