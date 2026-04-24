@@ -19,6 +19,8 @@ type Props = {
   data: DashboardData;
 };
 
+type PanelKey = "news" | "sentiment" | "decision" | "predictions";
+
 const MARKET_RANGES = [
   { label: "90D", value: 90 },
   { label: "1Y", value: 365 },
@@ -36,6 +38,12 @@ export function Dashboard({ data }: Props) {
   const [markerType, setMarkerType] = useState<MarkerType>("none");
   const [lineWidth, setLineWidth] = useState(DEFAULT_LINE_WIDTH);
   const [lineWidthAuto, setLineWidthAuto] = useState(true);
+  const [openPanels, setOpenPanels] = useState<Record<PanelKey, boolean>>({
+    decision: false,
+    news: false,
+    predictions: false,
+    sentiment: false,
+  });
   const [alphaLevel, setAlphaLevel] = useState(0.72);
   const [logScale, setLogScale] = useState(false);
   const previousRange = useRef(range);
@@ -99,6 +107,10 @@ export function Dashboard({ data }: Props) {
     setLineWidthAuto(false);
   }
 
+  function handlePanelToggle(panel: PanelKey, open: boolean) {
+    setOpenPanels((current) => (current[panel] === open ? current : { ...current, [panel]: open }));
+  }
+
   function handleViewportChange(nextRange: XRange, animated = false) {
     if (animated) {
       setAnimatedViewport(nextRange, sharedVisibleRange);
@@ -155,83 +167,91 @@ export function Dashboard({ data }: Props) {
           onMarkerTypeChange={handleMarkerTypeChange}
           onRangeChange={setRange}
         />
-        <details className="panel market-panel news-chart-panel">
+        <details className="panel market-panel news-chart-panel" open={openPanels.news} onToggle={(event) => handlePanelToggle("news", event.currentTarget.open)}>
           <summary>News Chart</summary>
-          <div className="news-chart-body">
-            <PriceChart
-              alphaLevel={alphaLevel}
-              chartType={chartType}
-              commodity={activeCommodityMeta}
-              embedded
-              lineWidth={lineWidth}
-              logScale={logScale}
-              markerSize={markerSize}
-              markerType={markerType}
-              onSelectPoint={setSelectedPoint}
-              onXRangeChange={(nextRange) => handleViewportChangeFromChart(nextRange, filteredPoints.length)}
-              points={activePoints}
-              range={range}
-              xRange={sharedXDomain}
-            />
-            <EventFeed commodity={activeCommodityMeta} embedded selectedPoint={selectedPoint} />
-          </div>
+          {openPanels.news ? (
+            <div className="news-chart-body">
+              <PriceChart
+                alphaLevel={alphaLevel}
+                chartType={chartType}
+                commodity={activeCommodityMeta}
+                embedded
+                lineWidth={lineWidth}
+                logScale={logScale}
+                markerSize={markerSize}
+                markerType={markerType}
+                onSelectPoint={setSelectedPoint}
+                onXRangeChange={(nextRange) => handleViewportChangeFromChart(nextRange, filteredPoints.length)}
+                points={activePoints}
+                range={range}
+                xRange={sharedXDomain}
+              />
+              <EventFeed commodity={activeCommodityMeta} embedded selectedPoint={selectedPoint} />
+            </div>
+          ) : null}
         </details>
-        <details className="panel market-panel news-chart-panel decision-chart-panel">
+        <details className="panel market-panel news-chart-panel decision-chart-panel" open={openPanels.sentiment} onToggle={(event) => handlePanelToggle("sentiment", event.currentTarget.open)}>
           <summary>Sentiment Chart</summary>
-          <div className="news-chart-body">
-            <SentimentChart
-              alphaLevel={alphaLevel}
-              chartType={chartType}
-              commodity={activeCommodityMeta}
-              lineWidth={lineWidth}
-              key={activeCommodity}
-              markerSize={markerSize}
-              markerType={markerType}
-              onXRangeChange={(nextRange) => handleViewportChangeFromChart(nextRange, filteredPoints.length)}
-              points={activePoints}
-              range={range}
-              xRange={sharedXDomain}
-            />
-          </div>
+          {openPanels.sentiment ? (
+            <div className="news-chart-body">
+              <SentimentChart
+                alphaLevel={alphaLevel}
+                chartType={chartType}
+                commodity={activeCommodityMeta}
+                lineWidth={lineWidth}
+                key={activeCommodity}
+                markerSize={markerSize}
+                markerType={markerType}
+                onXRangeChange={(nextRange) => handleViewportChangeFromChart(nextRange, filteredPoints.length)}
+                points={activePoints}
+                range={range}
+                xRange={sharedXDomain}
+              />
+            </div>
+          ) : null}
         </details>
-        <details className="panel market-panel news-chart-panel decision-chart-panel">
+        <details className="panel market-panel news-chart-panel decision-chart-panel" open={openPanels.decision} onToggle={(event) => handlePanelToggle("decision", event.currentTarget.open)}>
           <summary>Decision Chart</summary>
-          <div className="news-chart-body">
-            <AgentGym
-              alphaLevel={alphaLevel}
-              activeCommodity={activeCommodity}
-              agentGym={data.agentGym}
-              chartType={chartType}
-              commodities={data.commodities}
-              lineWidth={lineWidth}
-              logScale={logScale}
-              markerSize={markerSize}
-              markerType={markerType}
-              onSharedXRangeChange={handleViewportChangeFromChart}
-              range={range}
-              sharedXRange={sharedXDomain}
-              sharedXRangeLength={filteredPoints.length}
-            />
-          </div>
+          {openPanels.decision ? (
+            <div className="news-chart-body">
+              <AgentGym
+                alphaLevel={alphaLevel}
+                activeCommodity={activeCommodity}
+                agentGym={data.agentGym}
+                chartType={chartType}
+                commodities={data.commodities}
+                lineWidth={lineWidth}
+                logScale={logScale}
+                markerSize={markerSize}
+                markerType={markerType}
+                onSharedXRangeChange={handleViewportChangeFromChart}
+                range={range}
+                sharedXRange={sharedXDomain}
+                sharedXRangeLength={filteredPoints.length}
+              />
+            </div>
+          ) : null}
         </details>
-        <details className="panel market-panel news-chart-panel decision-chart-panel">
+        <details className="panel market-panel news-chart-panel decision-chart-panel" open={openPanels.predictions} onToggle={(event) => handlePanelToggle("predictions", event.currentTarget.open)}>
           <summary>Predictions Chart</summary>
-          <div className="news-chart-body">
-            <PredictionChart
-              activeCommodity={activeCommodity}
-              alphaLevel={alphaLevel}
-              chartType={chartType}
-              lineWidth={lineWidth}
-              logScale={logScale}
-              markerSize={markerSize}
-              markerType={markerType}
-              onSharedXRangeChange={handleViewportChangeFromChart}
-              predictionChart={data.predictionChart}
-              range={range}
-              sharedXRange={sharedXDomain}
-              sharedXRangeLength={filteredPoints.length}
-            />
-          </div>
+          {openPanels.predictions ? (
+            <div className="news-chart-body">
+              <PredictionChart
+                activeCommodity={activeCommodity}
+                alphaLevel={alphaLevel}
+                chartType={chartType}
+                lineWidth={lineWidth}
+                logScale={logScale}
+                markerSize={markerSize}
+                markerType={markerType}
+                onSharedXRangeChange={handleViewportChangeFromChart}
+                predictionChart={data.predictionChart}
+                range={range}
+                sharedXRange={sharedXDomain}
+                sharedXRangeLength={filteredPoints.length}
+              />
+            </div>
+          ) : null}
         </details>
       </section>
     </main>

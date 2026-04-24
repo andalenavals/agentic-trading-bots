@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { normalizeXDomain } from "@/lib/analytics/chart-zoom";
 import type { CSSProperties, MouseEvent, PointerEvent, ReactNode } from "react";
 import type { XRange } from "@/lib/analytics/chart-zoom";
@@ -30,8 +30,17 @@ const CLICK_SUPPRESS_MS = 120;
 
 export function ChartGestureSurface({ children, className, onClick, onXChange, style, xLength, xRange }: Props) {
   const gestureRef = useRef<GestureState | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const pendingRangeRef = useRef<XRange | null>(null);
   const suppressClickUntilRef = useRef(0);
   const [dragging, setDragging] = useState(false);
+
+  useEffect(
+    () => () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    },
+    [],
+  );
 
   function beginGesture(event: PointerEvent<HTMLDivElement>) {
     if (xLength <= 1) return;
@@ -70,7 +79,7 @@ export function ChartGestureSurface({ children, className, onClick, onXChange, s
     if (Math.abs(dx) + Math.abs(dy) > 4) gesture.moved = true;
 
     const pinchRatio = points.length >= 2 && gesture.startDistance > 0 ? distance(points) / gesture.startDistance : 1;
-    onXChange(nextXRange(gesture.startXRange, xLength, bounds.width, dx, pinchRatio));
+    scheduleRangeUpdate(nextXRange(gesture.startXRange, xLength, bounds.width, dx, pinchRatio));
   }
 
   function endGesture(event: PointerEvent<HTMLDivElement>) {
@@ -79,6 +88,7 @@ export function ChartGestureSurface({ children, className, onClick, onXChange, s
 
     if (gesture.moved) suppressClickUntilRef.current = Date.now() + CLICK_SUPPRESS_MS;
     gesture.pointers.delete(event.pointerId);
+    flushPendingRange();
 
     if (gesture.pointers.size === 0) {
       gestureRef.current = null;
@@ -103,6 +113,32 @@ export function ChartGestureSurface({ children, className, onClick, onXChange, s
     }
 
     onClick?.(event);
+  }
+
+  function scheduleRangeUpdate(nextRange: XRange) {
+    pendingRangeRef.current = nextRange;
+    if (frameRef.current !== null) return;
+
+    // Coalesce gesture updates to one chart state update per frame on slower devices.
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null;
+      commitPendingRange();
+    });
+  }
+
+  function flushPendingRange() {
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+    commitPendingRange();
+  }
+
+  function commitPendingRange() {
+    const nextRange = pendingRangeRef.current;
+    if (!nextRange) return;
+    pendingRangeRef.current = null;
+    startTransition(() => onXChange(nextRange));
   }
 
   return (
