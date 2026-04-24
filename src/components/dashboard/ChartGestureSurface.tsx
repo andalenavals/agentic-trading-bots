@@ -152,6 +152,7 @@ export function ChartGestureSurface({ children, className, onClick, onXChange, s
       onPointerUp={endGesture}
     >
       {children}
+      <div aria-hidden="true" className="gesture-hitbox" />
     </div>
   );
 }

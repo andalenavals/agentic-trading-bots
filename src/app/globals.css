@@ -556,6 +556,12 @@ h1 {
   cursor: grabbing;
 }
 
+.gesture-hitbox {
+  inset: 0;
+  position: absolute;
+  z-index: 2;
+}
+
 .panel-foot {
   background: #151923;
   border-top: 1px solid var(--line);
